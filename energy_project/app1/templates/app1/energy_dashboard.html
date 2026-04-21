@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Energy Core · Dashboard</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg1: linear-gradient(135deg, #f5f7fa, #b0c2e7);
+      --bg:      #F4F6FA;
+      --surface: #FFFFFF;
+      --surface2:#F0F3F8;
+      --border:  rgba(0,0,0,0.08);
+      --border2: rgba(0,0,0,0.14);
+      --text1:   #111827;
+      --text2:   #4B5563;
+      --text3:   #9CA3AF;
+      --blue:    #2563EB;
+      --teal:    #059669;
+      --amber:   #D97706;
+      --red:     #DC2626;
+      --ok:      #059669;
+      --warn:    #D97706;
+      --err:     #DC2626;
+      --r8:  8px;
+      --r12: 12px;
+      --r16: 16px;
+      --r20: 20px;
+      --shadow: 0 1px 4px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.04);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+      background: var(--bg1);
+      color: var(--text1);
+      font-size: 14px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .dash { display: flex; flex-direction: column; min-height: 100vh; }
+
+    /* ─── DEMO BAR ─── */
+    .demo-bar {
+      background: #1E293B;
+      padding: 7px 20px;
+      font-size: 11px;
+      color: #94A3B8;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .dbtn {
+      font-size: 11px; padding: 3px 10px;
+      border: 1px solid #334155; border-radius: 4px;
+      background: #0F172A; color: #CBD5E1; cursor: pointer;
+      font-family: inherit; transition: .15s;
+    }
+    .dbtn:hover { background: #334155; color: #fff; }
+
+    /* ─── HEADER ─── */
+    .hdr {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 10;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: linear-gradient(135deg, #2563EB, #059669);
+      display: flex; align-items: center; justify-content: center; font-size: 16px;
+      flex-shrink: 0;
+    }
+    .brand-name { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; color: var(--text1); }
+    .brand-sub  { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+    .hdr-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+    .conn-status {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; font-weight: 500; color: var(--text2);
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .dot.green { background: var(--teal); }
+    .dot.red   { background: var(--red);  animation: blink 1s infinite; }
+    .dot.amber { background: var(--amber);animation: blink 0.7s infinite; }
+
+    .live-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 11px; font-weight: 600; color: var(--teal);
+      padding: 3px 9px; border-radius: 20px;
+      background: rgba(5,150,105,0.1); border: 1px solid rgba(5,150,105,0.25);
+    }
+    .live-dot {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--teal);
+      animation: blink 1.2s ease-in-out infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    .hbtn {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 7px 13px; border-radius: var(--r8);
+      font-size: 12px; font-weight: 500; cursor: pointer;
+      border: 1px solid var(--border2); background: var(--surface);
+      color: var(--text2); font-family: inherit; transition: .15s;
+      white-space: nowrap;
+    }
+    .hbtn:hover { background: var(--surface2); color: var(--text1); }
+    .hbtn.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+    .hbtn.primary:hover { background: #1D4ED8; }
+
+    /* ─── BANNERS ─── */
+    .banner {
+      display: none; padding: 10px 20px; font-size: 12px; font-weight: 500;
+      align-items: center; gap: 10px;
+    }
+    .banner.show { display: flex; }
+    .banner.offline   { background: #FEF2F2; color: var(--red); border-bottom: 1px solid #FECACA; }
+    .banner.reconnect { background: #FFFBEB; color: var(--amber); border-bottom: 1px solid #FDE68A; }
+    .banner.restored  { background: #ECFDF5; color: var(--teal); border-bottom: 1px solid #A7F3D0; }
+    .banner-close { margin-left: auto; background: none; border: none; cursor: pointer; font-size: 16px; color: inherit; opacity: .6; }
+    .banner-close:hover { opacity: 1; }
+
+    /* ─── MAIN ─── */
+    .main {
+      padding: 20px;
+      flex: 1; display: flex; flex-direction: column; gap: 18px;
+      max-width: 1400px; width: 100%; margin: 0 auto;
+    }
+
+    /* ─── FILTER BAR ─── */
+    .fbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .drange { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .dinput {
+      background: var(--surface); border: 1px solid var(--border2);
+      border-radius: var(--r8); padding: 7px 10px;
+      font-size: 12px; color: var(--text1); font-family: inherit;
+      box-shadow: var(--shadow);
+    }
+    .abtn {
+      padding: 7px 14px; border-radius: var(--r8);
+      background: var(--surface); border: 1px solid var(--border2);
+      color: var(--text2); font-size: 12px; cursor: pointer;
+      font-family: inherit; transition: .15s; box-shadow: var(--shadow);
+    }
+    .abtn:hover { background: var(--surface2); color: var(--text1); }
+
+    /* ─── STAT CARDS ─── */
+    .cards { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+    .scard {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r16); padding: 20px;
+      transition: transform .2s, box-shadow .2s;
+      position: relative; overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .scard::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; border-radius: var(--r16) var(--r16) 0 0; }
+    .scard.blue::before  { background: linear-gradient(90deg, #2563EB, #60A5FA); }
+    .scard.teal::before  { background: linear-gradient(90deg, #059669, #34D399); }
+    .scard.amber::before { background: linear-gradient(90deg, #D97706, #FCD34D); }
+    .scard:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    .ctop { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+    .cicon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 17px; }
+    .cicon.blue  { background: #EFF6FF; color: var(--blue); }
+    .cicon.teal  { background: #ECFDF5; color: var(--teal); }
+    .cicon.amber { background: #FFFBEB; color: var(--amber); }
+    .badge { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; }
+    .badge.up { background: #FEF2F2; color: var(--red); }
+    .badge.dn { background: #ECFDF5; color: var(--teal); }
+    .cval { font-size: 28px; font-weight: 700; letter-spacing: -0.03em; color: var(--text1); line-height: 1.1; margin-bottom: 5px; }
+    .cval span { font-size: 15px; font-weight: 400; color: var(--text3); }
+    .clbl { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: .5px; color: var(--text3); }
+
+    /* ─── SECTION TITLE ─── */
+    .live-section-title {
+      font-size: 11px; font-weight: 700; color: var(--text3);
+      text-transform: uppercase; letter-spacing: .7px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .live-section-title::after { content:''; flex:1; height:1px; background: var(--border); }
+
+    /* ─── LIVE GRID ─── */
+    .live-grid { display: grid; grid-template-columns: repeat(6,1fr); gap: 12px; }
+    .live-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r12); padding: 14px;
+      transition: border-color .2s; box-shadow: var(--shadow);
+    }
+    .live-card.stale { border-color: var(--amber); background: #FFFBEB; }
+    .live-card.primary { border-color: rgba(37,99,235,0.3); background: #EFF6FF; }
+    .live-card .lc-label { font-size: 10px; color: var(--text3); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .5px; font-weight: 600; }
+    .live-card .lc-value { font-size: 22px; font-weight: 700; color: var(--text1); line-height: 1; }
+    .live-card.primary .lc-value { color: var(--blue); }
+    .live-card .lc-unit  { font-size: 11px; color: var(--text3); margin-top: 5px; }
+
+    /* ─── MISSING DATA BAR ─── */
+    .missing-bar {
+      display: none; background: #FFFBEB;
+      border: 1px solid #FDE68A; border-radius: var(--r8);
+      padding: 12px 16px; font-size: 12px; color: #92400E;
+    }
+    .missing-bar.show { display: block; }
+    .missing-bar strong { display: block; margin-bottom: 4px; }
+    .gap-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .gap-pill { background: #FDE68A; border-radius: 4px; padding: 2px 10px; font-size: 11px; color: #78350F; }
+
+    /* ─── RECONNECT BOX ─── */
+    .reconnect-box {
+      display: none; background: var(--surface); border: 1px solid #FDE68A;
+      border-radius: var(--r12); padding: 16px 20px; box-shadow: var(--shadow);
+    }
+    .reconnect-box.show { display: block; }
+    .reconnect-box h3 { font-size: 13px; font-weight: 600; margin-bottom: 14px; color: var(--amber); }
+    .steps { display: flex; flex-direction: column; gap: 10px; }
+    .step { display: flex; align-items: center; gap: 12px; font-size: 13px; }
+    .step-icon {
+      width: 24px; height: 24px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; flex-shrink: 0;
+    }
+    .step-icon.done   { background: #ECFDF5; color: var(--teal); }
+    .step-icon.active { background: #FFFBEB; color: var(--amber); animation: blink 0.8s infinite; }
+    .step-icon.wait   { background: var(--surface2); color: var(--text3); }
+    .step-label.done  { color: var(--teal); }
+    .step-label.active{ color: var(--amber); font-weight: 500; }
+    .step-label.wait  { color: var(--text3); }
+
+    /* ─── CHART PANEL ─── */
+    .cpanel {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r16); overflow: hidden; box-shadow: var(--shadow);
+    }
+    .phdr { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 10px; flex-wrap: wrap; gap: 10px; }
+    .ptitle { font-size: 15px; font-weight: 700; color: var(--text1); }
+    .psub { font-size: 12px; color: var(--text3); margin-top: 2px; }
+    .ctabs {
+      display: flex; background: var(--surface2); border-radius: var(--r8);
+      padding: 3px; gap: 2px; border: 1px solid var(--border);
+    }
+    .ctab {
+      padding: 5px 13px; border-radius: 6px; font-size: 12px; font-weight: 500;
+      background: transparent; border: none; cursor: pointer; color: var(--text2);
+      font-family: inherit; transition: .15s;
+    }
+    .ctab.on { background: var(--surface); color: var(--blue); box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-weight: 600; }
+    .cwrap { padding: 4px 16px 20px; height: 240px; position: relative; }
+    .cwrap canvas { height: 100% !important; }
+
+    /* ─── KPI ROW ─── */
+    .kpi-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+    .kpi {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r12); padding: 16px; box-shadow: var(--shadow);
+    }
+    .kpi .klabel { font-size: 10px; color: var(--text3); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .5px; font-weight: 600; }
+    .kpi .kval   { font-size: 20px; font-weight: 700; color: var(--text1); }
+    .kpi .ksub   { font-size: 11px; margin-top: 4px; font-weight: 500; }
+    .up   { color: var(--red); }
+    .down { color: var(--teal); }
+
+    /* ─── BOTTOM ROW ─── */
+    .bottom-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .panel {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r16); padding: 18px 20px; box-shadow: var(--shadow);
+    }
+    .panel-title { font-size: 11px; font-weight: 700; color: var(--text3); margin-bottom: 12px; text-transform: uppercase; letter-spacing: .6px; }
+    .info-list { display: flex; flex-direction: column; }
+    .info-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px;
+    }
+    .info-item:last-child { border-bottom: none; }
+    .info-item .ikey { color: var(--text2); }
+    .info-item .ival { font-weight: 600; color: var(--text1); }
+    .ival.ok   { color: var(--ok); }
+    .ival.warn { color: var(--warn); }
+    .ival.err  { color: var(--err); }
+
+    /* ─── SPARKLINES ─── */
+    .row2 { display: grid; grid-template-columns: 1fr; }
+    .spanel {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r16); padding: 18px; box-shadow: var(--shadow);
+    }
+    .sphdr { font-size: 11px; font-weight: 700; color: var(--text3); margin-bottom: 14px; text-transform: uppercase; letter-spacing: .6px; }
+    .sparkrow { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+    .sparkitem {
+      background: var(--surface2); border-radius: var(--r12);
+      padding: 12px 14px; border: 1px solid var(--border);
+    }
+    .spark-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+    .spark-name { font-size: 11px; color: var(--text3); font-weight: 500; }
+    .spark-val  { font-size: 16px; font-weight: 700; color: var(--text1); }
+    .spark-mini { height: 36px; position: relative; }
+    .spark-mini canvas { width: 100% !important; height: 100% !important; }
+
+    /* ─── TABLE ─── */
+    .tbl-panel {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r16); padding: 18px 20px; box-shadow: var(--shadow);
+    }
+    .tbl-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
+    .tbl-title { font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: .6px; }
+    .export-btn {
+      font-size: 12px; padding: 6px 14px;
+      border: 1px solid var(--border2); border-radius: 6px;
+      background: var(--surface2); cursor: pointer; color: var(--text2);
+      font-family: inherit; transition: .15s; font-weight: 500;
+    }
+    .export-btn:hover { background: var(--border); color: var(--text1); }
+    .tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 520px; }
+    thead th {
+      text-align: left; padding: 8px 12px; color: var(--text3);
+      font-weight: 600; font-size: 10px; border-bottom: 1px solid var(--border);
+      text-transform: uppercase; letter-spacing: .5px; background: var(--surface2);
+    }
+    tbody td { padding: 9px 12px; border-bottom: 1px solid var(--border); color: var(--text1); }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: var(--surface2); }
+    tr.gap-row td { background: #FFFBEB; color: #92400E; font-style: italic; }
+
+    /* ─── OFFLINE BANNER ─── */
+    .offbanner {
+      display: none; background: #FEF2F2; border: 1px solid #FECACA;
+      border-radius: var(--r8); padding: 10px 16px; font-size: 12px;
+      color: var(--red); align-items: center; gap: 10px; font-weight: 500;
+    }
+    .offbanner.show { display: flex; }
+    .rbtn {
+      background: #FEE2E2; border: none; border-radius: 20px;
+      padding: 3px 12px; color: var(--red); cursor: pointer;
+      font-size: 11px; font-family: inherit; transition: .15s;
+    }
+    .rbtn:hover { background: #FECACA; }
+
+    /* ─── MODALS ─── */
+    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px; }
+    .overlay.open { display: flex; }
+    .modal {
+      background: var(--surface); border: 1px solid var(--border2);
+      border-radius: var(--r20); padding: 24px; max-width: 400px; width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+    .mtitle { font-size: 17px; font-weight: 700; color: var(--text1); margin-bottom: 20px; }
+    .fg { margin-bottom: 14px; }
+    .flb { font-size: 12px; font-weight: 500; color: var(--text2); display: block; margin-bottom: 6px; }
+    .fi {
+      width: 100%; padding: 9px 12px; border-radius: var(--r8);
+      border: 1px solid var(--border2); background: var(--surface2);
+      color: var(--text1); font-family: inherit; font-size: 13px; outline: none; transition: .15s;
+    }
+    .fi:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+    .macts { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 1100px) {
+      .live-grid { grid-template-columns: repeat(3,1fr); }
+    }
+    @media (max-width: 800px) {
+      .cards       { grid-template-columns: repeat(2,1fr); }
+      .kpi-row     { grid-template-columns: repeat(2,1fr); }
+      .bottom-row  { grid-template-columns: 1fr; }
+      .sparkrow    { grid-template-columns: 1fr; }
+      .live-grid   { grid-template-columns: repeat(2,1fr); }
+      .hdr         { padding: 12px 16px; }
+      .main        { padding: 14px 16px 28px; }
+    }
+    @media (max-width: 500px) {
+      .cards       { grid-template-columns: 1fr; }
+      .live-grid   { grid-template-columns: repeat(2,1fr); }
+      .kpi-row     { grid-template-columns: repeat(2,1fr); }
+      .hdr-right   { gap: 6px; }
+      .brand-sub   { display: none; }
+      .live-badge  { display: none; }
+      .drange      { width: 100%; }
+      .dinput      { flex: 1; min-width: 0; }
+      .cwrap       { height: 200px; }
+      .main        { padding: 12px 12px 24px; gap: 14px; }
+    }
+    @media (max-width: 380px) {
+      .cval { font-size: 22px; }
+      .hbtn { padding: 6px 10px; font-size: 11px; }
+      .live-grid { grid-template-columns: repeat(2,1fr); }
+    }
+  </style>
+</head>
+<body>
+<div class="dash">
+
+  <!-- Demo Bar -->
+  <div class="demo-bar">
+    <span>Simulate:</span>
+    <button class="dbtn" onclick="goOffline()">Offline</button>
+    <button class="dbtn" onclick="goReconnecting()">Reconnecting</button>
+    <button class="dbtn" onclick="goOnline()">Online</button>
+  </div>
+
+  <!-- Header -->
+  <header class="hdr">
+    <div class="brand">
+      <div class="brand-icon">⚡</div>
+      <div>
+        <div class="brand-name">Energy Monitoring System</div>
+        <div class="brand-sub">Updates every 5s · <span id="clock">—</span></div>
+      </div>
+    </div>
+    <div class="hdr-right">
+      <div class="conn-status">
+        <span class="dot green" id="connDot"></span>
+        <span id="connText">Online</span>
+      </div>
+      <button class="hbtn" onclick="openModal('settings-modal')">⚙ Settings</button>
+      <!-- <button class="hbtn primary" onclick="openModal('device-modal')">+ Add Device</button> -->
+    </div>
+  </header>
+
+  <!-- Connection Banner -->
+  <div class="banner" id="banner">
+    <span id="bannerMsg">—</span>
+    <button class="banner-close" onclick="closeBanner()">✕</button>
+  </div>
+
+  <div class="main">
+
+    <!-- Offline fallback banner -->
+    <div class="offbanner" id="offline-banner">
+      ⚠ Offline mode — data may be stale.
+      <button class="rbtn" onclick="tryReconnect()">↺ Reconnect</button>
+    </div>
+
+    <!-- Date Range Filter -->
+    <div class="fbar">
+      <div class="drange">
+        <input type="date" class="dinput" id="date-from">
+        <span style="color:var(--text3);font-size:12px">–</span>
+        <input type="date" class="dinput" id="date-to">
+        <button class="abtn" onclick="applyRange()">Apply</button>
+      </div>
+    </div>
+
+    <!-- Stat Cards -->
+    <div class="cards" id="cards-grid"></div>
+
+    <!-- Live Readings -->
+    <div class="live-section-title">Live Meter Readings</div>
+    <div class="live-grid">
+      <div class="live-card primary" id="c-kw">
+        <div class="lc-label">Active Power</div>
+        <div class="lc-value" id="v-kw">3.5</div>
+        <div class="lc-unit">kW</div>
+      </div>
+      <div class="live-card" id="c-v">
+        <div class="lc-label">Voltage</div>
+        <div class="lc-value" id="v-v">231</div>
+        <div class="lc-unit">V</div>
+      </div>
+      <div class="live-card" id="c-a">
+        <div class="lc-label">Current</div>
+        <div class="lc-value" id="v-a">15.2</div>
+        <div class="lc-unit">A</div>
+      </div>
+      <div class="live-card" id="c-pf">
+        <div class="lc-label">Power Factor</div>
+        <div class="lc-value" id="v-pf">0.94</div>
+        <div class="lc-unit">ratio (ideal = 1.0)</div>
+      </div>
+      <div class="live-card" id="c-hz">
+        <div class="lc-label">Frequency</div>
+        <div class="lc-value" id="v-hz">60.0</div>
+        <div class="lc-unit">Hz</div>
+      </div>
+      <div class="live-card" id="c-kwh">
+        <div class="lc-label">Energy Today</div>
+        <div class="lc-value" id="v-kwh">142</div>
+        <div class="lc-unit">kWh</div>
+      </div>
+    </div>
+
+    <!-- Missing Data Bar -->
+    <div class="missing-bar" id="missingBar">
+      <strong>⚠ Data gap detected — some readings are missing</strong>
+      These time slots had no data, likely due to a connection outage. The system will try to recover them.
+      <div class="gap-list" id="gapList"></div>
+    </div>
+
+    <!-- Reconnect Steps -->
+    <div class="reconnect-box" id="rcBox">
+      <h3>🔄 Reconnecting to gateway...</h3>
+      <div class="steps">
+        <div class="step"><div class="step-icon done">✔</div><span class="step-label done">Outage detected</span></div>
+        <div class="step"><div class="step-icon done">✔</div><span class="step-label done">Cellular modem checked</span></div>
+        <div class="step"><div class="step-icon active">3</div><span class="step-label active">Connecting to cloud...</span></div>
+        <div class="step"><div class="step-icon wait">4</div><span class="step-label wait">Sending buffered data</span></div>
+        <div class="step"><div class="step-icon wait">5</div><span class="step-label wait">Resume live readings</span></div>
+      </div>
+    </div>
+
+    <!-- Consumption Trend -->
+    <div class="cpanel">
+      <div class="phdr">
+        <div>
+          <div class="ptitle">Consumption Trend</div>
+          <div class="psub">Power draw & energy usage over time</div>
+        </div>
+        <div class="ctabs">
+          <button class="ctab on" onclick="switchChart(this,'today')">Today</button>
+          <button class="ctab" onclick="switchChart(this,'week')">Week</button>
+          <button class="ctab" onclick="switchChart(this,'month')">Month</button>
+        </div>
+      </div>
+      <div class="cwrap"><canvas id="lineChart" role="img" aria-label="Energy consumption chart"></canvas></div>
+    </div>
+
+    <!-- KPI Row -->
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="klabel">Today</div>
+        <div class="kval">142 kWh</div>
+        <div class="ksub up">+8% vs yesterday</div>
+      </div>
+      <div class="kpi">
+        <div class="klabel">This Week</div>
+        <div class="kval">876 kWh</div>
+        <div class="ksub down">−3% vs last week</div>
+      </div>
+      <div class="kpi">
+        <div class="klabel">This Month</div>
+        <div class="kval">3,412 kWh</div>
+        <div class="ksub up">+12% vs last month</div>
+      </div>
+      <div class="kpi">
+        <div class="klabel">Peak Demand</div>
+        <div class="kval">8.2 kW</div>
+        <div class="ksub" style="color:var(--text3)">at 2:00 PM today</div>
+      </div>
+    </div>
+
+    <!-- System Status + Demand Summary -->
+    <div class="bottom-row">
+      <div class="panel">
+        <div class="panel-title">System Status</div>
+        <div class="info-list">
+          <div class="info-item"><span class="ikey">Gateway</span>      <span class="ival ok"  id="h-gw">● Online</span></div>
+          <div class="info-item"><span class="ikey">Meter polling</span><span class="ival ok"  id="h-poll">● Active</span></div>
+          <div class="info-item"><span class="ikey">Cellular</span>     <span class="ival ok"  id="h-cell">● Connected</span></div>
+          <div class="info-item"><span class="ikey">Cloud</span>        <span class="ival ok"  id="h-cloud">● Receiving</span></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Demand Summary</div>
+        <div class="info-list">
+          <div class="info-item"><span class="ikey">Peak this month</span><span class="ival">8.2 kW</span></div>
+          <div class="info-item"><span class="ikey">Average demand</span> <span class="ival">5.6 kW</span></div>
+          <div class="info-item"><span class="ikey">Min demand</span>     <span class="ival">1.1 kW</span></div>
+          <div class="info-item"><span class="ikey">Contract limit</span> <span class="ival">10.0 kW</span></div>
+          <div class="info-item"><span class="ikey">Headroom left</span>  <span class="ival ok">1.8 kW safe</span></div>
+          <div class="info-item"><span class="ikey">Load factor</span>    <span class="ival">68%</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hourly Snapshots -->
+    <div class="row2">
+      <div class="spanel">
+        <div class="sphdr">Hourly Snapshots</div>
+        <div class="sparkrow" id="sparkrow"></div>
+      </div>
+    </div>
+
+    <!-- Recent Readings Table -->
+    <div class="tbl-panel">
+      <div class="tbl-header">
+        <div class="tbl-title">Recent Readings</div>
+        <button class="export-btn" onclick="exportCSV()">Export CSV ↓</button>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr><th>Time</th><th>kW</th><th>Voltage (V)</th><th>Current (A)</th><th>Energy (kWh)</th><th>PF</th><th>Status</th></tr>
+          </thead>
+          <tbody id="tBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="overlay" id="settings-modal" onclick="if(event.target===this)closeModal('settings-modal')">
+  <div class="modal">
+    <div class="mtitle">Preferences</div>
+    <div class="fg"><label class="flb">Refresh interval (sec)</label><input type="number" class="fi" id="refresh-interval" value="5" min="2" max="60"></div>
+    <div class="fg"><label class="flb">Currency</label><select class="fi" id="currency-select"><option value="$">USD ($)</option><option value="€">EUR (€)</option><option value="£">GBP (£)</option><option value="₹">INR (₹)</option></select></div>
+    <div class="fg"><label class="flb">Rate per kWh</label><input type="number" class="fi" id="unit-rate" value="0.14" step="0.01"></div>
+    <div class="macts">
+      <button class="hbtn" onclick="closeModal('settings-modal')">Cancel</button>
+      <button class="hbtn primary" onclick="saveSettings()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Device Modal -->
+<div class="overlay" id="device-modal" onclick="if(event.target===this)closeModal('device-modal')">
+  <div class="modal">
+    <div class="mtitle">Register Device</div>
+    <div class="fg"><label class="flb">Device name</label><input type="text" class="fi" id="device-name" placeholder="e.g. HVAC"></div>
+    <div class="fg"><label class="flb">Type</label><select class="fi" id="device-type"><option value="ac">AC</option><option value="fridge">Fridge</option><option value="lights">Lights</option></select></div>
+    <div class="fg"><label class="flb">Rated power (Watts)</label><input type="number" class="fi" id="device-watts" placeholder="800"></div>
+    <div class="macts">
+      <button class="hbtn" onclick="closeModal('device-modal')">Cancel</button>
+      <button class="hbtn primary" onclick="addDevice()">Add Device</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let state = {
+    chartView: 'today', currency: '$', unitRate: 0.14,
+    refreshInterval: 5, liveTimer: null, liveOn: true,
+    devices: [
+      { name:'Air Conditioner', pct:42, color:'#2563EB' },
+      { name:'Refrigerator',    pct:28, color:'#059669' },
+      { name:'Lighting',        pct:18, color:'#D97706' },
+      { name:'Home Office',     pct:12, color:'#7C3AED' }
+    ],
+    stats: { currentUsage: 3.82, todayUsage: 19.4, monthlyCost: 58.30 }
+  };
+
+  function rnd(n, base, spread) {
+    return Array.from({length:n}, ()=> +((base+(Math.random()-.5)*spread).toFixed(2)));
+  }
+
+  let chartData = {
+    today: { labels: Array.from({length:24},(_,i)=>`${i}:00`), data: rnd(24,3.9,2.2) },
+    week:  { labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'], data: rnd(7,21,9) },
+    month: { labels: Array.from({length:30},(_,i)=>`${i+1}`),   data: rnd(30,19,10) }
+  };
+
+  let lineChart, sparkCharts = [];
+
+  function buildChart() {
+    const ctx = document.getElementById('lineChart').getContext('2d');
+    const ds  = chartData[state.chartView];
+    if (lineChart) lineChart.destroy();
+    const grad = ctx.createLinearGradient(0,0,0,200);
+    grad.addColorStop(0,'rgba(37,99,235,0.12)');
+    grad.addColorStop(1,'rgba(37,99,235,0)');
+    lineChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: ds.labels,
+        datasets: [{
+          label: 'Energy (kWh)', data: ds.data,
+          borderColor: '#2563EB', backgroundColor: grad,
+          borderWidth: 2, pointRadius: 2.5, pointHoverRadius: 5,
+          pointBackgroundColor: '#2563EB', fill: true, tension: 0.4
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#fff', borderColor: '#E5E7EB', borderWidth: 1,
+            titleColor: '#6B7280', bodyColor: '#111827', padding: 10,
+            callbacks: { label: c => ` ${c.parsed.y} kWh` }
+          }
+        },
+        scales: {
+          x: { grid:{color:'rgba(0,0,0,0.04)'}, ticks:{color:'#9CA3AF',font:{size:11},maxTicksLimit:12} },
+          y: { grid:{color:'rgba(0,0,0,0.05)'}, ticks:{color:'#9CA3AF',font:{size:11},callback:v=>v+' kWh'}, beginAtZero:false }
+        }
+      }
+    });
+  }
+
+  function renderCards() {
+    const s = state.stats;
+    document.getElementById('cards-grid').innerHTML = `
+    `;
+  }
+
+  function renderSparks() {
+    const names  = ['Peak hour','Last hour','Avg hour'];
+    const vals   = [4.8, 3.2, 3.6];
+    const colors = ['#2563EB','#059669','#D97706'];
+    document.getElementById('sparkrow').innerHTML = names.map((_,i) => `
+      <div class="sparkitem">
+        <div class="spark-top"><span class="spark-name">${names[i]}</span><span class="spark-val">${vals[i]} kWh</span></div>
+        <div class="spark-mini"><canvas id="spark${i}"></canvas></div>
+      </div>
+    `).join('');
+    if (sparkCharts.length) sparkCharts.forEach(c=>c.destroy());
+    sparkCharts = [];
+    names.forEach((_,idx) => {
+      const data = rnd(12, vals[idx], 1.2);
+      const ctx  = document.getElementById(`spark${idx}`).getContext('2d');
+      sparkCharts.push(new Chart(ctx, {
+        type: 'line',
+        data: { labels: data.map((_,j)=>j), datasets:[{data,borderColor:colors[idx],backgroundColor:'transparent',borderWidth:1.5,pointRadius:0,tension:0.4}] },
+        options: { responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{enabled:false}},scales:{x:{display:false},y:{display:false}} }
+      }));
+    });
+  }
+
+  const tableRows = [
+    { ts:'14:00', v:231, a:35.5, kw:8.2,  kwh:142.3, pf:0.96, s:'ok'  },
+    { ts:'13:30', v:230, a:28.1, kw:6.5,  kwh:139.1, pf:0.95, s:'ok'  },
+    { ts:'13:00', v:232, a:26.4, kw:6.1,  kwh:135.8, pf:0.94, s:'ok'  },
+    { ts:'12:30', v:null,a:null, kw:null,  kwh:null,  pf:null, s:'gap' },
+    { ts:'12:00', v:231, a:22.5, kw:5.2,  kwh:129.9, pf:0.94, s:'ok'  },
+    { ts:'11:30', v:230, a:18.3, kw:4.2,  kwh:127.3, pf:0.95, s:'ok'  },
+    { ts:'11:00', v:228, a:14.7, kw:3.4,  kwh:125.2, pf:0.96, s:'ok'  },
+  ];
+
+  function renderTable() {
+    const tb = document.getElementById('tBody');
+    tableRows.forEach(r => {
+      const tr = document.createElement('tr');
+      if (r.s === 'gap') {
+        tr.className = 'gap-row';
+        tr.innerHTML = `<td>${r.ts}</td><td colspan="5" style="text-align:center;">⚠ No data — connection gap</td><td>Missing</td>`;
+      } else {
+        tr.innerHTML = `<td>${r.ts}</td><td>${r.kw.toFixed(1)}</td><td>${r.v}</td><td>${r.a.toFixed(1)}</td><td>${r.kwh.toFixed(1)}</td><td>${r.pf.toFixed(2)}</td><td style="color:#059669;font-weight:600">✔ OK</td>`;
+      }
+      tb.appendChild(tr);
+    });
+  }
+
+  function tick() {
+    document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',second:'2-digit'});
+    if (!state.liveOn) return;
+    document.getElementById('v-kw').textContent  = (3.3+Math.random()*0.5).toFixed(1);
+    document.getElementById('v-v').textContent   = (229+Math.random()*4).toFixed(0);
+    document.getElementById('v-a').textContent   = (14.8+Math.random()*0.8).toFixed(1);
+    document.getElementById('v-pf').textContent  = (0.93+Math.random()*0.04).toFixed(2);
+    document.getElementById('v-hz').textContent  = (59.9+Math.random()*0.2).toFixed(1);
+  }
+
+  function liveUpdate() {
+    if (!lineChart || state.chartView !== 'today') return;
+    const newVal = +(Math.random()*2.5+2.8).toFixed(2);
+    let dataset = lineChart.data.datasets[0].data;
+    dataset.push(newVal); dataset.shift();
+    lineChart.update('none');
+    state.stats.currentUsage = newVal;
+    state.stats.todayUsage = +(state.stats.todayUsage+(Math.random()*0.08-0.02)).toFixed(2);
+    if (state.stats.todayUsage < 0.5) state.stats.todayUsage = 0.5;
+    state.stats.monthlyCost = +(state.stats.todayUsage*30*state.unitRate).toFixed(2);
+    renderCards();
+  }
+
+  function staleCards(on) {
+    ['kw','v','a','pf','hz','kwh'].forEach(k=>document.getElementById('c-'+k).classList.toggle('stale',on));
+  }
+  function setConn(s) {
+    document.getElementById('connDot').className='dot '+(s==='online'?'green':s==='offline'?'red':'amber');
+    document.getElementById('connText').textContent=s==='online'?'Online':s==='offline'?'Offline':'Reconnecting...';
+  }
+  function setH(id,cls,msg){const el=document.getElementById(id);el.className='ival '+cls;el.textContent='● '+msg;}
+  function showBanner(cls,msg){const b=document.getElementById('banner');b.className='banner show '+cls;document.getElementById('bannerMsg').textContent=msg;}
+  function closeBanner(){document.getElementById('banner').className='banner';}
+
+  function goOffline(){
+    state.liveOn=false; staleCards(true); setConn('offline');
+    showBanner('offline','⚠ Gateway offline — no data received. Last reading: 14:00.');
+    setH('h-gw','err','Offline');setH('h-poll','err','Stopped');setH('h-cell','warn','Unknown');setH('h-cloud','err','No data');
+    document.getElementById('rcBox').className='reconnect-box';
+  }
+  function goReconnecting(){
+    state.liveOn=false; staleCards(true); setConn('amber');
+    showBanner('reconnect','🔄 Reconnecting — attempt 2 of 5...');
+    setH('h-gw','warn','Reconnecting');setH('h-poll','warn','Paused');setH('h-cell','warn','Checking');setH('h-cloud','warn','Handshaking');
+    document.getElementById('rcBox').className='reconnect-box show';
+  }
+  function goOnline(){
+    state.liveOn=true; staleCards(false); setConn('online');
+    showBanner('restored','✔ Back online — all data restored.');
+    setTimeout(closeBanner,3000);
+    setH('h-gw','ok','Online');setH('h-poll','ok','Active');setH('h-cell','ok','Connected');setH('h-cloud','ok','Receiving');
+    document.getElementById('rcBox').className='reconnect-box';
+  }
+
+  function switchChart(btn,view){
+    document.querySelectorAll('.ctab').forEach(b=>b.classList.remove('on'));
+    btn.classList.add('on'); state.chartView=view; buildChart();
+  }
+  function applyRange(){renderCards();buildChart();}
+  function openModal(id){document.getElementById(id).classList.add('open');}
+  function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+  function saveSettings(){
+    let iv=parseInt(document.getElementById('refresh-interval').value)||5;
+    state.currency=document.getElementById('currency-select').value;
+    state.unitRate=parseFloat(document.getElementById('unit-rate').value)||0.14;
+    state.refreshInterval=Math.max(2,Math.min(60,iv));
+    if(state.liveTimer)clearInterval(state.liveTimer);
+    state.liveTimer=setInterval(liveUpdate,state.refreshInterval*1000);
+    state.stats.monthlyCost=+(state.stats.todayUsage*30*state.unitRate).toFixed(2);
+    renderCards(); closeModal('settings-modal');
+  }
+
+  function addDevice(){
+    const name=document.getElementById('device-name').value.trim();
+    const watts=parseInt(document.getElementById('device-watts').value)||0;
+    if(!name)return;
+    const cols=['#7C3AED','#D97706','#DC2626','#2563EB'];
+    let pct=Math.min(Math.max(Math.round(watts/60),5),35);
+    if(state.devices.reduce((a,d)=>a+d.pct,0)+pct>100)pct=100-state.devices.reduce((a,d)=>a+d.pct,0);
+    if(pct<=0)return;
+    state.devices.push({name,pct,color:cols[state.devices.length%cols.length]});
+    closeModal('device-modal');
+    document.getElementById('device-name').value='';
+    document.getElementById('device-watts').value='';
+  }
+
+  function exportCSV(){
+    const h='Time,kW,V,A,kWh,PF,Status\n';
+    const b=tableRows.map(r=>r.s==='gap'?`${r.ts},,,,,,MISSING`:`${r.ts},${r.kw},${r.v},${r.a},${r.kwh},${r.pf},OK`).join('\n');
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([h+b],{type:'text/csv'}));
+    a.download='energy_data.csv'; a.click();
+  }
+
+  function updateOnline(){document.getElementById('offline-banner').classList.toggle('show',!navigator.onLine);}
+  function tryReconnect(){setTimeout(updateOnline,800);}
+
+  function setDates(){
+    const now=new Date(), from=new Date(now);
+    from.setDate(now.getDate()-7);
+    document.getElementById('date-to').value=now.toISOString().split('T')[0];
+    document.getElementById('date-from').value=from.toISOString().split('T')[0];
+  }
+
+  function init(){
+    setDates(); updateOnline(); renderCards(); buildChart();
+    renderSparks(); renderTable(); tick(); setInterval(tick,5000);
+    if(state.liveTimer)clearInterval(state.liveTimer);
+    state.liveTimer=setInterval(liveUpdate,state.refreshInterval*1000);
+    window.addEventListener('online',updateOnline);
+    window.addEventListener('offline',updateOnline);
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+
+  window.applyRange=applyRange; window.openModal=openModal;
+  window.closeModal=closeModal; window.saveSettings=saveSettings;
+  window.addDevice=addDevice; window.tryReconnect=tryReconnect;
+  window.updateOnline=updateOnline; window.closeBanner=closeBanner;
+  window.goOffline=goOffline; window.goReconnecting=goReconnecting;
+  window.goOnline=goOnline; window.exportCSV=exportCSV;
+  window.switchChart=switchChart;
+</script>
+</body>
+</html>
