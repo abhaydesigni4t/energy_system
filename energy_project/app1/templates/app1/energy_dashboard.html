@@ -89,9 +89,9 @@
       font-size: 12px; font-weight: 500; color: var(--text2);
     }
     .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-    .dot.green { background: var(--teal); }
+    .dot.green { background: var(--teal); animation: blink 1s infinite; }
     .dot.red   { background: var(--red);  animation: blink 1s infinite; }
-    .dot.amber { background: var(--amber);animation: blink 0.7s infinite; }
+    .dot.amber { background: var(--amber); animation: blink 0.7s infinite; }
 
     .live-badge {
       display: inline-flex; align-items: center; gap: 5px;
@@ -411,7 +411,7 @@
       <div class="brand-icon">⚡</div>
       <div>
         <div class="brand-name">Energy Monitoring System</div>
-        <div class="brand-sub">Updates every 5s · <span id="clock">—</span></div>
+        <div class="brand-sub">Updates every 5s · <span id="clock">—</span> EST</div>
       </div>
     </div>
     <div class="hdr-right">
@@ -420,7 +420,6 @@
         <span id="connText">Online</span>
       </div>
       <button class="hbtn" onclick="openModal('settings-modal')">⚙ Settings</button>
-      <!-- <button class="hbtn primary" onclick="openModal('device-modal')">+ Add Device</button> -->
     </div>
   </header>
 
@@ -451,40 +450,6 @@
     <!-- Stat Cards -->
     <div class="cards" id="cards-grid"></div>
 
-    <!-- Live Readings -->
-    <div class="live-section-title">Live Meter Readings</div>
-    <div class="live-grid">
-      <div class="live-card primary" id="c-kw">
-        <div class="lc-label">Active Power</div>
-        <div class="lc-value" id="v-kw">3.5</div>
-        <div class="lc-unit">kW</div>
-      </div>
-      <div class="live-card" id="c-v">
-        <div class="lc-label">Voltage</div>
-        <div class="lc-value" id="v-v">231</div>
-        <div class="lc-unit">V</div>
-      </div>
-      <div class="live-card" id="c-a">
-        <div class="lc-label">Current</div>
-        <div class="lc-value" id="v-a">15.2</div>
-        <div class="lc-unit">A</div>
-      </div>
-      <div class="live-card" id="c-pf">
-        <div class="lc-label">Power Factor</div>
-        <div class="lc-value" id="v-pf">0.94</div>
-        <div class="lc-unit">ratio (ideal = 1.0)</div>
-      </div>
-      <div class="live-card" id="c-hz">
-        <div class="lc-label">Frequency</div>
-        <div class="lc-value" id="v-hz">60.0</div>
-        <div class="lc-unit">Hz</div>
-      </div>
-      <div class="live-card" id="c-kwh">
-        <div class="lc-label">Energy Today</div>
-        <div class="lc-value" id="v-kwh">142</div>
-        <div class="lc-unit">kWh</div>
-      </div>
-    </div>
 
     <!-- Missing Data Bar -->
     <div class="missing-bar" id="missingBar">
@@ -542,6 +507,41 @@
         <div class="klabel">Peak Demand</div>
         <div class="kval">8.2 kW</div>
         <div class="ksub" style="color:var(--text3)">at 2:00 PM today</div>
+      </div>
+    </div>
+
+    <!-- Live Readings -->
+    <div class="live-section-title">Live Meter Readings</div>
+    <div class="live-grid">
+      <div class="live-card primary" id="c-kw">
+        <div class="lc-label">Active Power</div>
+        <div class="lc-value" id="v-kw">3.5</div>
+        <div class="lc-unit">kW</div>
+      </div>
+      <div class="live-card" id="c-v">
+        <div class="lc-label">Voltage</div>
+        <div class="lc-value" id="v-v">231</div>
+        <div class="lc-unit">V</div>
+      </div>
+      <div class="live-card" id="c-a">
+        <div class="lc-label">Current</div>
+        <div class="lc-value" id="v-a">15.2</div>
+        <div class="lc-unit">A</div>
+      </div>
+      <div class="live-card" id="c-pf">
+        <div class="lc-label">Power Factor</div>
+        <div class="lc-value" id="v-pf">0.94</div>
+        <div class="lc-unit">ratio (ideal = 1.0)</div>
+      </div>
+      <div class="live-card" id="c-hz">
+        <div class="lc-label">Frequency</div>
+        <div class="lc-value" id="v-hz">60.0</div>
+        <div class="lc-unit">Hz</div>
+      </div>
+      <div class="live-card" id="c-kwh">
+        <div class="lc-label">Energy Today</div>
+        <div class="lc-value" id="v-kwh">142</div>
+        <div class="lc-unit">kWh</div>
       </div>
     </div>
 
@@ -625,6 +625,21 @@
 </div>
 
 <script>
+  // ========================
+  // FIX: Use Intl.DateTimeFormat with America/New_York timezone
+  // This correctly handles EST (UTC-5) and EDT (UTC-4) automatically
+  // No manual offset arithmetic needed — browser handles DST correctly
+  // ========================
+  function formatESTTime() {
+    return new Date().toLocaleTimeString('en-US', {
+      timeZone: 'America/New_York',
+      hour: 'numeric',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    });
+  }
+
   let state = {
     chartView: 'today', currency: '$', unitRate: 0.14,
     refreshInterval: 5, liveTimer: null, liveOn: true,
@@ -686,9 +701,7 @@
   }
 
   function renderCards() {
-    const s = state.stats;
-    document.getElementById('cards-grid').innerHTML = `
-    `;
+    document.getElementById('cards-grid').innerHTML = ``;
   }
 
   function renderSparks() {
@@ -726,6 +739,7 @@
 
   function renderTable() {
     const tb = document.getElementById('tBody');
+    tb.innerHTML = '';
     tableRows.forEach(r => {
       const tr = document.createElement('tr');
       if (r.s === 'gap') {
@@ -738,8 +752,13 @@
     });
   }
 
+  function tickClock() {
+    // Uses Intl API with America/New_York — always correct EST/EDT regardless of user's local timezone
+    document.getElementById('clock').textContent = formatESTTime();
+  }
+
   function tick() {
-    document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',second:'2-digit'});
+    tickClock();
     if (!state.liveOn) return;
     document.getElementById('v-kw').textContent  = (3.3+Math.random()*0.5).toFixed(1);
     document.getElementById('v-v').textContent   = (229+Math.random()*4).toFixed(0);
@@ -845,7 +864,9 @@
 
   function init(){
     setDates(); updateOnline(); renderCards(); buildChart();
-    renderSparks(); renderTable(); tick(); setInterval(tick,5000);
+    renderSparks(); renderTable(); tick();
+    setInterval(tickClock, 1000); // clock updates every second
+    setInterval(tick, 5000);     // meter readings update every 5s
     if(state.liveTimer)clearInterval(state.liveTimer);
     state.liveTimer=setInterval(liveUpdate,state.refreshInterval*1000);
     window.addEventListener('online',updateOnline);
