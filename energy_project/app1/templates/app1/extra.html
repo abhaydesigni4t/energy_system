@@ -1,14 +1,644 @@
-Act as a senior backend/api developer.
+Act as an experienced frontend developer. First, review the complete code carefully before making any changes.
 
-i want single api that post and get data so first create model and i wanted to post and get data in this formate 
-{
-  "unit_id": 100,
-  "timestamp": 1714203600.45,
-  "block1_start_reg": 40100,
-  "block1_raw": [2314, 2308, 2310, 2310, 3998, 3996, 4001, 3998,
-                  152, 148, 150, 150, 148, 160, 0,
-                  5001, 95, 94, 96, 95,
-                  142, 30, 148],
-  "block2_start_reg": 40138,
-  "block2_raw": [24910, 188, 0, 0]
-}
+🎯 Requirement
+
+Currently, when the user clicks on the Settings section, it directly opens the Preferences form. I want to modify this behavior as follows:
+
+🔧 Changes Needed
+When the user hovers over the Settings section, display a dropdown menu with two options:
+Preferences
+System Status
+When the user clicks on:
+Preferences → Open the existing Preferences form.
+System Status → Display the System Status content.
+
+this is energy_dashboard.html 
+"<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Energy Core · Dark Dashboard</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* ============================================ */
+    /* COMPLETE DARK THEME - MODERN & SLEEK          */
+    /* ============================================ */
+    :root {
+      /* Dark theme core colors */
+      --bg-primary: #0A0F1A;
+      --bg-secondary: #0F172A;
+      --bg-surface: #1E293B;
+      --bg-surface-elevated: #2D3A4F;
+      --bg-card: #111827;
+      --border-subtle: rgba(255, 255, 255, 0.06);
+      --border-medium: rgba(255, 255, 255, 0.1);
+      --text-primary: #F1F5F9;
+      --text-secondary: #94A3B8;
+      --text-tertiary: #64748B;
+      --accent-blue: #3B82F6;
+      --accent-teal: #10B981;
+      --accent-amber: #F59E0B;
+      --accent-red: #EF4444;
+      --accent-purple: #8B5CF6;
+      --accent-glow: rgba(59, 130, 246, 0.25);
+      --success: #10B981;
+      --warning: #F59E0B;
+      --error: #EF4444;
+      
+      /* Spacing & radius */
+      --r8: 8px;
+      --r12: 12px;
+      --r16: 16px;
+      --r20: 20px;
+      --r24: 24px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+      --shadow-lg: 0 8px 24px rgba(0,0,0,0.5);
+      --shadow-glow: 0 0 20px rgba(59,130,246,0.15);
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 14px;
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.5;
+    }
+
+    .dash { display: flex; flex-direction: column; min-height: 100vh; }
+
+    /* ─── DEMO BAR ─── */
+    .demo-bar {
+      background: #050811;
+      padding: 8px 24px;
+      font-size: 12px;
+      color: var(--text-tertiary);
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .demo-bar span { font-weight: 500; letter-spacing: 0.3px; }
+    .dbtn {
+      font-size: 11px; padding: 4px 14px;
+      border: 1px solid var(--border-medium); border-radius: 20px;
+      background: var(--bg-surface); color: var(--text-secondary); cursor: pointer;
+      font-family: inherit; transition: all 0.2s ease;
+      font-weight: 500;
+    }
+    .dbtn:hover { background: var(--bg-surface-elevated); color: var(--text-primary); border-color: var(--accent-blue); }
+
+    /* ─── HEADER ─── */
+    .hdr {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 24px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-subtle);
+      position: sticky; top: 0; z-index: 10;
+      backdrop-filter: blur(10px);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-icon {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-teal));
+      display: flex; align-items: center; justify-content: center; font-size: 20px;
+      flex-shrink: 0;
+      box-shadow: var(--shadow-glow);
+    }
+    .brand-name { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; background: linear-gradient(135deg, #fff, #94A3B8); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .brand-sub  { font-size: 11px; color: var(--text-tertiary); margin-top: 4px; }
+
+    .hdr-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+    .conn-status {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; font-weight: 500; color: var(--text-secondary);
+      background: var(--bg-surface); padding: 6px 14px; border-radius: 40px;
+      border: 1px solid var(--border-subtle);
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .dot.green { background: var(--success); animation: blink 1s infinite; box-shadow: 0 0 6px var(--success); }
+    .dot.red   { background: var(--error); animation: blink 1s infinite; }
+    .dot.amber { background: var(--warning); animation: blink 0.7s infinite; }
+
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    .hbtn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 16px; border-radius: 40px;
+      font-size: 12px; font-weight: 500; cursor: pointer;
+      border: 1px solid var(--border-medium); background: var(--bg-surface);
+      color: var(--text-secondary); font-family: inherit; transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .hbtn:hover { background: var(--bg-surface-elevated); color: var(--text-primary); border-color: var(--accent-blue); }
+    .hbtn.primary { background: var(--accent-blue); border-color: var(--accent-blue); color: #fff; box-shadow: 0 2px 8px rgba(59,130,246,0.3); }
+    .hbtn.primary:hover { background: #2563EB; transform: translateY(-1px); }
+
+    /* ─── BANNERS ─── */
+    .banner {
+      display: none; padding: 12px 24px; font-size: 13px; font-weight: 500;
+      align-items: center; gap: 12px;
+    }
+    .banner.show { display: flex; }
+    .banner.offline   { background: rgba(239,68,68,0.15); color: var(--error); border-bottom: 1px solid rgba(239,68,68,0.3); }
+    .banner.reconnect { background: rgba(245,158,11,0.15); color: var(--warning); border-bottom: 1px solid rgba(245,158,11,0.3); }
+    .banner.restored  { background: rgba(16,185,129,0.15); color: var(--success); border-bottom: 1px solid rgba(16,185,129,0.3); }
+    .banner-close { margin-left: auto; background: none; border: none; cursor: pointer; font-size: 18px; color: inherit; opacity: .7; }
+    .banner-close:hover { opacity: 1; }
+
+    /* ─── MAIN ─── */
+    .main {
+      padding: 24px;
+      flex: 1; display: flex; flex-direction: column; gap: 24px;
+      max-width: 1400px; width: 100%; margin: 0 auto;
+    }
+
+    /* ─── STAT CARDS (Dark) ─── */
+    .cards { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+    .scard {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--r20);
+      padding: 24px;
+      transition: all 0.25s ease;
+      position: relative; overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+    .scard::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
+    .scard.blue::before  { background: linear-gradient(90deg, var(--accent-blue), #60A5FA); }
+    .scard.teal::before  { background: linear-gradient(90deg, var(--accent-teal), #34D399); }
+    .scard.amber::before { background: linear-gradient(90deg, var(--accent-amber), #FCD34D); }
+    .scard:hover { transform: translateY(-2px); border-color: rgba(59,130,246,0.3); box-shadow: var(--shadow-lg); }
+    .ctop { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+    .cicon { width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+    .cicon.blue  { background: rgba(59,130,246,0.15); color: var(--accent-blue); }
+    .cicon.teal  { background: rgba(16,185,129,0.15); color: var(--accent-teal); }
+    .cicon.amber { background: rgba(245,158,11,0.15); color: var(--accent-amber); }
+    .badge { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; }
+    .badge.up { background: rgba(239,68,68,0.15); color: var(--error); }
+    .badge.dn { background: rgba(16,185,129,0.15); color: var(--success); }
+    .cval { font-size: 32px; font-weight: 700; letter-spacing: -0.03em; color: var(--text-primary); line-height: 1.2; margin-bottom: 6px; }
+    .cval span { font-size: 14px; font-weight: 400; color: var(--text-tertiary); }
+    .clbl { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .6px; color: var(--text-tertiary); }
+
+    /* ─── SECTION TITLE ─── */
+    .live-section-title {
+      font-size: 11px; font-weight: 700; color: var(--text-tertiary);
+      text-transform: uppercase; letter-spacing: 1px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .live-section-title::after { content:''; flex:1; height:1px; background: var(--border-subtle); }
+
+    /* ─── LIVE GRID (Dark) ─── */
+    .live-grid { display: grid; grid-template-columns: repeat(6,1fr); gap: 14px; }
+    .live-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--r16);
+      padding: 16px;
+      transition: all 0.2s;
+      box-shadow: var(--shadow-sm);
+    }
+    .live-card.stale { border-color: var(--warning); background: rgba(245,158,11,0.08); }
+    .live-card.primary { border-color: var(--accent-blue); background: rgba(59,130,246,0.08); }
+    .live-card .lc-label { font-size: 10px; color: var(--text-tertiary); margin-bottom: 10px; text-transform: uppercase; letter-spacing: .6px; font-weight: 600; }
+    .live-card .lc-value { font-size: 24px; font-weight: 700; color: var(--text-primary); line-height: 1.2; }
+    .live-card.primary .lc-value { color: var(--accent-blue); }
+    .live-card .lc-unit  { font-size: 10px; color: var(--text-tertiary); margin-top: 6px; }
+
+    /* ─── MISSING DATA BAR ─── */
+    .missing-bar {
+      display: none; background: rgba(245,158,11,0.1);
+      border: 1px solid rgba(245,158,11,0.3); border-radius: var(--r12);
+      padding: 14px 18px; font-size: 12px; color: var(--warning);
+    }
+    .missing-bar.show { display: block; }
+    .missing-bar strong { display: block; margin-bottom: 6px; }
+
+    /* ─── RECONNECT BOX ─── */
+    .reconnect-box {
+      display: none; background: var(--bg-card); border: 1px solid rgba(245,158,11,0.4);
+      border-radius: var(--r16); padding: 20px 24px; box-shadow: var(--shadow-md);
+    }
+    .reconnect-box.show { display: block; }
+    .reconnect-box h3 { font-size: 14px; font-weight: 600; margin-bottom: 16px; color: var(--warning); }
+
+    /* ============================================ */
+    /* CONSUMPTION TREND - DARK THEME PREMIUM       */
+    /* ============================================ */
+    .cpanel {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--r24);
+      overflow: hidden;
+      box-shadow: var(--shadow-lg), var(--shadow-glow);
+    }
+
+    .phdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 28px 16px 28px;
+      flex-wrap: wrap;
+      gap: 18px;
+      background: linear-gradient(135deg, var(--bg-secondary) 0%, #0B1120 100%);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .ptitle {
+      font-size: 1.35rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #FFFFFF 0%, #94A3B8 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      letter-spacing: -0.3px;
+    }
+
+    .psub {
+      font-size: 0.75rem;
+      color: var(--text-tertiary);
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .psub::before {
+      content: "⚡";
+      font-size: 10px;
+      opacity: 0.8;
+    }
+
+    .chart-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 16px;
+    }
+
+    /* Modern segmented tabs dark */
+    .ctabs {
+      display: flex;
+      background: rgba(255,255,255,0.03);
+      border-radius: 14px;
+      padding: 4px;
+      gap: 6px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .ctab {
+      padding: 8px 22px;
+      border-radius: 10px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: var(--text-secondary);
+      font-family: inherit;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      letter-spacing: 0.3px;
+    }
+
+    .ctab:hover {
+      color: var(--text-primary);
+      background: rgba(255,255,255,0.06);
+    }
+
+    .ctab.on {
+      background: var(--accent-blue);
+      color: white;
+      box-shadow: 0 2px 12px rgba(59,130,246,0.4);
+    }
+
+    /* Date range tools */
+    .date-range-tools {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: rgba(0,0,0,0.3);
+      padding: 6px 16px 6px 20px;
+      border-radius: 60px;
+      border: 1px solid var(--border-subtle);
+      backdrop-filter: blur(4px);
+    }
+
+    .drange {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .dinput {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-medium);
+      border-radius: 30px;
+      padding: 7px 14px;
+      font-size: 0.75rem;
+      color: var(--text-primary);
+      font-family: 'Inter', monospace;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .dinput:focus {
+      outline: none;
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .drange span {
+      color: var(--text-tertiary);
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .abtn {
+      padding: 7px 20px;
+      border-radius: 30px;
+      background: linear-gradient(135deg, var(--accent-blue), #2563EB);
+      border: none;
+      color: white;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s ease;
+      letter-spacing: 0.3px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+
+    .abtn:hover {
+      background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(59,130,246,0.35);
+    }
+
+    /* Chart container */
+    .cwrap {
+      padding: 20px 28px 28px 28px;
+      height: 340px;
+      position: relative;
+      background: var(--bg-secondary);
+    }
+
+    .cwrap canvas {
+      height: 100% !important;
+      width: 100% !important;
+    }
+
+    /* KPI Row Dark */
+    .kpi-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
+    .kpi {
+      background: var(--bg-card); border: 1px solid var(--border-subtle);
+      border-radius: var(--r16); padding: 18px; box-shadow: var(--shadow-sm);
+    }
+    .kpi .klabel { font-size: 10px; color: var(--text-tertiary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .6px; font-weight: 600; }
+    .kpi .kval   { font-size: 22px; font-weight: 700; color: var(--text-primary); }
+    .kpi .ksub   { font-size: 11px; margin-top: 6px; font-weight: 500; }
+    .up   { color: var(--error); }
+    .down { color: var(--success); }
+
+    /* Bottom Row Dark */
+    .bottom-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .panel {
+      background: var(--bg-card); border: 1px solid var(--border-subtle);
+      border-radius: var(--r20); padding: 20px 24px; box-shadow: var(--shadow-sm);
+    }
+    .panel-title { font-size: 11px; font-weight: 700; color: var(--text-tertiary); margin-bottom: 14px; text-transform: uppercase; letter-spacing: .8px; }
+    .info-list { display: flex; flex-direction: column; }
+    .info-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 0; border-bottom: 1px solid var(--border-subtle); font-size: 13px;
+    }
+    .info-item:last-child { border-bottom: none; }
+    .info-item .ikey { color: var(--text-secondary); }
+    .info-item .ival { font-weight: 600; color: var(--text-primary); }
+    .ival.ok   { color: var(--success); }
+    .ival.warn { color: var(--warning); }
+    .ival.err  { color: var(--error); }
+
+    /* Table Dark */
+    .tbl-panel {
+      background: var(--bg-card); border: 1px solid var(--border-subtle);
+      border-radius: var(--r20); padding: 20px 24px; box-shadow: var(--shadow-sm);
+    }
+    .tbl-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+    .tbl-title { font-size: 11px; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: .8px; }
+    .export-btn {
+      font-size: 12px; padding: 6px 16px;
+      border: 1px solid var(--border-medium); border-radius: 30px;
+      background: var(--bg-surface); cursor: pointer; color: var(--text-secondary);
+      font-family: inherit; transition: .2s; font-weight: 500;
+    }
+    .export-btn:hover { background: var(--bg-surface-elevated); color: var(--text-primary); border-color: var(--accent-blue); }
+    .tbl-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 540px; }
+    thead th {
+      text-align: left; padding: 10px 14px; color: var(--text-tertiary);
+      font-weight: 600; font-size: 10px; border-bottom: 1px solid var(--border-subtle);
+      text-transform: uppercase; letter-spacing: .6px; background: rgba(0,0,0,0.2);
+    }
+    tbody td { padding: 11px 14px; border-bottom: 1px solid var(--border-subtle); color: var(--text-secondary); }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: rgba(59,130,246,0.05); color: var(--text-primary); }
+    tr.gap-row td { background: rgba(245,158,11,0.08); color: var(--warning); }
+
+    /* Offline banner dark */
+    .offbanner {
+      display: none; background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3);
+      border-radius: var(--r12); padding: 12px 20px; font-size: 13px;
+      color: var(--error); align-items: center; gap: 12px; font-weight: 500;
+    }
+    .offbanner.show { display: flex; }
+    .rbtn {
+      background: rgba(239,68,68,0.2); border: 1px solid rgba(239,68,68,0.4); border-radius: 30px;
+      padding: 4px 14px; color: var(--error); cursor: pointer;
+      font-size: 11px; font-family: inherit; transition: .2s;
+    }
+    .rbtn:hover { background: rgba(239,68,68,0.3); }
+
+    /* Modals Dark */
+    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px; }
+    .overlay.open { display: flex; }
+    .modal {
+      background: var(--bg-surface); border: 1px solid var(--border-medium);
+      border-radius: var(--r24); padding: 28px; max-width: 420px; width: 100%;
+      box-shadow: var(--shadow-lg);
+    }
+    .mtitle { font-size: 18px; font-weight: 700; color: var(--text-primary); margin-bottom: 24px; }
+    .fg { margin-bottom: 18px; }
+    .flb { font-size: 12px; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 8px; }
+    .fi {
+      width: 100%; padding: 10px 14px; border-radius: var(--r12);
+      border: 1px solid var(--border-medium); background: var(--bg-card);
+      color: var(--text-primary); font-family: inherit; font-size: 13px; outline: none; transition: .2s;
+    }
+    .fi:focus { border-color: var(--accent-blue); box-shadow: 0 0 0 3px var(--accent-glow); }
+    .macts { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
+
+    /* Responsive */
+    @media (max-width: 1100px) {
+      .live-grid { grid-template-columns: repeat(3,1fr); }
+    }
+    @media (max-width: 800px) {
+      .cards { grid-template-columns: repeat(2,1fr); }
+      .kpi-row { grid-template-columns: repeat(2,1fr); }
+      .bottom-row { grid-template-columns: 1fr; }
+      .live-grid { grid-template-columns: repeat(2,1fr); }
+      .cwrap { height: 260px; padding: 16px; }
+      .phdr { padding: 16px 20px; }
+    }
+    @media (max-width: 640px) {
+      .chart-controls { width: 100%; flex-direction: column; align-items: stretch; }
+      .ctabs { width: 100%; justify-content: stretch; }
+      .ctab { flex: 1; text-align: center; }
+      .date-range-tools { width: 100%; justify-content: center; flex-wrap: wrap; }
+      .drange { width: 100%; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+      .drange .dinput { flex: 1; min-width: 120px; }
+      .abtn { width: auto; }
+    }
+    @media (max-width: 500px) {
+      .cards { grid-template-columns: 1fr; }
+      .live-grid { grid-template-columns: repeat(2,1fr); }
+      .kpi-row { grid-template-columns: 1fr; }
+      .main { padding: 16px; gap: 18px; }
+      .cwrap { height: 220px; }
+    }
+  </style>
+</head>
+<body>
+<div class="dash">
+  <div class="demo-bar">
+    <span>⚡ Simulation</span>
+    <button class="dbtn" onclick="goOffline()">Offline</button>
+    <button class="dbtn" onclick="goReconnecting()">Reconnecting</button>
+    <button class="dbtn" onclick="goOnline()">Online</button>
+  </div>
+
+  <header class="hdr">
+    <div class="brand">
+      <div class="brand-icon">⚡</div>
+      <div>
+        <div class="brand-name">3rd Rock Energy Systems</div>
+        <div class="brand-sub">Real-time monitoring · <span id="clock">—</span> EST</div>
+      </div>
+    </div>
+    <div class="hdr-right">
+      <div class="conn-status">
+        <span class="dot green" id="connDot"></span>
+        <span id="connText">Online</span>
+      </div>
+      <button class="hbtn" onclick="openModal('settings-modal')">⚙ Settings</button>
+    </div>
+  </header>
+
+  <div class="banner" id="banner">
+    <span id="bannerMsg">—</span>
+    <button class="banner-close" onclick="closeBanner()">✕</button>
+  </div>
+
+  <div class="main">
+    <div class="offbanner" id="offline-banner">
+      ⚠ Offline mode — data may be stale.
+      <button class="rbtn" onclick="tryReconnect()">↺ Reconnect</button>
+    </div>
+
+    <div class="cards" id="cards-grid"></div>
+    <div class="missing-bar" id="missingBar"><strong>⚠ Data gap detected</strong><div class="gap-list" id="gapList"></div></div>
+    <div class="reconnect-box" id="rcBox"><h3>🔄 Reconnecting to gateway...</h3><div class="steps"><div class="step"><div class="step-icon done">✔</div><span class="step-label done">Outage detected</span></div><div class="step"><div class="step-icon done">✔</div><span class="step-label done">Cellular modem checked</span></div><div class="step"><div class="step-icon active">3</div><span class="step-label active">Connecting to cloud...</span></div><div class="step"><div class="step-icon wait">4</div><span class="step-label wait">Sending buffered data</span></div><div class="step"><div class="step-icon wait">5</div><span class="step-label wait">Resume live readings</span></div></div></div>
+
+    <!-- Dark Consumption Trend -->
+    <div class="cpanel">
+      <div class="phdr">
+        <div>
+          <div class="ptitle">Consumption Trend</div>
+          <div class="psub">Power draw & energy usage over time</div>
+        </div>
+        <div class="chart-controls">
+          <div class="ctabs">
+            <button class="ctab on" onclick="switchChart(this,'today')">Today</button>
+            <button class="ctab" onclick="switchChart(this,'week')">Week</button>
+            <button class="ctab" onclick="switchChart(this,'month')">Month</button>
+          </div>
+          <div class="date-range-tools">
+            <div class="drange">
+              <input type="date" class="dinput" id="date-from">
+              <span>–</span>
+              <input type="date" class="dinput" id="date-to">
+              <button class="abtn" onclick="applyRange()">Apply</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="cwrap"><canvas id="lineChart"></canvas></div>
+    </div>
+
+    <div class="kpi-row"><div class="kpi"><div class="klabel">Today</div><div class="kval">142 kWh</div><div class="ksub up">+8% vs yesterday</div></div><div class="kpi"><div class="klabel">This Week</div><div class="kval">876 kWh</div><div class="ksub down">−3% vs last week</div></div><div class="kpi"><div class="klabel">This Month</div><div class="kval">3,412 kWh</div><div class="ksub up">+12% vs last month</div></div><div class="kpi"><div class="klabel">Peak Demand</div><div class="kval">8.2 kW</div><div class="ksub" style="color:var(--text-tertiary)">at 2:00 PM</div></div></div>
+
+    <div class="live-section-title">Live Meter Readings</div>
+    <div class="live-grid"><div class="live-card primary" id="c-kw"><div class="lc-label">Active Power</div><div class="lc-value" id="v-kw">3.5</div><div class="lc-unit">kW</div></div><div class="live-card" id="c-v"><div class="lc-label">Voltage</div><div class="lc-value" id="v-v">231</div><div class="lc-unit">V</div></div><div class="live-card" id="c-a"><div class="lc-label">Current</div><div class="lc-value" id="v-a">15.2</div><div class="lc-unit">A</div></div><div class="live-card" id="c-pf"><div class="lc-label">Power Factor</div><div class="lc-value" id="v-pf">0.94</div><div class="lc-unit">ratio</div></div><div class="live-card" id="c-hz"><div class="lc-label">Frequency</div><div class="lc-value" id="v-hz">60.0</div><div class="lc-unit">Hz</div></div><div class="live-card" id="c-kwh"><div class="lc-label">Energy Today</div><div class="lc-value" id="v-kwh">142</div><div class="lc-unit">kWh</div></div></div>
+
+    <div class="bottom-row"><div class="panel"><div class="panel-title">System Status</div><div class="info-list"><div class="info-item"><span class="ikey">Gateway</span><span class="ival ok" id="h-gw">● Online</span></div><div class="info-item"><span class="ikey">Meter polling</span><span class="ival ok" id="h-poll">● Active</span></div><div class="info-item"><span class="ikey">Cellular</span><span class="ival ok" id="h-cell">● Connected</span></div><div class="info-item"><span class="ikey">Cloud</span><span class="ival ok" id="h-cloud">● Receiving</span></div></div></div></div></div></div>
+
+    <div class="tbl-panel"><div class="tbl-header"><div class="tbl-title">Recent Readings</div><button class="export-btn" onclick="exportCSV()">Export CSV ↓</button></div><div class="tbl-wrap"><table><thead><tr><th>Time</th><th>kW</th><th>Voltage (V)</th><th>Current (A)</th><th>Energy (kWh)</th><th>PF</th><th>Status</th></tr></thead><tbody id="tBody"></tbody></table></div></div>
+  </div>
+</div>
+
+<div class="overlay" id="settings-modal" onclick="if(event.target===this)closeModal('settings-modal')"><div class="modal"><div class="mtitle">Preferences</div><div class="fg"><label class="flb">Refresh interval (sec)</label><input type="number" class="fi" id="refresh-interval" value="5" min="2" max="60"></div><div class="fg"><label class="flb">Currency</label><select class="fi" id="currency-select"><option value="$">USD ($)</option><option value="€">EUR (€)</option><option value="£">GBP (£)</option><option value="₹">INR (₹)</option></select></div><div class="fg"><label class="flb">Rate per kWh</label><input type="number" class="fi" id="unit-rate" value="0.14" step="0.01"></div><div class="macts"><button class="hbtn" onclick="closeModal('settings-modal')">Cancel</button><button class="hbtn primary" onclick="saveSettings()">Save</button></div></div></div>
+<div class="overlay" id="device-modal" onclick="if(event.target===this)closeModal('device-modal')"><div class="modal"><div class="mtitle">Register Device</div><div class="fg"><label class="flb">Device name</label><input type="text" class="fi" id="device-name" placeholder="e.g. HVAC"></div><div class="fg"><label class="flb">Type</label><select class="fi" id="device-type"><option value="ac">AC</option><option value="fridge">Fridge</option><option value="lights">Lights</option></select></div><div class="fg"><label class="flb">Rated power (Watts)</label><input type="number" class="fi" id="device-watts" placeholder="800"></div><div class="macts"><button class="hbtn" onclick="closeModal('device-modal')">Cancel</button><button class="hbtn primary" onclick="addDevice()">Add Device</button></div></div></div>
+
+<script>
+  // Full functionality preserved, chart dark style matches new theme
+  function formatESTTime() { return new Date().toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true }); }
+  let state = { chartView: 'today', currency: '$', unitRate: 0.14, refreshInterval: 5, liveTimer: null, liveOn: true, devices: [{ name:'Air Conditioner', pct:42, color:'#3B82F6' },{ name:'Refrigerator', pct:28, color:'#10B981' },{ name:'Lighting', pct:18, color:'#F59E0B' },{ name:'Home Office', pct:12, color:'#8B5CF6' }], stats: { currentUsage: 3.82, todayUsage: 19.4, monthlyCost: 58.30 } };
+  function rnd(n,b,s){return Array.from({length:n},()=>+((b+(Math.random()-.5)*s).toFixed(2)));}
+  let chartData = { today: { labels: Array.from({length:24},(_,i)=>`${i}:00`), data: rnd(24,3.9,2.2) }, week: { labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'], data: rnd(7,21,9) }, month: { labels: Array.from({length:30},(_,i)=>`${i+1}`), data: rnd(30,19,10) } };
+  let lineChart;
+  function buildChart() {
+    const ctx = document.getElementById('lineChart').getContext('2d');
+    const ds = chartData[state.chartView];
+    if (lineChart) lineChart.destroy();
+    const grad = ctx.createLinearGradient(0,0,0,300);
+    grad.addColorStop(0, 'rgba(59,130,246,0.35)');
+    grad.addColorStop(1, 'rgba(59,130,246,0.02)');
+    lineChart = new Chart(ctx, { type: 'line', data: { labels: ds.labels, datasets: [{ label: 'Energy (kWh)', data: ds.data, borderColor: '#3B82F6', backgroundColor: grad, borderWidth: 2.5, pointRadius: 3.5, pointHoverRadius: 6, pointBackgroundColor: '#60A5FA', pointBorderColor: '#0F172A', pointBorderWidth: 1.5, fill: true, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1E293B', titleColor: '#F1F5F9', bodyColor: '#CBD5E1', borderColor: '#334155', borderWidth: 1, callbacks: { label: c => ` ${c.parsed.y} kWh` } } }, scales: { x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94A3B8', font: { size: 10, weight: '500' }, maxTicksLimit: 8 } }, y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94A3B8', font: { size: 10 }, callback: v => v + ' kWh' }, beginAtZero: true } } } });
+  }
+  function renderCards() { document.getElementById('cards-grid').innerHTML = ''; }
+  const tableRows = [ { ts:'14:00', v:231, a:35.5, kw:8.2, kwh:142.3, pf:0.96, s:'ok' },{ ts:'13:30', v:230, a:28.1, kw:6.5, kwh:139.1, pf:0.95, s:'ok' },{ ts:'13:00', v:232, a:26.4, kw:6.1, kwh:135.8, pf:0.94, s:'ok' },{ ts:'12:30', v:null, a:null, kw:null, kwh:null, pf:null, s:'gap' },{ ts:'12:00', v:231, a:22.5, kw:5.2, kwh:129.9, pf:0.94, s:'ok' },{ ts:'11:30', v:230, a:18.3, kw:4.2, kwh:127.3, pf:0.95, s:'ok' },{ ts:'11:00', v:228, a:14.7, kw:3.4, kwh:125.2, pf:0.96, s:'ok' } ];
+  function renderTable() { const tb = document.getElementById('tBody'); tb.innerHTML = ''; tableRows.forEach(r => { const tr = document.createElement('tr'); if (r.s === 'gap') { tr.className = 'gap-row'; tr.innerHTML = `<td>${r.ts}</td><td colspan="5" style="text-align:center;">⚠ No data — connection gap</td><td>Missing</td>`; } else { tr.innerHTML = `<td>${r.ts}</td><td>${r.kw.toFixed(1)}</td><td>${r.v}</td><td>${r.a.toFixed(1)}</td><td>${r.kwh.toFixed(1)}</td><td>${r.pf.toFixed(2)}</td><td style="color:#10B981;">✔ OK</td>`; } tb.appendChild(tr); }); }
+  function tickClock() { document.getElementById('clock').textContent = formatESTTime(); }
+  function tick() { tickClock(); if (!state.liveOn) return; document.getElementById('v-kw').textContent = (3.3+Math.random()*0.5).toFixed(1); document.getElementById('v-v').textContent = (229+Math.random()*4).toFixed(0); document.getElementById('v-a').textContent = (14.8+Math.random()*0.8).toFixed(1); document.getElementById('v-pf').textContent = (0.93+Math.random()*0.04).toFixed(2); document.getElementById('v-hz').textContent = (59.9+Math.random()*0.2).toFixed(1); }
+  function liveUpdate() { if (!lineChart || state.chartView !== 'today') return; const newVal = +(Math.random()*2.5+2.8).toFixed(2); let dataset = lineChart.data.datasets[0].data; dataset.push(newVal); dataset.shift(); lineChart.update('none'); }
+  function staleCards(on) { ['kw','v','a','pf','hz','kwh'].forEach(k=>document.getElementById('c-'+k).classList.toggle('stale',on)); }
+  function setConn(s) { document.getElementById('connDot').className='dot '+(s==='online'?'green':s==='offline'?'red':'amber'); document.getElementById('connText').textContent=s==='online'?'Online':s==='offline'?'Offline':'Reconnecting...'; }
+  function setH(id,cls,msg){const el=document.getElementById(id);el.className='ival '+cls;el.textContent='● '+msg;}
+  function showBanner(cls,msg){const b=document.getElementById('banner');b.className='banner show '+cls;document.getElementById('bannerMsg').textContent=msg;}
+  function closeBanner(){document.getElementById('banner').className='banner';}
+  function goOffline(){ state.liveOn=false; staleCards(true); setConn('offline'); showBanner('offline','⚠ Gateway offline — no data received.'); setH('h-gw','err','Offline');setH('h-poll','err','Stopped');setH('h-cell','warn','Unknown');setH('h-cloud','err','No data'); document.getElementById('rcBox').className='reconnect-box'; }
+  function goReconnecting(){ state.liveOn=false; staleCards(true); setConn('amber'); showBanner('reconnect','🔄 Reconnecting — attempt 2 of 5...'); setH('h-gw','warn','Reconnecting');setH('h-poll','warn','Paused');setH('h-cell','warn','Checking');setH('h-cloud','warn','Handshaking'); document.getElementById('rcBox').className='reconnect-box show'; }
+  function goOnline(){ state.liveOn=true; staleCards(false); setConn('online'); showBanner('restored','✔ Back online — all data restored.'); setTimeout(closeBanner,3000); setH('h-gw','ok','Online');setH('h-poll','ok','Active');setH('h-cell','ok','Connected');setH('h-cloud','ok','Receiving'); document.getElementById('rcBox').className='reconnect-box'; }
+  function switchChart(btn,view){ document.querySelectorAll('.ctab').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); state.chartView=view; buildChart(); }
+  function applyRange(){ renderCards(); buildChart(); }
+  function openModal(id){document.getElementById(id).classList.add('open');} function closeModal(id){document.getElementById(id).classList.remove('open');}
+  function saveSettings(){ let iv=parseInt(document.getElementById('refresh-interval').value)||5; state.currency=document.getElementById('currency-select').value; state.unitRate=parseFloat(document.getElementById('unit-rate').value)||0.14; state.refreshInterval=Math.max(2,Math.min(60,iv)); if(state.liveTimer)clearInterval(state.liveTimer); state.liveTimer=setInterval(liveUpdate,state.refreshInterval*1000); closeModal('settings-modal'); }
+  function addDevice(){ const name=document.getElementById('device-name').value.trim(); if(!name)return; closeModal('device-modal'); document.getElementById('device-name').value=''; document.getElementById('device-watts').value=''; }
+  function exportCSV(){ const h='Time,kW,V,A,kWh,PF,Status\n'; const b=tableRows.map(r=>r.s==='gap'?`${r.ts},,,,,,MISSING`:`${r.ts},${r.kw},${r.v},${r.a},${r.kwh},${r.pf},OK`).join('\n'); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([h+b],{type:'text/csv'})); a.download='energy_data.csv'; a.click(); }
+  function updateOnline(){document.getElementById('offline-banner').classList.toggle('show',!navigator.onLine);} function tryReconnect(){setTimeout(updateOnline,800);}
+  function setDates(){ const now=new Date(), from=new Date(now); from.setDate(now.getDate()-7); document.getElementById('date-to').value=now.toISOString().split('T')[0]; document.getElementById('date-from').value=from.toISOString().split('T')[0]; }
+  function init(){ setDates(); updateOnline(); renderCards(); buildChart(); renderTable(); tick(); setInterval(tickClock,1000); setInterval(tick,5000); if(state.liveTimer)clearInterval(state.liveTimer); state.liveTimer=setInterval(liveUpdate,state.refreshInterval*1000); window.addEventListener('online',updateOnline); window.addEventListener('offline',updateOnline); }
+  document.addEventListener('DOMContentLoaded', init);
+  window.applyRange=applyRange; window.openModal=openModal; window.closeModal=closeModal; window.saveSettings=saveSettings; window.addDevice=addDevice; window.tryReconnect=tryReconnect; window.updateOnline=updateOnline; window.closeBanner=closeBanner; window.goOffline=goOffline; window.goReconnecting=goReconnecting; window.goOnline=goOnline; window.exportCSV=exportCSV; window.switchChart=switchChart;
+</script>
+</body>
+</html>"
