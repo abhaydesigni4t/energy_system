@@ -2,522 +2,2303 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>Energy Core · Dark Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Energy Core · Platform</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      --bg-primary: #0A0F1A;
-      --bg-secondary: #0F172A;
-      --bg-surface: #1E293B;
-      --bg-surface-elevated: #2D3A4F;
-      --bg-card: #111827;
-      --border-subtle: rgba(255, 255, 255, 0.06);
-      --border-medium: rgba(255, 255, 255, 0.1);
-      --text-primary: #F1F5F9;
-      --text-secondary: #94A3B8;
-      --text-tertiary: #64748B;
+      --bg-primary: #080D18;
+      --bg-secondary: #0C1322;
+      --bg-surface: #111927;
+      --bg-card: #0E1620;
+      --bg-elevated: #1A2535;
+      --border-subtle: rgba(255,255,255,0.05);
+      --border-medium: rgba(255,255,255,0.09);
+      --border-active: rgba(59,130,246,0.4);
+      --text-primary: #EDF2F7;
+      --text-secondary: #8A9BBE;
+      --text-tertiary: #4E6080;
       --accent-blue: #3B82F6;
       --accent-teal: #10B981;
       --accent-amber: #F59E0B;
       --accent-red: #EF4444;
       --accent-purple: #8B5CF6;
-      --accent-glow: rgba(59, 130, 246, 0.25);
+      --accent-cyan: #06B6D4;
+      --glow-blue: rgba(59,130,246,0.2);
+      --glow-teal: rgba(16,185,129,0.2);
       --success: #10B981;
       --warning: #F59E0B;
       --error: #EF4444;
       --r8: 8px; --r12: 12px; --r16: 16px; --r20: 20px; --r24: 24px;
-      --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
-      --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
-      --shadow-lg: 0 8px 24px rgba(0,0,0,0.5);
-      --shadow-glow: 0 0 20px rgba(59,130,246,0.15);
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+      --shadow-md: 0 4px 16px rgba(0,0,0,0.5);
+      --shadow-lg: 0 8px 32px rgba(0,0,0,0.6);
     }
 
-    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg-primary); color: var(--text-primary); font-size: 14px; -webkit-font-smoothing: antialiased; line-height: 1.5; }
-    .dash { display: flex; flex-direction: column; min-height: 100vh; }
-
-    .demo-bar { background: #050811; padding: 8px 24px; font-size: 12px; color: var(--text-tertiary); display: flex; gap: 12px; align-items: center; flex-wrap: wrap; border-bottom: 1px solid var(--border-subtle); }
-    .demo-bar span { font-weight: 500; letter-spacing: 0.3px; }
-    .dbtn { font-size: 11px; padding: 4px 14px; border: 1px solid var(--border-medium); border-radius: 20px; background: var(--bg-surface); color: var(--text-secondary); cursor: pointer; font-family: inherit; transition: all 0.2s ease; font-weight: 500; }
-    .dbtn:hover { background: var(--bg-surface-elevated); color: var(--text-primary); border-color: var(--accent-blue); }
-
-    .hdr { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-subtle); position: sticky; top: 0; z-index: 10; backdrop-filter: blur(10px); flex-wrap: wrap; gap: 12px; }
-    .brand { display: flex; align-items: center; gap: 12px; }
-    .brand-icon { width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg, var(--accent-blue), var(--accent-teal)); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; box-shadow: var(--shadow-glow); }
-    .brand-name { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; background: linear-gradient(135deg, #fff, #94A3B8); -webkit-background-clip: text; background-clip: text; color: transparent; }
-    .brand-sub { font-size: 11px; color: var(--text-tertiary); margin-top: 4px; }
-    .hdr-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-
-    .conn-status { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 500; color: var(--text-secondary); background: var(--bg-surface); padding: 6px 14px; border-radius: 40px; border: 1px solid var(--border-subtle); }
-    .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-    .dot.green { background: var(--success); animation: blink 1s infinite; box-shadow: 0 0 6px var(--success); }
-    .dot.red   { background: var(--error); animation: blink 1s infinite; }
-    .dot.amber { background: var(--warning); animation: blink 0.7s infinite; }
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.4} }
-
-    .hbtn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 40px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid var(--border-medium); background: var(--bg-surface); color: var(--text-secondary); font-family: inherit; transition: all 0.2s ease; white-space: nowrap; }
-    .hbtn:hover { background: var(--bg-surface-elevated); color: var(--text-primary); border-color: var(--accent-blue); }
-    .hbtn.primary { background: var(--accent-blue); border-color: var(--accent-blue); color: #fff; box-shadow: 0 2px 8px rgba(59,130,246,0.3); }
-    .hbtn.primary:hover { background: #2563EB; transform: translateY(-1px); }
-
-    /* ─── SETTINGS DROPDOWN ─── */
-    .settings-wrapper {
-      position: relative;
-    }
-
-    .settings-dropdown {
-      position: absolute;
-      top: calc(90% + 6px);
-      right: 0;
-      min-width: 180px;
-      background: var(--bg-surface);
-      border: 1px solid var(--border-medium);
-      border-radius: var(--r12);
-      box-shadow: var(--shadow-lg), 0 0 0 1px rgba(59,130,246,0.08);
-      overflow: hidden;
-      z-index: 100;
-      opacity: 0;
-      pointer-events: none;
-      transform: translateY(-6px);
-      transition: opacity 0.18s ease, transform 0.18s ease;
-    }
-
-    .settings-wrapper:hover .settings-dropdown,
-    .settings-dropdown:hover {
-      opacity: 1;
-      pointer-events: all;
-      transform: translateY(0);
-    }
-
-    .settings-dropdown::before {
-      content: '';
-      position: absolute;
-      top: -6px;
-      right: 18px;
-      width: 10px;
-      height: 10px;
-      background: var(--bg-surface);
-      border-left: 1px solid var(--border-medium);
-      border-top: 1px solid var(--border-medium);
-      transform: rotate(45deg);
-    }
-
-    .dropdown-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      width: 100%;
-      padding: 11px 16px;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text-secondary);
-      background: none;
-      border: none;
-      cursor: pointer;
-      font-family: inherit;
-      text-align: left;
-      transition: background 0.15s ease, color 0.15s ease;
-      border-bottom: 1px solid var(--border-subtle);
-    }
-
-    .dropdown-item:last-child {
-      border-bottom: none;
-    }
-
-    .dropdown-item:hover {
-      background: rgba(59,130,246,0.1);
+    body {
+      font-family: 'DM Sans', -apple-system, sans-serif;
+      background: var(--bg-primary);
       color: var(--text-primary);
+      font-size: 14px;
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.6;
+      min-height: 100vh;
     }
 
-    .dropdown-item .di-icon {
-      width: 26px;
-      height: 26px;
-      border-radius: 7px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 13px;
+    /* ── STEP SCREENS ── */
+    .step-screen { display: none; animation: fadeSlide 0.35s ease; }
+    .step-screen.active { display: block; }
+    @keyframes fadeSlide {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── TOP NAV ── */
+    .top-nav {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-subtle);
+      position: sticky; top: 0; z-index: 50;
+      backdrop-filter: blur(16px);
+    }
+    .nav-inner {
+      display: flex; align-items: center; gap: 0;
+      padding: 0 24px;
+      max-width: 1400px; margin: 0 auto;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 10px;
+      padding: 14px 0; margin-right: 32px; flex-shrink: 0;
+    }
+    .brand-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-teal));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; box-shadow: 0 0 16px var(--glow-blue);
+    }
+    .brand-name { font-size: 15px; font-weight: 700; letter-spacing: -0.3px; }
+    .brand-sub  { font-size: 10px; color: var(--text-tertiary); }
+
+    .step-nav { display: flex; align-items: center; flex: 1; overflow-x: auto; }
+    .step-nav::-webkit-scrollbar { display: none; }
+    .step-item {
+      display: flex; align-items: center; gap: 0;
       flex-shrink: 0;
     }
+    .step-btn {
+      display: flex; align-items: center; gap: 10px;
+      padding: 18px 16px; cursor: pointer;
+      border: none; background: none; font-family: inherit;
+      color: var(--text-tertiary); font-size: 12px; font-weight: 600;
+      transition: all 0.2s; white-space: nowrap; position: relative;
+      letter-spacing: 0.2px;
+    }
+    .step-btn::after {
+      content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+      height: 2px; background: var(--accent-blue);
+      transform: scaleX(0); transition: transform 0.2s;
+    }
+    .step-btn.active { color: var(--text-primary); }
+    .step-btn.active::after { transform: scaleX(1); }
+    .step-btn.completed { color: var(--accent-teal); cursor: pointer; }
+    .step-btn.completed:hover { color: var(--text-primary); }
+    .step-num {
+      width: 22px; height: 22px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; flex-shrink: 0;
+      background: var(--bg-elevated); border: 1px solid var(--border-medium);
+      transition: all 0.2s;
+    }
+    .step-btn.active .step-num {
+      background: var(--accent-blue); border-color: var(--accent-blue); color: #fff;
+    }
+    .step-btn.completed .step-num {
+      background: var(--accent-teal); border-color: var(--accent-teal); color: #fff;
+    }
+    .step-arrow { color: var(--border-medium); font-size: 11px; padding: 0 2px; }
 
-    .dropdown-item:nth-child(1) .di-icon { background: rgba(59,130,246,0.15); }
-    .dropdown-item:nth-child(2) .di-icon { background: rgba(16,185,129,0.15); }
+    .nav-right { margin-left: auto; padding: 12px 0; display: flex; gap: 10px; flex-shrink: 0; }
 
-    /* ─── BANNERS ─── */
-    .banner { display: none; padding: 12px 24px; font-size: 13px; font-weight: 500; align-items: center; gap: 12px; }
-    .banner.show { display: flex; }
-    .banner.offline   { background: rgba(239,68,68,0.15); color: var(--error); border-bottom: 1px solid rgba(239,68,68,0.3); }
-    .banner.reconnect { background: rgba(245,158,11,0.15); color: var(--warning); border-bottom: 1px solid rgba(245,158,11,0.3); }
-    .banner.restored  { background: rgba(16,185,129,0.15); color: var(--success); border-bottom: 1px solid rgba(16,185,129,0.3); }
-    .banner-close { margin-left: auto; background: none; border: none; cursor: pointer; font-size: 18px; color: inherit; opacity: .7; }
-    .banner-close:hover { opacity: 1; }
+    /* ── DEMO BAR ── */
+    .demo-bar {
+      background: rgba(8,13,24,0.9);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 6px 24px;
+      display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+      font-size: 11px; color: var(--text-tertiary);
+    }
+    .dbtn {
+      font-size: 10px; padding: 3px 12px; border: 1px solid var(--border-medium);
+      border-radius: 20px; background: var(--bg-elevated);
+      color: var(--text-secondary); cursor: pointer; font-family: inherit;
+      transition: all 0.15s; font-weight: 500;
+    }
+    .dbtn:hover { border-color: var(--accent-blue); color: var(--text-primary); }
+    .dbtn.primary { background: var(--accent-blue); border-color: var(--accent-blue); color: #fff; }
 
-    .main { padding: 24px; flex: 1; display: flex; flex-direction: column; gap: 24px; max-width: 1400px; width: 100%; margin: 0 auto; }
+    /* ── PAGE WRAPPER ── */
+    .page { max-width: 1400px; margin: 0 auto; padding: 32px 24px; }
+    .page-sm { max-width: 900px; margin: 0 auto; padding: 32px 24px; }
+    .page-md { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
 
-    .cards { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
-    .scard { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--r20); padding: 24px; transition: all 0.25s ease; position: relative; overflow: hidden; box-shadow: var(--shadow-sm); }
-    .scard::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
-    .scard.blue::before  { background: linear-gradient(90deg, var(--accent-blue), #60A5FA); }
-    .scard.teal::before  { background: linear-gradient(90deg, var(--accent-teal), #34D399); }
-    .scard.amber::before { background: linear-gradient(90deg, var(--accent-amber), #FCD34D); }
-    .scard:hover { transform: translateY(-2px); border-color: rgba(59,130,246,0.3); box-shadow: var(--shadow-lg); }
-    .ctop { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
-    .cicon { width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
-    .cicon.blue  { background: rgba(59,130,246,0.15); color: var(--accent-blue); }
-    .cicon.teal  { background: rgba(16,185,129,0.15); color: var(--accent-teal); }
-    .cicon.amber { background: rgba(245,158,11,0.15); color: var(--accent-amber); }
-    .badge { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; }
-    .badge.up { background: rgba(239,68,68,0.15); color: var(--error); }
-    .badge.dn { background: rgba(16,185,129,0.15); color: var(--success); }
-    .cval { font-size: 32px; font-weight: 700; letter-spacing: -0.03em; color: var(--text-primary); line-height: 1.2; margin-bottom: 6px; }
-    .cval span { font-size: 14px; font-weight: 400; color: var(--text-tertiary); }
-    .clbl { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .6px; color: var(--text-tertiary); }
+    /* ── SHARED COMPONENTS ── */
+    .page-header { margin-bottom: 32px; }
+    .page-header h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 8px; }
+    .page-header p { color: var(--text-secondary); font-size: 15px; }
+    .step-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+      padding: 4px 12px; border-radius: 20px; margin-bottom: 12px;
+      background: rgba(59,130,246,0.12); color: var(--accent-blue); border: 1px solid rgba(59,130,246,0.25);
+    }
 
-    .live-section-title { font-size: 11px; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; }
-    .live-section-title::after { content:''; flex:1; height:1px; background: var(--border-subtle); }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 20px; border-radius: 40px; font-size: 13px; font-weight: 600;
+      cursor: pointer; border: 1px solid var(--border-medium);
+      background: var(--bg-elevated); color: var(--text-secondary);
+      font-family: inherit; transition: all 0.2s; white-space: nowrap; letter-spacing: 0.2px;
+    }
+    .btn:hover { background: var(--bg-surface); color: var(--text-primary); border-color: rgba(255,255,255,0.15); }
+    .btn.primary {
+      background: var(--accent-blue); border-color: var(--accent-blue); color: #fff;
+      box-shadow: 0 2px 12px rgba(59,130,246,0.35);
+    }
+    .btn.primary:hover { background: #2563EB; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(59,130,246,0.5); }
+    .btn.success { background: var(--accent-teal); border-color: var(--accent-teal); color: #fff; }
+    .btn.success:hover { background: #059669; transform: translateY(-1px); }
+    .btn.ghost { background: transparent; }
+    .btn.lg { padding: 14px 28px; font-size: 15px; }
+    .btn.sm { padding: 7px 14px; font-size: 12px; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
 
-    .live-grid { display: grid; grid-template-columns: repeat(6,1fr); gap: 14px; }
-    .live-card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--r16); padding: 16px; transition: all 0.2s; box-shadow: var(--shadow-sm); }
-    .live-card.stale { border-color: var(--warning); background: rgba(245,158,11,0.08); }
-    .live-card.primary { border-color: var(--accent-blue); background: rgba(59,130,246,0.08); }
-    .live-card .lc-label { font-size: 10px; color: var(--text-tertiary); margin-bottom: 10px; text-transform: uppercase; letter-spacing: .6px; font-weight: 600; }
-    .live-card .lc-value { font-size: 24px; font-weight: 700; color: var(--text-primary); line-height: 1.2; }
-    .live-card.primary .lc-value { color: var(--accent-blue); }
-    .live-card .lc-unit  { font-size: 10px; color: var(--text-tertiary); margin-top: 6px; }
+    .card {
+      background: var(--bg-card); border: 1px solid var(--border-subtle);
+      border-radius: var(--r20); padding: 24px;
+      box-shadow: var(--shadow-sm);
+    }
+    .card-sm { padding: 16px; border-radius: var(--r16); }
+    .card-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-tertiary); margin-bottom: 16px; }
 
-    .missing-bar { display: none; background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); border-radius: var(--r12); padding: 14px 18px; font-size: 12px; color: var(--warning); }
-    .missing-bar.show { display: block; }
-    .missing-bar strong { display: block; margin-bottom: 6px; }
+    /* PROGRESS BAR */
+    .progress-bar-wrap { background: var(--bg-elevated); border-radius: 4px; height: 6px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--accent-blue), var(--accent-teal)); transition: width 0.4s ease; }
 
-    .reconnect-box { display: none; background: var(--bg-card); border: 1px solid rgba(245,158,11,0.4); border-radius: var(--r16); padding: 20px 24px; box-shadow: var(--shadow-md); }
-    .reconnect-box.show { display: block; }
-    .reconnect-box h3 { font-size: 14px; font-weight: 600; margin-bottom: 16px; color: var(--warning); }
+    /* STATUS BADGES */
+    .badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
+    .badge.success { background: rgba(16,185,129,0.12); color: var(--success); border: 1px solid rgba(16,185,129,0.2); }
+    .badge.warning { background: rgba(245,158,11,0.12); color: var(--warning); border: 1px solid rgba(245,158,11,0.2); }
+    .badge.error   { background: rgba(239,68,68,0.12);  color: var(--error);   border: 1px solid rgba(239,68,68,0.2); }
+    .badge.info    { background: rgba(59,130,246,0.12); color: var(--accent-blue); border: 1px solid rgba(59,130,246,0.2); }
+    .badge.neutral { background: var(--bg-elevated); color: var(--text-secondary); border: 1px solid var(--border-medium); }
+    .badge::before { content: '●'; font-size: 7px; }
 
-    .cpanel { background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: var(--r24); overflow: hidden; box-shadow: var(--shadow-lg), var(--shadow-glow); }
-    .phdr { display: flex; align-items: center; justify-content: space-between; padding: 20px 28px 16px 28px; flex-wrap: wrap; gap: 18px; background: linear-gradient(135deg, var(--bg-secondary) 0%, #0B1120 100%); border-bottom: 1px solid var(--border-subtle); }
-    .ptitle { font-size: 1.35rem; font-weight: 700; background: linear-gradient(135deg, #FFFFFF 0%, #94A3B8 100%); -webkit-background-clip: text; background-clip: text; color: transparent; letter-spacing: -0.3px; }
-    .psub { font-size: 0.75rem; color: var(--text-tertiary); margin-top: 6px; display: flex; align-items: center; gap: 6px; }
-    .psub::before { content: "⚡"; font-size: 10px; opacity: 0.8; }
-    .chart-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
-    .ctabs { display: flex; background: rgba(255,255,255,0.03); border-radius: 14px; padding: 4px; gap: 6px; border: 1px solid var(--border-subtle); }
-    .ctab { padding: 8px 22px; border-radius: 10px; font-size: 0.8125rem; font-weight: 600; background: transparent; border: none; cursor: pointer; color: var(--text-secondary); font-family: inherit; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); letter-spacing: 0.3px; }
-    .ctab:hover { color: var(--text-primary); background: rgba(255,255,255,0.06); }
-    .ctab.on { background: var(--accent-blue); color: white; box-shadow: 0 2px 12px rgba(59,130,246,0.4); }
-    .date-range-tools { display: flex; align-items: center; gap: 14px; background: rgba(0,0,0,0.3); padding: 6px 16px 6px 20px; border-radius: 60px; border: 1px solid var(--border-subtle); backdrop-filter: blur(4px); }
-    .drange { display: flex; align-items: center; gap: 10px; }
-    .dinput { background: var(--bg-surface); border: 1px solid var(--border-medium); border-radius: 30px; padding: 7px 14px; font-size: 0.75rem; color: var(--text-primary); font-family: 'Inter', monospace; font-weight: 500; transition: all 0.2s ease; cursor: pointer; }
-    .dinput:focus { outline: none; border-color: var(--accent-blue); box-shadow: 0 0 0 3px var(--accent-glow); }
-    .drange span { color: var(--text-tertiary); font-size: 0.75rem; font-weight: 500; }
-    .abtn { padding: 7px 20px; border-radius: 30px; background: linear-gradient(135deg, var(--accent-blue), #2563EB); border: none; color: white; font-size: 0.75rem; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.2s ease; letter-spacing: 0.3px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
-    .abtn:hover { background: linear-gradient(135deg, #3B82F6, #1D4ED8); transform: translateY(-1px); box-shadow: 0 6px 16px rgba(59,130,246,0.35); }
-    .cwrap { padding: 20px 28px 28px 28px; height: 340px; position: relative; background: var(--bg-secondary); }
-    .cwrap canvas { height: 100% !important; width: 100% !important; }
+    /* FORM ELEMENTS */
+    .form-group { margin-bottom: 20px; }
+    .form-label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; letter-spacing: 0.2px; }
+    .form-input {
+      width: 100%; padding: 10px 14px; border-radius: var(--r12);
+      border: 1px solid var(--border-medium); background: var(--bg-elevated);
+      color: var(--text-primary); font-family: inherit; font-size: 13px;
+      outline: none; transition: all 0.2s;
+    }
+    .form-input:focus { border-color: var(--accent-blue); box-shadow: 0 0 0 3px var(--glow-blue); }
+    .form-select { appearance: none; cursor: pointer; }
+    .form-textarea { resize: vertical; min-height: 80px; }
 
-    .kpi-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
-    .kpi { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--r16); padding: 18px; box-shadow: var(--shadow-sm); }
-    .kpi .klabel { font-size: 10px; color: var(--text-tertiary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .6px; font-weight: 600; }
-    .kpi .kval   { font-size: 22px; font-weight: 700; color: var(--text-primary); }
-    .kpi .ksub   { font-size: 11px; margin-top: 6px; font-weight: 500; }
-    .up   { color: var(--error); }
-    .down { color: var(--success); }
+    /* RANGE SLIDER */
+    .range-wrap { position: relative; }
+    input[type=range] {
+      width: 100%; -webkit-appearance: none; appearance: none;
+      height: 6px; border-radius: 3px; background: var(--bg-elevated);
+      outline: none; cursor: pointer;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: var(--accent-blue); cursor: pointer;
+      box-shadow: 0 0 8px var(--glow-blue);
+    }
 
-    .bottom-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .panel { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--r20); padding: 20px 24px; box-shadow: var(--shadow-sm); }
-    .panel-title { font-size: 11px; font-weight: 700; color: var(--text-tertiary); margin-bottom: 14px; text-transform: uppercase; letter-spacing: .8px; }
-    .info-list { display: flex; flex-direction: column; }
-    .info-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border-subtle); font-size: 13px; }
-    .info-item:last-child { border-bottom: none; }
-    .info-item .ikey { color: var(--text-secondary); }
-    .info-item .ival { font-weight: 600; color: var(--text-primary); }
-    .ival.ok   { color: var(--success); }
-    .ival.warn { color: var(--warning); }
-    .ival.err  { color: var(--error); }
+    /* MODALS */
+    .overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(6px); z-index: 200;
+      display: none; align-items: center; justify-content: center; padding: 20px;
+    }
+    .overlay.open { display: flex; }
+    .modal {
+      background: var(--bg-surface); border: 1px solid var(--border-medium);
+      border-radius: var(--r24); padding: 32px; max-width: 480px; width: 100%;
+      box-shadow: var(--shadow-lg);
+    }
+    .modal-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+    .modal-sub { font-size: 13px; color: var(--text-secondary); margin-bottom: 24px; }
+    .modal-acts { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
+    .modal-close { position: absolute; top: 16px; right: 16px; background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 18px; }
 
-    .tbl-panel { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--r20); padding: 20px 24px; box-shadow: var(--shadow-sm); }
-    .tbl-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+    /* SKELETON */
+    .skeleton { background: linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-surface) 50%, var(--bg-elevated) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: var(--r8); }
+    @keyframes shimmer { 0%{background-position:200%}100%{background-position:-200%} }
+
+    /* DIVIDER */
+    .divider { height: 1px; background: var(--border-subtle); margin: 24px 0; }
+    .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-tertiary); display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+    .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border-subtle); }
+
+    /* ─────────────────────────────────────────────
+       STEP 1 — DATA INGESTION
+    ───────────────────────────────────────────── */
+    .upload-zone {
+      border: 2px dashed var(--border-medium); border-radius: var(--r20);
+      padding: 56px 32px; text-align: center; cursor: pointer;
+      transition: all 0.25s; background: var(--bg-card);
+      position: relative; overflow: hidden;
+    }
+    .upload-zone::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse at center, rgba(59,130,246,0.04) 0%, transparent 70%);
+    }
+    .upload-zone:hover { border-color: var(--accent-blue); background: rgba(59,130,246,0.03); }
+    .upload-zone.drag-over { border-color: var(--accent-blue); background: rgba(59,130,246,0.08); }
+    .upload-icon { font-size: 48px; margin-bottom: 16px; display: block; }
+    .upload-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+    .upload-sub { font-size: 13px; color: var(--text-secondary); margin-bottom: 20px; }
+    .upload-types { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+    .upload-type-badge {
+      font-size: 11px; font-weight: 600; padding: 4px 12px;
+      border-radius: 20px; background: var(--bg-elevated);
+      border: 1px solid var(--border-medium); color: var(--text-secondary);
+    }
+
+    .progress-state, .error-state, .success-state { display: none; }
+    .progress-state.show, .error-state.show, .success-state.show { display: block; }
+
+    .file-preview-card {
+      display: flex; align-items: center; gap: 16px;
+      background: var(--bg-elevated); border: 1px solid var(--border-medium);
+      border-radius: var(--r16); padding: 16px; margin-bottom: 16px;
+    }
+    .file-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; background: rgba(59,130,246,0.12); }
+    .file-name { font-size: 14px; font-weight: 600; }
+    .file-size { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+
+    .insights-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 24px; }
+    .insight-card {
+      background: var(--bg-card); border: 1px solid var(--border-subtle);
+      border-radius: var(--r16); padding: 20px; position: relative; overflow: hidden;
+    }
+    .insight-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+    .insight-card.blue::before { background: var(--accent-blue); }
+    .insight-card.teal::before { background: var(--accent-teal); }
+    .insight-card.amber::before { background: var(--accent-amber); }
+    .insight-val { font-size: 28px; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 4px; }
+    .insight-label { font-size: 11px; color: var(--text-secondary); font-weight: 500; }
+    .insight-trend { font-size: 11px; margin-top: 8px; font-weight: 600; }
+
+    /* ─────────────────────────────────────────────
+       STEP 2 — SYSTEM MODELING
+    ───────────────────────────────────────────── */
+    .modeling-layout { display: grid; grid-template-columns: 280px 1fr 260px; gap: 20px; }
+    .modeling-panel { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--r20); padding: 20px; }
+    .mp-title { font-size: 13px; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+    .mp-title .mp-icon { font-size: 16px; }
+    .input-row { margin-bottom: 16px; }
+    .input-label { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: flex; justify-content: space-between; }
+    .input-val { font-weight: 700; color: var(--text-primary); }
+    .output-metric { padding: 16px 0; border-bottom: 1px solid var(--border-subtle); }
+    .output-metric:last-child { border-bottom: none; }
+    .om-label { font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .om-val { font-size: 24px; font-weight: 700; }
+    .om-sub { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+
+    /* ─────────────────────────────────────────────
+       STEP 3 — AGREEMENT SYSTEM
+    ───────────────────────────────────────────── */
+    .agreement-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px; }
+    .agreement-card {
+      background: var(--bg-card); border: 2px solid var(--border-subtle);
+      border-radius: var(--r20); padding: 24px; cursor: pointer; transition: all 0.25s;
+      position: relative;
+    }
+    .agreement-card:hover { border-color: var(--accent-blue); transform: translateY(-2px); }
+    .agreement-card.selected { border-color: var(--accent-blue); background: rgba(59,130,246,0.05); }
+    .agreement-card .check { position: absolute; top: 16px; right: 16px; width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border-medium); display: flex; align-items: center; justify-content: center; font-size: 11px; transition: all 0.2s; }
+    .agreement-card.selected .check { background: var(--accent-blue); border-color: var(--accent-blue); color: #fff; }
+    .ag-icon { font-size: 32px; margin-bottom: 12px; display: block; }
+    .ag-title { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+    .ag-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+    .ag-highlight { margin-top: 14px; padding: 10px 14px; background: var(--bg-elevated); border-radius: var(--r8); font-size: 12px; font-weight: 600; color: var(--accent-teal); }
+
+    .accordion-item { border: 1px solid var(--border-subtle); border-radius: var(--r12); margin-bottom: 8px; overflow: hidden; }
+    .accordion-header { padding: 16px 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 14px; background: var(--bg-card); transition: background 0.2s; }
+    .accordion-header:hover { background: var(--bg-elevated); }
+    .accordion-header .acc-arrow { transition: transform 0.25s; font-size: 12px; color: var(--text-tertiary); }
+    .accordion-body { display: none; padding: 0 20px 20px; background: var(--bg-card); font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+    .accordion-body.open { display: block; }
+    .accordion-item.open .acc-arrow { transform: rotate(180deg); }
+
+    /* ─────────────────────────────────────────────
+       STEP 4 — FINAL SIMULATION
+    ───────────────────────────────────────────── */
+    .sim-steps { display: flex; flex-direction: column; gap: 12px; }
+    .sim-step {
+      display: flex; align-items: center; gap: 16px;
+      background: var(--bg-card); border: 1px solid var(--border-subtle);
+      border-radius: var(--r12); padding: 16px 20px;
+      transition: all 0.3s;
+    }
+    .sim-step.active { border-color: var(--accent-blue); background: rgba(59,130,246,0.04); }
+    .sim-step.done { border-color: rgba(16,185,129,0.3); background: rgba(16,185,129,0.04); }
+    .sim-step-num {
+      width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; background: var(--bg-elevated);
+      border: 1px solid var(--border-medium);
+    }
+    .sim-step.active .sim-step-num { background: var(--accent-blue); border-color: var(--accent-blue); color: #fff; animation: pulse-sim 1s infinite; }
+    .sim-step.done .sim-step-num { background: var(--accent-teal); border-color: var(--accent-teal); color: #fff; }
+    @keyframes pulse-sim { 0%,100%{box-shadow:0 0 0 0 rgba(59,130,246,0.4)} 50%{box-shadow:0 0 0 8px rgba(59,130,246,0)} }
+    .sim-step-text { flex: 1; }
+    .sim-step-label { font-size: 14px; font-weight: 600; }
+    .sim-step-sub { font-size: 12px; color: var(--text-secondary); }
+    .sim-step-status { font-size: 12px; font-weight: 600; }
+
+    .validation-list { display: flex; flex-direction: column; gap: 8px; }
+    .val-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--r12); }
+    .val-check { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+    .val-check.done { background: rgba(16,185,129,0.12); color: var(--success); }
+    .val-check.pending { background: var(--bg-elevated); color: var(--text-tertiary); }
+
+    .project-id-card {
+      background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(16,185,129,0.05));
+      border: 1px solid rgba(59,130,246,0.3);
+      border-radius: var(--r20); padding: 32px; text-align: center;
+    }
+    .project-id { font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 700; color: var(--accent-blue); letter-spacing: 2px; margin: 12px 0; }
+
+    /* ─────────────────────────────────────────────
+       STEP 5 — PROJECT DASHBOARD
+    ───────────────────────────────────────────── */
+    .proj-tabs { display: flex; background: var(--bg-elevated); border-radius: var(--r12); padding: 4px; gap: 4px; margin-bottom: 24px; border: 1px solid var(--border-subtle); width: fit-content; }
+    .proj-tab { padding: 8px 18px; border-radius: var(--r8); font-size: 13px; font-weight: 600; background: transparent; border: none; cursor: pointer; color: var(--text-secondary); font-family: inherit; transition: all 0.2s; }
+    .proj-tab.active { background: var(--bg-card); color: var(--text-primary); box-shadow: var(--shadow-sm); }
+
+    .phase-track { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    .phase-card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--r16); padding: 20px; position: relative; overflow: hidden; }
+    .phase-card::before { content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 3px; }
+    .phase-card.engineering::before { background: var(--accent-blue); }
+    .phase-card.permits::before { background: var(--accent-amber); }
+    .phase-card.procurement::before { background: var(--accent-purple); }
+    .phase-card.installation::before { background: var(--accent-teal); }
+    .phase-name { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-tertiary); margin-bottom: 8px; }
+    .phase-pct { font-size: 26px; font-weight: 700; margin-bottom: 6px; }
+    .phase-status-label { font-size: 12px; color: var(--text-secondary); }
+
+    .kanban-board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .kanban-col { background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--r16); padding: 16px; }
+    .kanban-col-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-secondary); margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+    .kanban-count { background: var(--bg-card); padding: 2px 8px; border-radius: 12px; font-size: 11px; }
+    .task-card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--r12); padding: 14px; margin-bottom: 10px; cursor: grab; transition: all 0.2s; }
+    .task-card:hover { border-color: rgba(59,130,246,0.3); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+    .task-title { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+    .task-meta { display: flex; justify-content: space-between; align-items: center; }
+    .task-owner { font-size: 11px; color: var(--text-secondary); display: flex; align-items: center; gap: 5px; }
+    .task-avatar { width: 20px; height: 20px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: #fff; }
+    .task-due { font-size: 10px; color: var(--text-tertiary); font-family: 'JetBrains Mono', monospace; }
+
+    /* ─────────────────────────────────────────────
+       STEP 6 — EMS DASHBOARD (preserved + enhanced)
+    ───────────────────────────────────────────── */
+    /* (re-using original dashboard styles, extended below) */
+    .ems-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+    .ems-card {
+      background: var(--bg-card); border: 1px solid var(--border-subtle);
+      border-radius: var(--r20); padding: 24px; position: relative; overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+    .ems-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+    .ems-card.blue::before  { background: linear-gradient(90deg, var(--accent-blue), #60A5FA); }
+    .ems-card.teal::before  { background: linear-gradient(90deg, var(--accent-teal), #34D399); }
+    .ems-card.amber::before { background: linear-gradient(90deg, var(--accent-amber), #FCD34D); }
+    .ems-card-icon { width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-bottom: 14px; }
+    .ems-card-icon.blue  { background: rgba(59,130,246,0.12); }
+    .ems-card-icon.teal  { background: rgba(16,185,129,0.12); }
+    .ems-card-icon.amber { background: rgba(245,158,11,0.12); }
+    .ems-val { font-size: 32px; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 4px; }
+    .ems-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-tertiary); }
+    .ems-trend { font-size: 12px; margin-top: 8px; font-weight: 600; }
+    .ems-trend.up   { color: var(--error); }
+    .ems-trend.down { color: var(--success); }
+
+    /* Energy Flow Diagram */
+    .energy-flow { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--r20); padding: 28px; margin-bottom: 20px; }
+    .flow-diagram { display: flex; align-items: center; justify-content: center; gap: 0; flex-wrap: wrap; }
+    .flow-node {
+      background: var(--bg-elevated); border: 2px solid var(--border-medium);
+      border-radius: var(--r16); padding: 16px 20px; text-align: center;
+      min-width: 110px; position: relative; transition: all 0.3s;
+    }
+    .flow-node:hover { transform: scale(1.04); border-color: var(--accent-blue); }
+    .flow-node.solar { border-color: rgba(245,158,11,0.5); background: rgba(245,158,11,0.06); }
+    .flow-node.battery { border-color: rgba(16,185,129,0.5); background: rgba(16,185,129,0.06); }
+    .flow-node.grid { border-color: rgba(59,130,246,0.5); background: rgba(59,130,246,0.06); }
+    .flow-node.load { border-color: rgba(139,92,246,0.5); background: rgba(139,92,246,0.06); }
+    .flow-node-icon { font-size: 24px; margin-bottom: 6px; }
+    .flow-node-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); }
+    .flow-node-val { font-size: 16px; font-weight: 700; margin-top: 4px; }
+    .flow-arrow { display: flex; align-items: center; padding: 0 8px; flex-direction: column; gap: 4px; }
+    .flow-arrow-line {
+      width: 50px; height: 2px; position: relative; overflow: visible;
+    }
+    .flow-arrow-line::after {
+      content: ''; position: absolute; right: -6px; top: -4px;
+      border: 5px solid transparent; border-left-color: currentColor;
+    }
+    .arrow-active { color: var(--accent-teal); }
+    .arrow-inactive { color: var(--border-medium); }
+    .flow-arrow-val { font-size: 10px; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+
+    .battery-bar { margin-top: 8px; }
+    .battery-bar-track { background: var(--bg-primary); border-radius: 4px; height: 8px; overflow: hidden; }
+    .battery-bar-fill { height: 100%; border-radius: 4px; transition: width 1s ease; }
+
+    /* Alerts */
+    .alerts-panel { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--r20); padding: 20px; }
+    .alert-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border-subtle); }
+    .alert-item:last-child { border-bottom: none; }
+    .alert-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 6px; }
+    .alert-dot.warn { background: var(--warning); box-shadow: 0 0 6px var(--warning); }
+    .alert-dot.ok { background: var(--success); box-shadow: 0 0 6px var(--success); }
+    .alert-dot.info { background: var(--accent-blue); box-shadow: 0 0 6px var(--accent-blue); }
+    .alert-text { font-size: 13px; }
+    .alert-time { font-size: 11px; color: var(--text-tertiary); font-family: 'JetBrains Mono', monospace; margin-top: 3px; }
+
+    /* Savings panel */
+    .savings-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .savings-item { background: var(--bg-elevated); border-radius: var(--r16); padding: 16px; text-align: center; }
+    .savings-val { font-size: 22px; font-weight: 700; color: var(--accent-teal); }
+    .savings-label { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.6px; margin-top: 4px; }
+
+    /* Live meter cards */
+    .live-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+    .live-card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--r16); padding: 16px; }
+    .lc-label { font-size: 10px; color: var(--text-tertiary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600; }
+    .lc-value { font-size: 22px; font-weight: 700; }
+    .lc-unit  { font-size: 10px; color: var(--text-tertiary); margin-top: 4px; }
+
+    /* Chart panel */
+    .chart-panel { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--r20); overflow: hidden; margin-bottom: 20px; }
+    .chart-hdr { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px 16px; border-bottom: 1px solid var(--border-subtle); flex-wrap: wrap; gap: 12px; }
+    .chart-title { font-size: 16px; font-weight: 700; }
+    .chart-sub { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+    .chart-tabs { display: flex; background: var(--bg-elevated); border-radius: 10px; padding: 3px; gap: 4px; }
+    .chart-tab { padding: 7px 18px; border-radius: 8px; font-size: 12px; font-weight: 600; background: transparent; border: none; cursor: pointer; color: var(--text-secondary); font-family: inherit; transition: all 0.2s; }
+    .chart-tab.active { background: var(--accent-blue); color: #fff; box-shadow: 0 2px 8px rgba(59,130,246,0.3); }
+    .chart-body { padding: 20px 24px 24px; height: 280px; }
+
+    /* EMS header */
+    .ems-hdr {
+      background: var(--bg-secondary); border-bottom: 1px solid var(--border-subtle);
+      padding: 16px 24px; display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 12px;
+    }
+    .conn-status { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 500; color: var(--text-secondary); background: var(--bg-elevated); padding: 6px 14px; border-radius: 40px; border: 1px solid var(--border-subtle); }
+    .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot.green { background: var(--success); animation: blink 1s infinite; box-shadow: 0 0 6px var(--success); }
+    @keyframes blink { 0%,100%{opacity:1}50%{opacity:.4} }
+
+    /* Table */
+    .tbl-panel { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--r20); padding: 20px 24px; }
+    .tbl-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
     .tbl-title { font-size: 11px; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: .8px; }
-    .export-btn { font-size: 12px; padding: 6px 16px; border: 1px solid var(--border-medium); border-radius: 30px; background: var(--bg-surface); cursor: pointer; color: var(--text-secondary); font-family: inherit; transition: .2s; font-weight: 500; }
-    .export-btn:hover { background: var(--bg-surface-elevated); color: var(--text-primary); border-color: var(--accent-blue); }
     .tbl-wrap { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 540px; }
-    thead th { text-align: left; padding: 10px 14px; color: var(--text-tertiary); font-weight: 600; font-size: 10px; border-bottom: 1px solid var(--border-subtle); text-transform: uppercase; letter-spacing: .6px; background: rgba(0,0,0,0.2); }
+    thead th { text-align: left; padding: 10px 14px; color: var(--text-tertiary); font-weight: 600; font-size: 10px; border-bottom: 1px solid var(--border-subtle); text-transform: uppercase; letter-spacing: .6px; background: rgba(0,0,0,0.15); }
     tbody td { padding: 11px 14px; border-bottom: 1px solid var(--border-subtle); color: var(--text-secondary); }
     tbody tr:last-child td { border-bottom: none; }
-    tbody tr:hover td { background: rgba(59,130,246,0.05); color: var(--text-primary); }
-    tr.gap-row td { background: rgba(245,158,11,0.08); color: var(--warning); }
+    tbody tr:hover td { background: rgba(59,130,246,0.04); color: var(--text-primary); }
 
-    .offbanner { display: none; background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); border-radius: var(--r12); padding: 12px 20px; font-size: 13px; color: var(--error); align-items: center; gap: 12px; font-weight: 500; }
+    /* KPI Row */
+    .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+    .kpi { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--r16); padding: 18px; }
+    .kpi .klabel { font-size: 10px; color: var(--text-tertiary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .6px; font-weight: 600; }
+    .kpi .kval { font-size: 22px; font-weight: 700; }
+    .kpi .ksub { font-size: 11px; margin-top: 6px; font-weight: 500; }
+
+    /* ─────────────────────────────────────────────
+       STEP 1 NO-DATA STATE
+    ───────────────────────────────────────────── */
+    .no-data-box { background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.2); border-radius: var(--r16); padding: 24px; margin-top: 24px; }
+    .no-data-title { font-size: 15px; font-weight: 700; color: var(--warning); margin-bottom: 8px; }
+    .no-data-sub { font-size: 13px; color: var(--text-secondary); margin-bottom: 20px; }
+    .no-data-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 1100px) {
+      .modeling-layout { grid-template-columns: 1fr 1fr; }
+      .modeling-layout > *:nth-child(2) { grid-column: 1 / -1; order: -1; }
+      .kanban-board { grid-template-columns: repeat(2, 1fr); }
+      .phase-track { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .agreement-cards { grid-template-columns: 1fr; }
+      .insights-grid { grid-template-columns: 1fr 1fr; }
+      .ems-grid { grid-template-columns: 1fr 1fr; }
+      .live-grid { grid-template-columns: repeat(3, 1fr); }
+      .kpi-row { grid-template-columns: repeat(2, 1fr); }
+      .savings-grid { grid-template-columns: 1fr; }
+      .modeling-layout { grid-template-columns: 1fr; }
+      .kanban-board { grid-template-columns: 1fr; }
+      .phase-track { grid-template-columns: 1fr 1fr; }
+      .flow-diagram { gap: 0; justify-content: flex-start; overflow-x: auto; }
+    }
+    @media (max-width: 500px) {
+      .insights-grid { grid-template-columns: 1fr; }
+      .ems-grid { grid-template-columns: 1fr; }
+      .live-grid { grid-template-columns: repeat(2, 1fr); }
+      .kpi-row { grid-template-columns: 1fr 1fr; }
+      .page { padding: 20px 16px; }
+    }
+
+    /* Misc utility */
+    .mt-16 { margin-top: 16px; }
+    .mt-24 { margin-top: 24px; }
+    .flex { display: flex; }
+    .flex-between { display: flex; justify-content: space-between; align-items: center; }
+    .gap-12 { gap: 12px; }
+    .gap-16 { gap: 16px; }
+    .text-teal { color: var(--accent-teal); }
+    .text-amber { color: var(--accent-amber); }
+    .text-blue { color: var(--accent-blue); }
+    .text-red { color: var(--accent-red); }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    .hidden { display: none !important; }
+
+    /* Step 2 tou */
+    .tou-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
+    .tou-cell { padding: 8px; border-radius: 8px; text-align: center; font-size: 10px; font-weight: 600; }
+    .tou-peak { background: rgba(239,68,68,0.12); color: var(--error); }
+    .tou-offpeak { background: rgba(16,185,129,0.12); color: var(--success); }
+    .tou-shoulder { background: rgba(245,158,11,0.12); color: var(--warning); }
+
+    /* Spinner */
+    .spinner { width: 40px; height: 40px; border: 3px solid var(--border-medium); border-top-color: var(--accent-blue); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner-sm { width: 18px; height: 18px; border-width: 2px; }
+
+    /* Model lock checkboxes */
+    .lock-checks { display: flex; flex-direction: column; gap: 12px; margin: 20px 0; }
+    .lock-check { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; background: var(--bg-elevated); border-radius: var(--r12); border: 1px solid var(--border-medium); cursor: pointer; }
+    .lock-check input[type=checkbox] { margin-top: 2px; flex-shrink: 0; accent-color: var(--accent-blue); width: 16px; height: 16px; cursor: pointer; }
+    .lock-check-text { font-size: 13px; }
+    .lock-check-label { font-weight: 600; display: block; margin-bottom: 2px; }
+    .lock-check-sub { font-size: 12px; color: var(--text-secondary); }
+
+    /* Optimization chips */
+    .opt-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+    .opt-chip {
+      display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px;
+      border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer;
+      border: 1px solid var(--border-medium); background: var(--bg-elevated);
+      color: var(--text-secondary); transition: all 0.2s;
+    }
+    .opt-chip.active { background: rgba(59,130,246,0.12); border-color: var(--accent-blue); color: var(--accent-blue); }
+    .opt-chip:hover { border-color: var(--accent-blue); color: var(--text-primary); }
+
+    /* Step 3 summary */
+    .model-summary { background: linear-gradient(135deg, rgba(59,130,246,0.06), rgba(16,185,129,0.04)); border: 1px solid rgba(59,130,246,0.2); border-radius: var(--r20); padding: 24px; margin-bottom: 24px; }
+    .model-summary-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .ms-item { }
+    .ms-label { font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .ms-val { font-size: 18px; font-weight: 700; }
+
+    /* banner strip within step */
+    .banner-strip { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: var(--r12); font-size: 13px; font-weight: 500; margin-bottom: 16px; }
+    .banner-strip.success { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: var(--success); }
+    .banner-strip.warning { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.2); color: var(--warning); }
+
+    /* Settings dropdown (Step 6) */
+    .settings-wrapper { position: relative; }
+    .settings-dropdown { position: absolute; top: calc(100% + 6px); right: 0; min-width: 180px; background: var(--bg-surface); border: 1px solid var(--border-medium); border-radius: var(--r12); box-shadow: var(--shadow-lg); overflow: hidden; z-index: 100; opacity: 0; pointer-events: none; transform: translateY(-6px); transition: opacity 0.18s ease, transform 0.18s ease; }
+    .settings-wrapper:hover .settings-dropdown { opacity: 1; pointer-events: all; transform: translateY(0); }
+    .dropdown-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 16px; font-size: 13px; font-weight: 500; color: var(--text-secondary); background: none; border: none; cursor: pointer; font-family: inherit; text-align: left; transition: background 0.15s ease; border-bottom: 1px solid var(--border-subtle); }
+    .dropdown-item:last-child { border-bottom: none; }
+    .dropdown-item:hover { background: rgba(59,130,246,0.08); color: var(--text-primary); }
+    .dropdown-item .di-icon { width: 26px; height: 26px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+
+    /* reconnect box */
+    .reconnect-box { display: none; background: var(--bg-card); border: 1px solid rgba(245,158,11,0.4); border-radius: var(--r16); padding: 20px 24px; }
+    .reconnect-box.show { display: block; }
+    .offbanner { display: none; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25); border-radius: var(--r12); padding: 12px 20px; font-size: 13px; color: var(--error); align-items: center; gap: 12px; font-weight: 500; margin-bottom: 16px; }
     .offbanner.show { display: flex; }
-    .rbtn { background: rgba(239,68,68,0.2); border: 1px solid rgba(239,68,68,0.4); border-radius: 30px; padding: 4px 14px; color: var(--error); cursor: pointer; font-size: 11px; font-family: inherit; transition: .2s; }
-    .rbtn:hover { background: rgba(239,68,68,0.3); }
+    .rbtn { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); border-radius: 30px; padding: 4px 14px; color: var(--error); cursor: pointer; font-size: 11px; font-family: inherit; transition: .2s; }
+    .rbtn:hover { background: rgba(239,68,68,0.25); }
 
-    /* Modals */
-    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px; }
-    .overlay.open { display: flex; }
-    .modal { background: var(--bg-surface); border: 1px solid var(--border-medium); border-radius: var(--r24); padding: 28px; max-width: 420px; width: 100%; box-shadow: var(--shadow-lg); }
-    .mtitle { font-size: 18px; font-weight: 700; color: var(--text-primary); margin-bottom: 24px; }
-    .fg { margin-bottom: 18px; }
-    .flb { font-size: 12px; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 8px; }
-    .fi { width: 100%; padding: 10px 14px; border-radius: var(--r12); border: 1px solid var(--border-medium); background: var(--bg-card); color: var(--text-primary); font-family: inherit; font-size: 13px; outline: none; transition: .2s; }
-    .fi:focus { border-color: var(--accent-blue); box-shadow: 0 0 0 3px var(--accent-glow); }
-    .macts { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
+    /* Step 6 EMS banner */
+    .ems-banner { display: none; padding: 10px 24px; font-size: 13px; font-weight: 500; align-items: center; gap: 12px; }
+    .ems-banner.show { display: flex; }
+    .ems-banner.offline   { background: rgba(239,68,68,0.12); color: var(--error); border-bottom: 1px solid rgba(239,68,68,0.2); }
+    .ems-banner.reconnect { background: rgba(245,158,11,0.12); color: var(--warning); border-bottom: 1px solid rgba(245,158,11,0.2); }
+    .ems-banner.restored  { background: rgba(16,185,129,0.12); color: var(--success); border-bottom: 1px solid rgba(16,185,129,0.2); }
+    .banner-close { margin-left: auto; background: none; border: none; cursor: pointer; font-size: 18px; color: inherit; opacity: .7; }
 
-    /* System Status Modal specific */
-    .sys-status-modal { max-width: 480px; }
-    .sys-status-grid { display: flex; flex-direction: column; gap: 0; }
-    .sys-status-item { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--border-subtle); }
-    .sys-status-item:last-child { border-bottom: none; }
-    .sys-status-left { display: flex; align-items: center; gap: 12px; }
-    .sys-status-icon { width: 32px; height: 32px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
-    .sys-status-label { font-size: 13px; font-weight: 500; color: var(--text-primary); }
-    .sys-status-sub { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
-    .sys-status-badge { font-size: 11px; font-weight: 600; padding: 4px 12px; border-radius: 20px; display: flex; align-items: center; gap: 5px; }
-    .sys-status-badge.ok   { background: rgba(16,185,129,0.15); color: var(--success); }
-    .sys-status-badge.warn { background: rgba(245,158,11,0.15); color: var(--warning); }
-    .sys-status-badge.err  { background: rgba(239,68,68,0.15); color: var(--error); }
-    .sys-status-badge::before { content: '●'; font-size: 8px; }
-
-    @media (max-width: 1100px) { .live-grid { grid-template-columns: repeat(3,1fr); } }
-    @media (max-width: 800px) { .cards { grid-template-columns: repeat(2,1fr); } .kpi-row { grid-template-columns: repeat(2,1fr); } .bottom-row { grid-template-columns: 1fr; } .live-grid { grid-template-columns: repeat(2,1fr); } .cwrap { height: 260px; padding: 16px; } .phdr { padding: 16px 20px; } }
-    @media (max-width: 640px) { .chart-controls { width: 100%; flex-direction: column; align-items: stretch; } .ctabs { width: 100%; justify-content: stretch; } .ctab { flex: 1; text-align: center; } .date-range-tools { width: 100%; justify-content: center; flex-wrap: wrap; } .drange { width: 100%; justify-content: space-between; flex-wrap: wrap; gap: 8px; } .drange .dinput { flex: 1; min-width: 120px; } .abtn { width: auto; } }
-    @media (max-width: 500px) { .cards { grid-template-columns: 1fr; } .live-grid { grid-template-columns: repeat(2,1fr); } .kpi-row { grid-template-columns: 1fr; } .main { padding: 16px; gap: 18px; } .cwrap { height: 220px; } }
+    /* Progress animation */
+    @keyframes progress-pulse { 0%,100%{opacity:1}50%{opacity:0.6} }
+    .progress-anim { animation: progress-pulse 1.5s infinite; }
   </style>
 </head>
 <body>
-<div class="dash">
-  <div class="demo-bar">
-    <span>⚡ Simulation</span>
-    <button class="dbtn" onclick="goOffline()">Offline</button>
-    <button class="dbtn" onclick="goReconnecting()">Reconnecting</button>
-    <button class="dbtn" onclick="goOnline()">Online</button>
-  </div>
 
-  <header class="hdr">
+<!-- ── TOP NAV ── -->
+<nav class="top-nav">
+  <div class="nav-inner">
     <div class="brand">
       <div class="brand-icon">⚡</div>
       <div>
         <div class="brand-name">3rd Rock Energy Systems</div>
-        <div class="brand-sub">Real-time monitoring · <span id="clock">—</span> EST</div>
+        <div class="brand-sub">Energy Intelligence Platform</div>
       </div>
     </div>
-    <div class="hdr-right">
-      <div class="conn-status">
-        <span class="dot green" id="connDot"></span>
-        <span id="connText">Online</span>
+    <div class="step-nav" id="stepNav">
+      <div class="step-item">
+        <button class="step-btn active" id="nav-1" onclick="goStep(1)">
+          <span class="step-num">1</span> Data Ingestion
+        </button>
+        <span class="step-arrow">›</span>
       </div>
-
-      <!-- Settings dropdown wrapper -->
-      <div class="settings-wrapper">
-        <button class="hbtn">⚙ Settings ▾</button>
-        <div class="settings-dropdown">
-          <button class="dropdown-item" onclick="openModal('settings-modal')">
-            <span class="di-icon">🎛</span>
-            <div>
-              <div>Preferences</div>
-            </div>
-          </button>
-          <button class="dropdown-item" onclick="openModal('system-status-modal')">
-            <span class="di-icon">📡</span>
-            <div>
-              <div>System Status</div>
-            </div>
-          </button>
-        </div>
+      <div class="step-item">
+        <button class="step-btn" id="nav-2" onclick="goStep(2)">
+          <span class="step-num">2</span> System Modeling
+        </button>
+        <span class="step-arrow">›</span>
       </div>
-
+      <div class="step-item">
+        <button class="step-btn" id="nav-3" onclick="goStep(3)">
+          <span class="step-num">3</span> Agreement
+        </button>
+        <span class="step-arrow">›</span>
+      </div>
+      <div class="step-item">
+        <button class="step-btn" id="nav-4" onclick="goStep(4)">
+          <span class="step-num">4</span> Simulation
+        </button>
+        <span class="step-arrow">›</span>
+      </div>
+      <div class="step-item">
+        <button class="step-btn" id="nav-5" onclick="goStep(5)">
+          <span class="step-num">5</span> Project
+        </button>
+        <span class="step-arrow">›</span>
+      </div>
+      <div class="step-item">
+        <button class="step-btn" id="nav-6" onclick="goStep(6)">
+          <span class="step-num">6</span> EMS
+        </button>
+      </div>
     </div>
-  </header>
-
-  <div class="banner" id="banner">
-    <span id="bannerMsg">—</span>
-    <button class="banner-close" onclick="closeBanner()">✕</button>
+    <div class="nav-right">
+      <button class="btn sm" onclick="openModal('settings-modal')">⚙ Settings</button>
+    </div>
   </div>
+</nav>
 
-  <div class="main">
-    <div class="offbanner" id="offline-banner">
-      ⚠ Offline mode — data may be stale.
-      <button class="rbtn" onclick="tryReconnect()">↺ Reconnect</button>
+<!-- ── DEMO BAR ── -->
+<div class="demo-bar">
+  <span>⚡ Demo Mode</span>
+  <span style="margin:0 4px;opacity:.3">|</span>
+  Jump to:
+  <button class="dbtn" onclick="goStep(1)">Step 1</button>
+  <button class="dbtn" onclick="goStep(2)">Step 2</button>
+  <button class="dbtn" onclick="goStep(3)">Step 3</button>
+  <button class="dbtn" onclick="goStep(4)">Step 4</button>
+  <button class="dbtn" onclick="goStep(5)">Step 5</button>
+  <button class="dbtn primary" onclick="goStep(6)">Step 6 · EMS</button>
+  <span style="margin-left:auto;opacity:.5">EMS sim:</span>
+  <button class="dbtn" onclick="emsGoOffline()">Offline</button>
+  <button class="dbtn" onclick="emsGoReconnect()">Reconnecting</button>
+  <button class="dbtn" onclick="emsGoOnline()">Online</button>
+</div>
+
+<!-- ════════════════════════════════════════════
+     STEP 1 — DATA INGESTION
+════════════════════════════════════════════ -->
+<div class="step-screen active" id="step-1">
+  <div class="page-md">
+    <div class="page-header">
+      <div class="step-badge">⚡ Step 1 of 6</div>
+      <h1>Data Ingestion</h1>
+      <p>Upload your utility bill or interval data to begin system analysis.</p>
     </div>
 
-    <div class="cards" id="cards-grid"></div>
-    <div class="missing-bar" id="missingBar"><strong>⚠ Data gap detected</strong><div class="gap-list" id="gapList"></div></div>
-    <div class="reconnect-box" id="rcBox"><h3>🔄 Reconnecting to gateway...</h3><div class="steps"><div class="step"><div class="step-icon done">✔</div><span class="step-label done">Outage detected</span></div><div class="step"><div class="step-icon done">✔</div><span class="step-label done">Cellular modem checked</span></div><div class="step"><div class="step-icon active">3</div><span class="step-label active">Connecting to cloud...</span></div><div class="step"><div class="step-icon wait">4</div><span class="step-label wait">Sending buffered data</span></div><div class="step"><div class="step-icon wait">5</div><span class="step-label wait">Resume live readings</span></div></div></div>
-
-    <div class="cpanel">
-      <div class="phdr">
-        <div>
-          <div class="ptitle">Consumption Trend</div>
-          <div class="psub">Power draw & energy usage over time</div>
-        </div>
-        <div class="chart-controls">
-          <div class="ctabs">
-            <button class="ctab on" onclick="switchChart(this,'today')">Today</button>
-            <button class="ctab" onclick="switchChart(this,'week')">Week</button>
-            <button class="ctab" onclick="switchChart(this,'month')">Month</button>
-          </div>
-          <div class="date-range-tools">
-            <div class="drange">
-              <input type="date" class="dinput" id="date-from">
-              <span>–</span>
-              <input type="date" class="dinput" id="date-to">
-              <button class="abtn" onclick="applyRange()">Apply</button>
-            </div>
-          </div>
+    <!-- Upload Zone -->
+    <div id="s1-upload">
+      <div class="upload-zone" id="dropZone" onclick="triggerUpload()" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+        <span class="upload-icon">📂</span>
+        <div class="upload-title">Drop your files here</div>
+        <div class="upload-sub">or click to browse your device</div>
+        <div class="upload-types">
+          <span class="upload-type-badge">PDF</span>
+          <span class="upload-type-badge">CSV</span>
+          <span class="upload-type-badge">XLSX</span>
+          <span class="upload-type-badge">JPG / PNG</span>
         </div>
       </div>
-      <div class="cwrap"><canvas id="lineChart"></canvas></div>
+      <input type="file" id="fileInput" style="display:none" onchange="handleFileSelect(event)">
+
+      <!-- No Interval Data Option -->
+      <div class="no-data-box">
+        <div class="no-data-title">⚠ No interval data available?</div>
+        <div class="no-data-sub">If your utility doesn't provide 15-min interval data, you can request it or enter manually.</div>
+        <div class="no-data-actions">
+          <button class="btn" onclick="openModal('utility-request-modal')">📬 Request from Utility</button>
+          <button class="btn" onclick="openModal('manual-entry-modal')">✏️ Manual Instructions</button>
+        </div>
+      </div>
     </div>
 
-    <div class="kpi-row"><div class="kpi"><div class="klabel">Today</div><div class="kval">142 kWh</div><div class="ksub up">+8% vs yesterday</div></div><div class="kpi"><div class="klabel">This Week</div><div class="kval">876 kWh</div><div class="ksub down">−3% vs last week</div></div><div class="kpi"><div class="klabel">This Month</div><div class="kval">3,412 kWh</div><div class="ksub up">+12% vs last month</div></div><div class="kpi"><div class="klabel">Peak Demand</div><div class="kval">8.2 kW</div><div class="ksub" style="color:var(--text-tertiary)">at 2:00 PM</div></div></div>
-
-    <div class="live-section-title">Live Meter Readings</div>
-    <!-- MODIFIED: Active Power removed, sequence adjusted: Energy Today, Reactive Power, Apparent Power, Current, Voltage -->
-    <div class="live-grid">
-      <div class="live-card" id="c-kwh"><div class="lc-label">Energy Today</div><div class="lc-value" id="v-kwh">142</div><div class="lc-unit">kWh</div></div>
-      <div class="live-card" id="c-rp"><div class="lc-label">Reactive Power</div><div class="lc-value" id="v-rp">2.1</div><div class="lc-unit">kVAr</div></div>
-      <div class="live-card" id="c-ap"><div class="lc-label">Apparent Power</div><div class="lc-value" id="v-ap">4.2</div><div class="lc-unit">kVA</div></div>
-      <div class="live-card" id="c-a"><div class="lc-label">Current</div><div class="lc-value" id="v-a">15.2</div><div class="lc-unit">A</div></div>
-      <div class="live-card" id="c-v"><div class="lc-label">Voltage</div><div class="lc-value" id="v-v">231</div><div class="lc-unit">V</div></div>
+    <!-- Progress State -->
+    <div class="progress-state" id="s1-progress">
+      <div class="card">
+        <div class="file-preview-card" id="filePreviewCard">
+          <div class="file-icon">📄</div>
+          <div style="flex:1">
+            <div class="file-name" id="fileName">energy_data.csv</div>
+            <div class="file-size" id="fileSize">2.4 MB · CSV</div>
+          </div>
+          <span class="badge warning">Uploading…</span>
+        </div>
+        <div class="progress-bar-wrap mb-8">
+          <div class="progress-bar-fill progress-anim" id="uploadBar" style="width:0%"></div>
+        </div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:8px" id="uploadStatus">Uploading… 0%</div>
+      </div>
     </div>
 
-    <div class="tbl-panel"><div class="tbl-header"><div class="tbl-title">Recent Readings</div><button class="export-btn" onclick="exportCSV()">Export CSV ↓</button></div><div class="tbl-wrap"><table><thead><tr><th>Time</th><th>kW</th><th>Voltage (V)</th><th>Current (A)</th><th>Energy (kWh)</th><th>PF</th><th>Status</th></tr></thead><tbody id="tBody"></tbody></table></div></div>
+    <!-- Error State -->
+    <div class="error-state" id="s1-error">
+      <div class="card" style="border-color:rgba(239,68,68,0.3);background:rgba(239,68,68,0.04)">
+        <div style="font-size:32px;margin-bottom:12px">⛔</div>
+        <div style="font-size:17px;font-weight:700;margin-bottom:8px;color:var(--error)">Upload Failed</div>
+        <div style="font-size:13px;color:var(--text-secondary);margin-bottom:20px">The file format is unsupported or the file is corrupted. Please try again with a valid PDF, CSV, or XLSX file.</div>
+        <button class="btn" onclick="resetUpload()">↺ Try Again</button>
+      </div>
+    </div>
+
+    <!-- Success + Insights -->
+    <div class="success-state" id="s1-success">
+      <div class="banner-strip success">✅ File processed successfully — 8,760 hours of interval data detected</div>
+
+      <div class="file-preview-card" id="filePreviewSuccess">
+        <div class="file-icon">📊</div>
+        <div style="flex:1">
+          <div class="file-name" id="fileNameSuccess">energy_data.csv</div>
+          <div class="file-size">8,760 rows · Jan 2024 – Dec 2024 · Hourly</div>
+        </div>
+        <span class="badge success">✓ Valid</span>
+      </div>
+
+      <div class="section-title">Load Profile</div>
+      <div class="chart-panel">
+        <div class="chart-hdr">
+          <div>
+            <div class="chart-title">Annual Load Profile</div>
+            <div class="chart-sub">Hourly kWh consumption · 2024</div>
+          </div>
+          <div class="chart-tabs">
+            <button class="chart-tab active" onclick="switchS1Chart(this,'load')">Load</button>
+            <button class="chart-tab" onclick="switchS1Chart(this,'demand')">Demand</button>
+          </div>
+        </div>
+        <div class="chart-body"><canvas id="s1Chart"></canvas></div>
+      </div>
+
+      <!-- Peak demand indicator -->
+      <div style="background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.2);border-radius:var(--r16);padding:16px 20px;margin-bottom:24px;display:flex;align-items:center;gap:16px">
+        <div style="font-size:28px">🔺</div>
+        <div>
+          <div style="font-size:12px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;font-weight:600">Peak Demand Detected</div>
+          <div style="font-size:24px;font-weight:700;color:var(--accent-red)">48.7 kW</div>
+          <div style="font-size:12px;color:var(--text-secondary)">July 14, 2024 · 2:30 PM — responsible for 23% of your bill</div>
+        </div>
+        <div style="margin-left:auto;text-align:right">
+          <div style="font-size:12px;color:var(--text-secondary)">Demand Charge</div>
+          <div style="font-size:20px;font-weight:700;color:var(--warning)">$1,240/mo</div>
+        </div>
+      </div>
+
+      <div class="section-title">Key Insights</div>
+      <div class="insights-grid">
+        <div class="insight-card blue">
+          <div class="insight-val">142,320 <span style="font-size:16px;color:var(--text-secondary)">kWh</span></div>
+          <div class="insight-label">Annual Consumption</div>
+          <div class="insight-trend" style="color:var(--error)">↑ 8% vs prior year</div>
+        </div>
+        <div class="insight-card teal">
+          <div class="insight-val">$38,460</div>
+          <div class="insight-label">Annual Energy Cost</div>
+          <div class="insight-trend" style="color:var(--success)">↓ 2% YoY</div>
+        </div>
+        <div class="insight-card amber">
+          <div class="insight-val">$0.27 <span style="font-size:16px;color:var(--text-secondary)">/kWh</span></div>
+          <div class="insight-label">Blended Rate</div>
+          <div class="insight-trend" style="color:var(--warning)">TOU E-19 Tariff</div>
+        </div>
+      </div>
+
+      <div class="flex-between mt-24">
+        <button class="btn" onclick="resetUpload()">⟵ Upload Different File</button>
+        <button class="btn primary lg" onclick="goStep(2)">Continue to System Modeling →</button>
+      </div>
+    </div>
   </div>
 </div>
 
-<!-- Preferences Modal -->
+<!-- ════════════════════════════════════════════
+     STEP 2 — SYSTEM MODELING
+════════════════════════════════════════════ -->
+<div class="step-screen" id="step-2">
+  <div class="page">
+    <div class="page-header">
+      <div class="step-badge">⚙️ Step 2 of 6</div>
+      <h1>System Modeling</h1>
+      <p>Configure your energy system parameters and see real-time financial projections.</p>
+    </div>
+
+    <div class="modeling-layout">
+      <!-- LEFT: Inputs -->
+      <div class="modeling-panel">
+        <div class="mp-title"><span class="mp-icon">🎛</span> System Parameters</div>
+
+        <div class="input-row">
+          <div class="input-label">Energy Charge <span class="input-val" id="m-energy-rate">$0.27</span>/kWh</div>
+          <input type="range" min="0.10" max="0.50" step="0.01" value="0.27" oninput="updateModel(this,'energy-rate',this.value,'$','/kWh')">
+        </div>
+
+        <div class="input-row">
+          <div class="input-label">Demand Charge <span class="input-val" id="m-demand-rate">$18.50</span>/kW</div>
+          <input type="range" min="5" max="40" step="0.5" value="18.50" oninput="updateModel(this,'demand-rate',this.value,'$','/kW')">
+        </div>
+
+        <div class="input-row">
+          <div class="input-label">Solar Size <span class="input-val" id="m-solar">200</span> kW</div>
+          <input type="range" min="0" max="500" step="10" value="200" id="solar-slider" oninput="updateModel(this,'solar',this.value,'','kW')">
+        </div>
+
+        <div class="input-row">
+          <div class="input-label">Battery Size <span class="input-val" id="m-battery">400</span> kWh</div>
+          <input type="range" min="0" max="2000" step="50" value="400" id="battery-slider" oninput="updateModel(this,'battery',this.value,'','kWh')">
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="input-row">
+          <div class="input-label">TOU Structure</div>
+          <div class="tou-grid">
+            <div class="tou-cell tou-peak">Peak<br>2–7pm</div>
+            <div class="tou-cell tou-shoulder">Shoulder<br>7am–2pm</div>
+            <div class="tou-cell tou-offpeak">Off-Peak<br>7pm–7am</div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="mp-title"><span class="mp-icon">💰</span> Incentives</div>
+        <div class="form-group" style="margin-bottom:12px">
+          <div class="input-label">ITC Rate <span class="input-val" id="m-itc">30</span>%</div>
+          <input type="range" min="0" max="40" step="1" value="30" oninput="updateModel(this,'itc',this.value,'','%')">
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">SGIP Rebate ($/Wh)</label>
+          <input type="number" class="form-input" value="0.15" step="0.01" min="0" oninput="recalcModel()">
+        </div>
+      </div>
+
+      <!-- CENTER: Charts -->
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="chart-panel">
+          <div class="chart-hdr">
+            <div>
+              <div class="chart-title">Energy Flow Simulation</div>
+              <div class="chart-sub">Solar · Battery · Grid interaction over 24h</div>
+            </div>
+            <div class="chart-tabs">
+              <button class="chart-tab active" onclick="switchS2Chart(this,'flow')">Energy Flow</button>
+              <button class="chart-tab" onclick="switchS2Chart(this,'cost')">Cost</button>
+            </div>
+          </div>
+          <div class="chart-body"><canvas id="s2Chart"></canvas></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Timeline Scrubber</div>
+          <div style="display:flex;align-items:center;gap:16px;margin-top:8px">
+            <span style="font-size:12px;color:var(--text-tertiary)">Jan</span>
+            <input type="range" min="1" max="12" value="7" style="flex:1" id="timelineScrubber" oninput="scrubTimeline(this.value)">
+            <span style="font-size:12px;color:var(--text-tertiary)" id="scrubMonth">Jul</span>
+          </div>
+          <div style="font-size:12px;color:var(--text-secondary);margin-top:8px" id="scrubStats">July: Highest solar gen (34,200 kWh) · Battery utilization 87%</div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Outputs -->
+      <div class="modeling-panel">
+        <div class="mp-title"><span class="mp-icon">📊</span> Financial Outputs</div>
+
+        <div class="output-metric">
+          <div class="om-label">Annual Savings</div>
+          <div class="om-val text-teal" id="out-savings">$18,240</div>
+          <div class="om-sub">vs. baseline utility bill</div>
+        </div>
+        <div class="output-metric">
+          <div class="om-label">Simple Payback</div>
+          <div class="om-val" id="out-payback">6.8 yrs</div>
+          <div class="om-sub">without incentives: 9.4 yrs</div>
+        </div>
+        <div class="output-metric">
+          <div class="om-label">25-Year ROI</div>
+          <div class="om-val text-teal" id="out-roi">284%</div>
+          <div class="om-sub">NPV: $142,800</div>
+        </div>
+        <div class="output-metric">
+          <div class="om-label">Demand Reduction</div>
+          <div class="om-val text-amber" id="out-demand-red">62%</div>
+          <div class="om-sub">Peak: 48.7 → 18.5 kW</div>
+        </div>
+        <div class="output-metric">
+          <div class="om-label">Solar Coverage</div>
+          <div class="om-val text-blue" id="out-solar-cov">71%</div>
+          <div class="om-sub">of annual load offset</div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="mp-title"><span class="mp-icon">🔧</span> System Cost</div>
+        <div class="output-metric">
+          <div class="om-label">Total Install Cost</div>
+          <div class="om-val" id="out-cost">$124,000</div>
+        </div>
+        <div class="output-metric">
+          <div class="om-label">After ITC (30%)</div>
+          <div class="om-val text-teal" id="out-after-itc">$86,800</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex-between mt-24">
+      <button class="btn" onclick="goStep(1)">⟵ Back</button>
+      <button class="btn primary lg" onclick="goStep(3)">Continue to Agreement →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     STEP 3 — AGREEMENT SYSTEM
+════════════════════════════════════════════ -->
+<div class="step-screen" id="step-3">
+  <div class="page-md">
+    <div class="page-header">
+      <div class="step-badge">📋 Step 3 of 6</div>
+      <h1>Agreement System</h1>
+      <p>Review the modeled system and select your preferred financing structure.</p>
+    </div>
+
+    <!-- Model Summary -->
+    <div class="model-summary">
+      <div class="card-title" style="margin-bottom:16px">Model Summary</div>
+      <div class="model-summary-row">
+        <div class="ms-item">
+          <div class="ms-label">Solar</div>
+          <div class="ms-val">200 kW</div>
+        </div>
+        <div class="ms-item">
+          <div class="ms-label">Battery</div>
+          <div class="ms-val">400 kWh</div>
+        </div>
+        <div class="ms-item">
+          <div class="ms-label">Annual Savings</div>
+          <div class="ms-val text-teal">$18,240</div>
+        </div>
+        <div class="ms-item">
+          <div class="ms-label">Payback</div>
+          <div class="ms-val">6.8 yrs</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">Select Agreement Type</div>
+    <div class="agreement-cards">
+      <div class="agreement-card selected" id="ag-shared" onclick="selectAgreement('shared')">
+        <div class="check">✓</div>
+        <span class="ag-icon">🤝</span>
+        <div class="ag-title">Shared Savings</div>
+        <div class="ag-desc">Split the energy savings with your energy partner. No upfront cost, lower risk.</div>
+        <div class="ag-highlight">50% of savings retained · 10-yr term</div>
+      </div>
+      <div class="agreement-card" id="ag-ppa" onclick="selectAgreement('ppa')">
+        <div class="check"></div>
+        <span class="ag-icon">⚡</span>
+        <div class="ag-title">Power Purchase Agreement</div>
+        <div class="ag-desc">Buy the energy produced at a fixed rate below your utility tariff.</div>
+        <div class="ag-highlight">$0.18/kWh fixed · 20-yr term</div>
+      </div>
+      <div class="agreement-card" id="ag-owned" onclick="selectAgreement('owned')">
+        <div class="check"></div>
+        <span class="ag-icon">🏛</span>
+        <div class="ag-title">Self-Owned</div>
+        <div class="ag-desc">Purchase the system outright. Maximize long-term ROI with full ownership.</div>
+        <div class="ag-highlight">Full savings retained · ITC eligible</div>
+      </div>
+    </div>
+
+    <!-- Accordion -->
+    <div class="section-title">Agreement Details</div>
+    <div id="accordionContainer">
+      <div class="accordion-item" id="acc-scope">
+        <div class="accordion-header" onclick="toggleAccordion('scope')">
+          <span>📐 Scope of Work</span><span class="acc-arrow">▾</span>
+        </div>
+        <div class="accordion-body open" id="acc-body-scope">
+          Installation of a 200 kW solar array with 400 kWh battery storage at the customer premises. Includes design, permitting, procurement, installation, commissioning, and ongoing O&M support for the contract term.
+        </div>
+      </div>
+      <div class="accordion-item" id="acc-financial">
+        <div class="accordion-header" onclick="toggleAccordion('financial')">
+          <span>💵 Financial Terms</span><span class="acc-arrow">▾</span>
+        </div>
+        <div class="accordion-body" id="acc-body-financial">
+          Savings split at 50/50. Customer retains 50% of verified monthly energy savings. Payments reconciled quarterly based on utility bill comparison. Rate escalator: 2%/year.
+        </div>
+      </div>
+      <div class="accordion-item" id="acc-perf">
+        <div class="accordion-header" onclick="toggleAccordion('perf')">
+          <span>📈 Performance Metrics</span><span class="acc-arrow">▾</span>
+        </div>
+        <div class="accordion-body" id="acc-body-perf">
+          Guaranteed solar production: 280,000 kWh/yr (±5%). Battery round-trip efficiency ≥92%. System availability ≥98%. Monthly reporting via EMS dashboard.
+        </div>
+      </div>
+      <div class="accordion-item" id="acc-duration">
+        <div class="accordion-header" onclick="toggleAccordion('duration')">
+          <span>📅 Duration & Exit</span><span class="acc-arrow">▾</span>
+        </div>
+        <div class="accordion-body" id="acc-body-duration">
+          Initial term: 10 years. Early termination fee: 20% of remaining contract value. Renewal options available. Equipment buyout available at Year 5 and Year 10.
+        </div>
+      </div>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="flex gap-12 mt-24" style="flex-wrap:wrap">
+      <button class="btn primary lg" onclick="goStep(4)">✅ Confirm & Continue →</button>
+      <button class="btn" onclick="openModal('custom-adj-modal')">✏️ Request Customization</button>
+      <button class="btn" onclick="openModal('rep-modal')">👤 Talk to a Representative</button>
+    </div>
+
+    <div class="flex-between mt-24" style="border-top:1px solid var(--border-subtle);padding-top:20px">
+      <button class="btn" onclick="goStep(2)">⟵ Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     STEP 4 — FINAL SIMULATION
+════════════════════════════════════════════ -->
+<div class="step-screen" id="step-4">
+  <div class="page-md">
+    <div class="page-header">
+      <div class="step-badge">🔬 Step 4 of 6</div>
+      <h1>Final Simulation</h1>
+      <p>Run the full system simulation and lock the model for project initiation.</p>
+    </div>
+
+    <!-- Simulation Running / not started -->
+    <div id="s4-idle">
+      <div class="card" style="text-align:center;padding:48px">
+        <div style="font-size:56px;margin-bottom:16px">🚀</div>
+        <div style="font-size:20px;font-weight:700;margin-bottom:8px">Ready to Simulate</div>
+        <div style="font-size:14px;color:var(--text-secondary);margin-bottom:28px">Run the complete financial and technical simulation using your configured model.</div>
+        <button class="btn primary lg" onclick="startSimulation()">▶ Run Simulation</button>
+      </div>
+    </div>
+
+    <!-- Running state -->
+    <div class="hidden" id="s4-running">
+      <div class="section-title">Simulation Progress</div>
+      <div class="sim-steps" id="simStepsList">
+        <div class="sim-step" id="ss-1">
+          <div class="sim-step-num">1</div>
+          <div class="sim-step-text">
+            <div class="sim-step-label">Load Data Validation</div>
+            <div class="sim-step-sub">Checking 8,760 hourly data points for gaps and anomalies</div>
+          </div>
+          <div class="sim-step-status" id="ss-1-status" style="color:var(--text-tertiary)">Pending</div>
+        </div>
+        <div class="sim-step" id="ss-2">
+          <div class="sim-step-num">2</div>
+          <div class="sim-step-text">
+            <div class="sim-step-label">Tariff Application</div>
+            <div class="sim-step-sub">Applying E-19 TOU rate structure to baseline load</div>
+          </div>
+          <div class="sim-step-status" id="ss-2-status" style="color:var(--text-tertiary)">Pending</div>
+        </div>
+        <div class="sim-step" id="ss-3">
+          <div class="sim-step-num">3</div>
+          <div class="sim-step-text">
+            <div class="sim-step-label">Solar Generation Modeling</div>
+            <div class="sim-step-sub">TMY weather data for site location (33.45°N, -112.07°W)</div>
+          </div>
+          <div class="sim-step-status" id="ss-3-status" style="color:var(--text-tertiary)">Pending</div>
+        </div>
+        <div class="sim-step" id="ss-4">
+          <div class="sim-step-num">4</div>
+          <div class="sim-step-text">
+            <div class="sim-step-label">Battery Dispatch Optimization</div>
+            <div class="sim-step-sub">Running LP optimizer for peak shaving & arbitrage</div>
+          </div>
+          <div class="sim-step-status" id="ss-4-status" style="color:var(--text-tertiary)">Pending</div>
+        </div>
+        <div class="sim-step" id="ss-5">
+          <div class="sim-step-num">5</div>
+          <div class="sim-step-text">
+            <div class="sim-step-label">Financial Analysis</div>
+            <div class="sim-step-sub">Computing NPV, IRR, payback, and cash flow projections</div>
+          </div>
+          <div class="sim-step-status" id="ss-5-status" style="color:var(--text-tertiary)">Pending</div>
+        </div>
+      </div>
+
+      <div class="card mt-24" style="text-align:center">
+        <div id="simLoadingState">
+          <div class="spinner" style="margin:0 auto 16px"></div>
+          <div style="font-size:15px;font-weight:600">Simulation running…</div>
+          <div style="font-size:13px;color:var(--text-secondary);margin-top:6px" id="simProgressText">Starting up…</div>
+          <div class="progress-bar-wrap" style="margin-top:16px;max-width:400px;margin-left:auto;margin-right:auto">
+            <div class="progress-bar-fill" id="simBar" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Validation checklist -->
+    <div class="hidden" id="s4-validation">
+      <div class="section-title">Validation Checklist</div>
+      <div class="validation-list">
+        <div class="val-item"><div class="val-check done">✓</div><div><div style="font-weight:600;font-size:13px">Load data: 8,760 hours complete</div><div style="font-size:12px;color:var(--text-secondary)">No gaps detected · 0 anomalies flagged</div></div><span class="badge success" style="margin-left:auto">Passed</span></div>
+        <div class="val-item"><div class="val-check done">✓</div><div><div style="font-weight:600;font-size:13px">Tariff model validated</div><div style="font-size:12px;color:var(--text-secondary)">E-19 TOU applied · $38,460 baseline cost confirmed</div></div><span class="badge success" style="margin-left:auto">Passed</span></div>
+        <div class="val-item"><div class="val-check done">✓</div><div><div style="font-weight:600;font-size:13px">Solar model: 280,200 kWh/yr</div><div style="font-size:12px;color:var(--text-secondary)">Within 2% of PVWatts estimate</div></div><span class="badge success" style="margin-left:auto">Passed</span></div>
+        <div class="val-item"><div class="val-check done">✓</div><div><div style="font-weight:600;font-size:13px">Battery dispatch optimal</div><div style="font-size:12px;color:var(--text-secondary)">62% demand reduction achieved</div></div><span class="badge success" style="margin-left:auto">Passed</span></div>
+        <div class="val-item"><div class="val-check done">✓</div><div><div style="font-weight:600;font-size:13px">Financial model converged</div><div style="font-size:12px;color:var(--text-secondary)">IRR: 14.2% · NPV: $142,800</div></div><span class="badge success" style="margin-left:auto">Passed</span></div>
+      </div>
+    </div>
+
+    <!-- Complete state + Model Lock -->
+    <div class="hidden" id="s4-complete">
+      <div class="banner-strip success" style="margin-bottom:24px">✅ Simulation complete — all 5 checks passed</div>
+
+      <div class="project-id-card">
+        <div style="font-size:13px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:1px">Project ID Generated</div>
+        <div class="project-id">3RE-2024-00247</div>
+        <div style="font-size:13px;color:var(--text-secondary)">Created: <span class="mono" id="projDate"></span> · Locked: Pending authorization</div>
+      </div>
+
+      <div class="card mt-24" style="border-color:rgba(245,158,11,0.25)">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <span style="font-size:24px">🔒</span>
+          <div>
+            <div style="font-size:15px;font-weight:700">Lock Model for Project Initiation</div>
+            <div style="font-size:13px;color:var(--text-secondary)">Confirm the following to lock this model and proceed.</div>
+          </div>
+        </div>
+        <div class="banner-strip warning">⚠ Once locked, parameters cannot be modified without re-simulation.</div>
+        <div class="lock-checks">
+          <label class="lock-check">
+            <input type="checkbox" id="lock1" onchange="checkLocks()">
+            <div class="lock-check-text">
+              <span class="lock-check-label">I confirm the load data is accurate</span>
+              <span class="lock-check-sub">The uploaded interval data represents the actual facility consumption</span>
+            </div>
+          </label>
+          <label class="lock-check">
+            <input type="checkbox" id="lock2" onchange="checkLocks()">
+            <div class="lock-check-text">
+              <span class="lock-check-label">I confirm the tariff structure is correct</span>
+              <span class="lock-check-sub">E-19 TOU rate applied matches current utility agreement</span>
+            </div>
+          </label>
+          <label class="lock-check">
+            <input type="checkbox" id="lock3" onchange="checkLocks()">
+            <div class="lock-check-text">
+              <span class="lock-check-label">I authorize model lock and project initiation</span>
+              <span class="lock-check-sub">Engineering, permitting, and procurement may begin</span>
+            </div>
+          </label>
+        </div>
+        <button class="btn primary lg" id="lockBtn" disabled onclick="lockModel()">🔒 Lock Model & Initiate Project</button>
+      </div>
+
+      <div class="flex-between mt-24" style="border-top:1px solid var(--border-subtle);padding-top:20px">
+        <button class="btn" onclick="goStep(3)">⟵ Back</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     STEP 5 — PROJECT DASHBOARD
+════════════════════════════════════════════ -->
+<div class="step-screen" id="step-5">
+  <div class="page">
+    <div class="page-header">
+      <div class="step-badge">📁 Step 5 of 6</div>
+      <h1>Project Dashboard</h1>
+      <p>Track engineering, permitting, procurement, and installation progress.</p>
+    </div>
+
+    <!-- Project ID bar -->
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;padding:14px 20px;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--r16)">
+      <span style="font-size:20px">🔒</span>
+      <div>
+        <div style="font-size:11px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.5px">Project</div>
+        <div class="mono" style="font-weight:700;font-size:16px">3RE-2024-00247</div>
+      </div>
+      <div style="margin-left:16px">
+        <div style="font-size:11px;color:var(--text-tertiary)">Started</div>
+        <div style="font-weight:600;font-size:13px">Dec 10, 2024</div>
+      </div>
+      <div style="margin-left:16px">
+        <div style="font-size:11px;color:var(--text-tertiary)">Est. Completion</div>
+        <div style="font-weight:600;font-size:13px">Apr 15, 2025</div>
+      </div>
+      <span class="badge info" style="margin-left:auto">In Progress</span>
+      <button class="btn primary sm" onclick="goStep(6)">Launch EMS →</button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="proj-tabs">
+      <button class="proj-tab active" onclick="switchProjTab(this,'overview')">Overview</button>
+      <button class="proj-tab" onclick="switchProjTab(this,'kanban')">Kanban Board</button>
+      <button class="proj-tab" onclick="switchProjTab(this,'timeline')">Timeline</button>
+      <button class="proj-tab" onclick="switchProjTab(this,'docs')">Documents</button>
+    </div>
+
+    <!-- Overview Tab -->
+    <div id="proj-overview">
+      <div class="phase-track">
+        <div class="phase-card engineering">
+          <div class="phase-name">Engineering</div>
+          <div class="phase-pct text-blue">100%</div>
+          <div class="progress-bar-wrap" style="margin-bottom:8px"><div class="progress-bar-fill" style="width:100%;background:var(--accent-blue)"></div></div>
+          <div class="phase-status-label">Complete · Dec 28, 2024</div>
+        </div>
+        <div class="phase-card permits">
+          <div class="phase-name">Permits</div>
+          <div class="phase-pct text-amber">75%</div>
+          <div class="progress-bar-wrap" style="margin-bottom:8px"><div class="progress-bar-fill" style="width:75%;background:var(--accent-amber)"></div></div>
+          <div class="phase-status-label">In Progress · Est. Jan 25</div>
+        </div>
+        <div class="phase-card procurement">
+          <div class="phase-name">Procurement</div>
+          <div class="phase-pct text-purple" style="color:var(--accent-purple)">45%</div>
+          <div class="progress-bar-wrap" style="margin-bottom:8px"><div class="progress-bar-fill" style="width:45%;background:var(--accent-purple)"></div></div>
+          <div class="phase-status-label">Equipment Ordered</div>
+        </div>
+        <div class="phase-card installation">
+          <div class="phase-name">Installation</div>
+          <div class="phase-pct text-teal">0%</div>
+          <div class="progress-bar-wrap" style="margin-bottom:8px"><div class="progress-bar-fill" style="width:0%;background:var(--accent-teal)"></div></div>
+          <div class="phase-status-label">Not Started · Feb 10</div>
+        </div>
+      </div>
+
+      <!-- Mini kanban summary -->
+      <div class="card">
+        <div class="card-title">Recent Activity</div>
+        <div style="display:flex;flex-direction:column;gap:0">
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border-subtle)"><span style="font-size:16px">✅</span><div style="flex:1"><div style="font-size:13px;font-weight:600">Single-line diagram approved</div><div style="font-size:12px;color:var(--text-secondary)">Engineering · Sarah M.</div></div><span style="font-size:11px;color:var(--text-tertiary);font-family:monospace">Jan 10</span></div>
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border-subtle)"><span style="font-size:16px">🔄</span><div style="flex:1"><div style="font-size:13px;font-weight:600">Structural permit submitted to city</div><div style="font-size:12px;color:var(--text-secondary)">Permits · James R.</div></div><span style="font-size:11px;color:var(--text-tertiary);font-family:monospace">Jan 12</span></div>
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border-subtle)"><span style="font-size:16px">📦</span><div style="flex:1"><div style="font-size:13px;font-weight:600">Solar panels ordered — 800 units</div><div style="font-size:12px;color:var(--text-secondary)">Procurement · Lisa K.</div></div><span style="font-size:11px;color:var(--text-tertiary);font-family:monospace">Jan 13</span></div>
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 0"><span style="font-size:16px">⏳</span><div style="flex:1"><div style="font-size:13px;font-weight:600">Utility interconnection application</div><div style="font-size:12px;color:var(--text-secondary)">Permits · James R.</div></div><span class="badge warning">Pending</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kanban Tab -->
+    <div id="proj-kanban" class="hidden">
+      <div class="kanban-board">
+        <!-- To Do -->
+        <div class="kanban-col">
+          <div class="kanban-col-title">To Do <span class="kanban-count">4</span></div>
+          <div class="task-card"><div class="task-title">Electrical permit approval</div><div class="task-meta"><div class="task-owner"><div class="task-avatar">JR</div> James R.</div><div class="task-due">Jan 20</div></div><div style="margin-top:8px"><span class="badge warning">Permits</span></div></div>
+          <div class="task-card"><div class="task-title">Battery inverter procurement</div><div class="task-meta"><div class="task-owner"><div class="task-avatar" style="background:linear-gradient(135deg,var(--accent-teal),var(--accent-cyan))">LK</div> Lisa K.</div><div class="task-due">Jan 22</div></div><div style="margin-top:8px"><span class="badge neutral">Procurement</span></div></div>
+          <div class="task-card"><div class="task-title">Site preparation survey</div><div class="task-meta"><div class="task-owner"><div class="task-avatar" style="background:linear-gradient(135deg,var(--accent-amber),var(--accent-red))">TM</div> Tom M.</div><div class="task-due">Jan 28</div></div><div style="margin-top:8px"><span class="badge info">Installation</span></div></div>
+          <div class="task-card"><div class="task-title">Commissioning plan finalize</div><div class="task-meta"><div class="task-owner"><div class="task-avatar" style="background:linear-gradient(135deg,var(--accent-purple),var(--accent-blue))">SM</div> Sarah M.</div><div class="task-due">Feb 5</div></div><div style="margin-top:8px"><span class="badge info">Engineering</span></div></div>
+        </div>
+        <!-- In Progress -->
+        <div class="kanban-col">
+          <div class="kanban-col-title">In Progress <span class="kanban-count">3</span></div>
+          <div class="task-card" style="border-color:rgba(59,130,246,0.3)"><div class="task-title">Structural permit review</div><div class="task-meta"><div class="task-owner"><div class="task-avatar">JR</div> James R.</div><div class="task-due">Jan 25</div></div><div style="margin-top:8px"><span class="badge info">In Review</span></div></div>
+          <div class="task-card" style="border-color:rgba(59,130,246,0.3)"><div class="task-title">Solar panel shipping · 800 units</div><div class="task-meta"><div class="task-owner"><div class="task-avatar" style="background:linear-gradient(135deg,var(--accent-teal),var(--accent-cyan))">LK</div> Lisa K.</div><div class="task-due">Feb 1</div></div><div style="margin-top:8px"><span class="badge info">Transit</span></div></div>
+          <div class="task-card" style="border-color:rgba(59,130,246,0.3)"><div class="task-title">Utility interconnection app.</div><div class="task-meta"><div class="task-owner"><div class="task-avatar">JR</div> James R.</div><div class="task-due">Jan 30</div></div><div style="margin-top:8px"><span class="badge warning">Waiting</span></div></div>
+        </div>
+        <!-- Review -->
+        <div class="kanban-col">
+          <div class="kanban-col-title">In Review <span class="kanban-count">2</span></div>
+          <div class="task-card"><div class="task-title">SLD final revision</div><div class="task-meta"><div class="task-owner"><div class="task-avatar" style="background:linear-gradient(135deg,var(--accent-purple),var(--accent-blue))">SM</div> Sarah M.</div><div class="task-due">Jan 15</div></div><div style="margin-top:8px"><span class="badge neutral">Engineering</span></div></div>
+          <div class="task-card"><div class="task-title">Equipment spec sheet review</div><div class="task-meta"><div class="task-owner"><div class="task-avatar" style="background:linear-gradient(135deg,var(--accent-amber),var(--accent-red))">TM</div> Tom M.</div><div class="task-due">Jan 16</div></div><div style="margin-top:8px"><span class="badge neutral">Procurement</span></div></div>
+        </div>
+        <!-- Done -->
+        <div class="kanban-col">
+          <div class="kanban-col-title">Completed <span class="kanban-count">5</span></div>
+          <div class="task-card" style="opacity:0.7"><div class="task-title">System design — 200kW/400kWh</div><div class="task-meta"><div class="task-owner"><div class="task-avatar" style="background:linear-gradient(135deg,var(--accent-purple),var(--accent-blue))">SM</div> Sarah M.</div><div class="task-due">Dec 28</div></div><div style="margin-top:8px"><span class="badge success">Done</span></div></div>
+          <div class="task-card" style="opacity:0.7"><div class="task-title">Site assessment</div><div class="task-meta"><div class="task-owner"><div class="task-avatar" style="background:linear-gradient(135deg,var(--accent-amber),var(--accent-red))">TM</div> Tom M.</div><div class="task-due">Dec 22</div></div><div style="margin-top:8px"><span class="badge success">Done</span></div></div>
+          <div class="task-card" style="opacity:0.7"><div class="task-title">Agreement finalized</div><div class="task-meta"><div class="task-owner"><div class="task-avatar">JR</div> James R.</div><div class="task-due">Dec 20</div></div><div style="margin-top:8px"><span class="badge success">Done</span></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Timeline Tab -->
+    <div id="proj-timeline" class="hidden">
+      <div class="card">
+        <div class="card-title">Project Timeline</div>
+        <div style="position:relative;padding-left:32px">
+          <div style="position:absolute;left:12px;top:0;bottom:0;width:2px;background:var(--border-subtle)"></div>
+          <!-- Timeline items -->
+          <div class="tl-item" style="position:relative;margin-bottom:28px">
+            <div style="position:absolute;left:-26px;width:16px;height:16px;border-radius:50%;background:var(--accent-teal);border:2px solid var(--bg-primary)"></div>
+            <div style="font-size:11px;color:var(--text-tertiary);font-family:monospace;margin-bottom:4px">Dec 10, 2024</div>
+            <div style="font-weight:600">Project Initiated</div>
+            <div style="font-size:13px;color:var(--text-secondary)">Model locked · ID 3RE-2024-00247 created</div>
+          </div>
+          <div class="tl-item" style="position:relative;margin-bottom:28px">
+            <div style="position:absolute;left:-26px;width:16px;height:16px;border-radius:50%;background:var(--accent-teal);border:2px solid var(--bg-primary)"></div>
+            <div style="font-size:11px;color:var(--text-tertiary);font-family:monospace;margin-bottom:4px">Dec 28, 2024</div>
+            <div style="font-weight:600">Engineering Complete</div>
+            <div style="font-size:13px;color:var(--text-secondary)">SLD, structural drawings, and specs finalized</div>
+          </div>
+          <div class="tl-item" style="position:relative;margin-bottom:28px">
+            <div style="position:absolute;left:-26px;width:16px;height:16px;border-radius:50%;background:var(--accent-amber);border:2px solid var(--bg-primary);animation:blink 1.5s infinite"></div>
+            <div style="font-size:11px;color:var(--text-tertiary);font-family:monospace;margin-bottom:4px">Jan 25, 2025 (Est.)</div>
+            <div style="font-weight:600">Permits Received ← <span style="color:var(--warning)">In Progress</span></div>
+            <div style="font-size:13px;color:var(--text-secondary)">Structural, electrical, and interconnection permits</div>
+          </div>
+          <div class="tl-item" style="position:relative;margin-bottom:28px">
+            <div style="position:absolute;left:-26px;width:16px;height:16px;border-radius:50%;background:var(--bg-elevated);border:2px solid var(--border-medium)"></div>
+            <div style="font-size:11px;color:var(--text-tertiary);font-family:monospace;margin-bottom:4px">Feb 10, 2025</div>
+            <div style="font-weight:600;color:var(--text-secondary)">Installation Begins</div>
+            <div style="font-size:13px;color:var(--text-tertiary)">Pending permits and equipment delivery</div>
+          </div>
+          <div class="tl-item" style="position:relative;margin-bottom:28px">
+            <div style="position:absolute;left:-26px;width:16px;height:16px;border-radius:50%;background:var(--bg-elevated);border:2px solid var(--border-medium)"></div>
+            <div style="font-size:11px;color:var(--text-tertiary);font-family:monospace;margin-bottom:4px">Mar 20, 2025</div>
+            <div style="font-weight:600;color:var(--text-secondary)">System Commissioning</div>
+            <div style="font-size:13px;color:var(--text-tertiary)">Testing and grid interconnection</div>
+          </div>
+          <div class="tl-item" style="position:relative">
+            <div style="position:absolute;left:-26px;width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,var(--accent-blue),var(--accent-teal));border:2px solid var(--bg-primary)"></div>
+            <div style="font-size:11px;color:var(--text-tertiary);font-family:monospace;margin-bottom:4px">Apr 15, 2025</div>
+            <div style="font-weight:700;font-size:15px">🎯 Commercial Operation Date</div>
+            <div style="font-size:13px;color:var(--text-secondary)">EMS goes live — savings begin</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Documents Tab -->
+    <div id="proj-docs" class="hidden">
+      <div class="card">
+        <div class="card-title">Project Documents</div>
+        <div style="display:flex;flex-direction:column;gap:0">
+          <div style="display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--border-subtle)"><span style="font-size:22px">📐</span><div style="flex:1"><div style="font-weight:600;font-size:13px">Single-Line Diagram v2.1</div><div style="font-size:12px;color:var(--text-secondary)">Engineering · PDF · 2.4 MB · Dec 28</div></div><button class="btn sm">↓ Download</button></div>
+          <div style="display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--border-subtle)"><span style="font-size:22px">📋</span><div style="flex:1"><div style="font-weight:600;font-size:13px">Shared Savings Agreement</div><div style="font-size:12px;color:var(--text-secondary)">Legal · PDF · 1.1 MB · Dec 20</div></div><button class="btn sm">↓ Download</button></div>
+          <div style="display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--border-subtle)"><span style="font-size:22px">🏗</span><div style="flex:1"><div style="font-weight:600;font-size:13px">Structural Permit Application</div><div style="font-size:12px;color:var(--text-secondary)">Permits · PDF · 4.8 MB · Jan 12</div></div><span class="badge warning">Pending</span></div>
+          <div style="display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--border-subtle)"><span style="font-size:22px">📊</span><div style="flex:1"><div style="font-weight:600;font-size:13px">Simulation Report — Final</div><div style="font-size:12px;color:var(--text-secondary)">Analysis · PDF · 3.2 MB · Dec 10</div></div><button class="btn sm">↓ Download</button></div>
+          <div style="display:flex;align-items:center;gap:14px;padding:14px 0"><span style="font-size:22px">🔌</span><div style="flex:1"><div style="font-weight:600;font-size:13px">Interconnection Application</div><div style="font-size:12px;color:var(--text-secondary)">Utility · PDF · 0.8 MB · Jan 12</div></div><span class="badge warning">Submitted</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex-between mt-24">
+      <button class="btn" onclick="goStep(4)">⟵ Back</button>
+      <button class="btn primary lg" onclick="goStep(6)">Launch EMS Dashboard →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     STEP 6 — EMS DASHBOARD
+════════════════════════════════════════════ -->
+<div class="step-screen" id="step-6">
+
+  <!-- EMS Sub-header -->
+  <div class="ems-hdr">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="font-size:16px;font-weight:700">EMS Dashboard</div>
+      <div class="mono" style="font-size:12px;color:var(--text-tertiary)">3RE-2024-00247</div>
+      <span class="badge success">Live</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="font-size:12px;color:var(--text-secondary)">
+        <span id="ems-clock">—</span> EST
+      </div>
+      <div class="conn-status">
+        <span class="dot green" id="emsConnDot"></span>
+        <span id="emsConnText">Online</span>
+      </div>
+      <div class="settings-wrapper">
+        <button class="btn sm">⚙ Settings ▾</button>
+        <div class="settings-dropdown">
+          <button class="dropdown-item" onclick="openModal('settings-modal')"><span class="di-icon" style="background:rgba(59,130,246,0.15)">🎛</span> Preferences</button>
+          <button class="dropdown-item" onclick="openModal('system-status-modal')"><span class="di-icon" style="background:rgba(16,185,129,0.15)">📡</span> System Status</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EMS Banner -->
+  <div class="ems-banner" id="emsBanner">
+    <span id="emsBannerMsg">—</span>
+    <button class="banner-close" onclick="closeEmsBanner()">✕</button>
+  </div>
+
+  <div class="page">
+    <!-- Offline banner -->
+    <div class="offbanner" id="ems-offline-banner">
+      ⚠ Offline mode — data may be stale.
+      <button class="rbtn" onclick="emsTryReconnect()">↺ Reconnect</button>
+    </div>
+
+    <!-- Energy Flow Diagram -->
+    <div class="energy-flow">
+      <div class="section-title" style="margin-bottom:20px">Live Energy Flow</div>
+      <div class="flow-diagram">
+        <!-- Solar -->
+        <div class="flow-node solar">
+          <div class="flow-node-icon">☀️</div>
+          <div class="flow-node-label">Solar</div>
+          <div class="flow-node-val text-amber" id="ef-solar">142 kW</div>
+        </div>
+        <div class="flow-arrow">
+          <div class="flow-arrow-line arrow-active" style="background:var(--accent-amber);color:var(--accent-amber)"></div>
+          <div class="flow-arrow-val text-amber" id="ef-s2b">→ 40 kW</div>
+        </div>
+        <!-- Battery -->
+        <div class="flow-node battery">
+          <div class="flow-node-icon">🔋</div>
+          <div class="flow-node-label">Battery</div>
+          <div class="flow-node-val text-teal" id="ef-battery">78%</div>
+          <div class="battery-bar">
+            <div class="battery-bar-track">
+              <div class="battery-bar-fill" id="battBar" style="width:78%;background:linear-gradient(90deg,var(--accent-teal),#34D399)"></div>
+            </div>
+          </div>
+        </div>
+        <div class="flow-arrow">
+          <div class="flow-arrow-line arrow-active" style="background:var(--accent-teal);color:var(--accent-teal)"></div>
+          <div class="flow-arrow-val text-teal" id="ef-b2l">→ 25 kW</div>
+        </div>
+        <!-- Load -->
+        <div class="flow-node load">
+          <div class="flow-node-icon">🏭</div>
+          <div class="flow-node-label">Load</div>
+          <div class="flow-node-val" style="color:var(--accent-purple)" id="ef-load">167 kW</div>
+        </div>
+        <div class="flow-arrow">
+          <div class="flow-arrow-line" style="background:var(--accent-blue);color:var(--accent-blue)"></div>
+          <div class="flow-arrow-val text-blue" id="ef-g2l">← 0 kW</div>
+        </div>
+        <!-- Grid -->
+        <div class="flow-node grid">
+          <div class="flow-node-icon">🔌</div>
+          <div class="flow-node-label">Grid</div>
+          <div class="flow-node-val text-blue" id="ef-grid">0 kW</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="ems-grid">
+      <div class="ems-card blue">
+        <div class="ems-card-icon blue">⚡</div>
+        <div class="ems-label">Power Draw</div>
+        <div class="ems-val" id="ems-v-power">3.82 <span style="font-size:16px;color:var(--text-secondary)">kW</span></div>
+        <div class="ems-trend up">+8% vs yesterday</div>
+      </div>
+      <div class="ems-card teal">
+        <div class="ems-card-icon teal">☀️</div>
+        <div class="ems-label">Solar Output</div>
+        <div class="ems-val" id="ems-v-solar">142.0 <span style="font-size:16px;color:var(--text-secondary)">kW</span></div>
+        <div class="ems-trend down">Grid-free since 7:00 AM</div>
+      </div>
+      <div class="ems-card amber">
+        <div class="ems-card-icon amber">💰</div>
+        <div class="ems-label">Today's Savings</div>
+        <div class="ems-val text-teal" id="ems-v-savings">$49.80</div>
+        <div class="ems-trend down">+22% vs avg</div>
+      </div>
+    </div>
+
+    <!-- Savings Grid -->
+    <div class="card mt-24 mb-20" style="margin-bottom:20px">
+      <div class="card-title">Cumulative Savings</div>
+      <div class="savings-grid">
+        <div class="savings-item">
+          <div class="savings-val" id="sv-daily">$49.80</div>
+          <div class="savings-label">Today</div>
+        </div>
+        <div class="savings-item">
+          <div class="savings-val" id="sv-monthly">$1,240</div>
+          <div class="savings-label">This Month</div>
+        </div>
+        <div class="savings-item">
+          <div class="savings-val" id="sv-lifetime">$18,240</div>
+          <div class="savings-label">Lifetime</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart + Reconnect Box side by side -->
+    <div style="display:grid;grid-template-columns:1fr 320px;gap:20px;margin-bottom:20px" id="ems-main-row">
+      <div class="chart-panel">
+        <div class="chart-hdr">
+          <div>
+            <div class="chart-title">Consumption Trend</div>
+            <div class="chart-sub">Power draw & energy usage over time</div>
+          </div>
+          <div class="chart-tabs">
+            <button class="chart-tab active" onclick="switchEmsChart(this,'today')">Today</button>
+            <button class="chart-tab" onclick="switchEmsChart(this,'week')">Week</button>
+            <button class="chart-tab" onclick="switchEmsChart(this,'month')">Month</button>
+          </div>
+        </div>
+        <div class="chart-body"><canvas id="emsLineChart"></canvas></div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <!-- Alerts -->
+        <div class="alerts-panel" style="flex:1">
+          <div class="card-title">Alerts & Events</div>
+          <div class="alert-item">
+            <div class="alert-dot ok"></div>
+            <div>
+              <div class="alert-text">Battery fully charged at 8:32 AM</div>
+              <div class="alert-time">08:32 EST</div>
+            </div>
+          </div>
+          <div class="alert-item">
+            <div class="alert-dot info"></div>
+            <div>
+              <div class="alert-text">Peak shaving active — reducing demand</div>
+              <div class="alert-time">14:00 EST</div>
+            </div>
+          </div>
+          <div class="alert-item">
+            <div class="alert-dot warn"></div>
+            <div>
+              <div class="alert-text">Grid voltage slightly high: 235V</div>
+              <div class="alert-time">13:42 EST</div>
+            </div>
+          </div>
+          <div class="alert-item">
+            <div class="alert-dot ok"></div>
+            <div>
+              <div class="alert-text">Solar inverter efficiency: 97.2%</div>
+              <div class="alert-time">12:00 EST</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Optimization Strategy -->
+        <div class="card">
+          <div class="card-title">Optimization Strategy</div>
+          <div class="opt-chips">
+            <div class="opt-chip active">⚡ Peak Shaving</div>
+            <div class="opt-chip active">☀️ Solar Max</div>
+            <div class="opt-chip">🌙 Night Charge</div>
+            <div class="opt-chip">💰 Arbitrage</div>
+          </div>
+        </div>
+
+        <!-- Reconnect box -->
+        <div class="reconnect-box" id="emsRcBox">
+          <div style="font-size:13px;font-weight:600;color:var(--warning);margin-bottom:12px">🔄 Reconnecting…</div>
+          <div style="font-size:12px;color:var(--text-secondary)">Attempting to restore gateway connection. Attempt 2 of 5.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPI Row -->
+    <div class="kpi-row">
+      <div class="kpi"><div class="klabel">Today</div><div class="kval">142 kWh</div><div class="ksub" style="color:var(--error)">+8% vs yesterday</div></div>
+      <div class="kpi"><div class="klabel">This Week</div><div class="kval">876 kWh</div><div class="ksub" style="color:var(--success)">−3% vs last week</div></div>
+      <div class="kpi"><div class="klabel">This Month</div><div class="kval">3,412 kWh</div><div class="ksub" style="color:var(--error)">+12% vs last month</div></div>
+      <div class="kpi"><div class="klabel">Peak Demand</div><div class="kval">8.2 kW</div><div class="ksub" style="color:var(--text-tertiary)">at 2:00 PM (Reduced from 48.7)</div></div>
+    </div>
+
+    <!-- Live Meters -->
+    <div class="section-title" style="margin-top:20px">Live Meter Readings</div>
+    <div class="live-grid">
+      <div class="live-card"><div class="lc-label">Energy Today</div><div class="lc-value" id="v-kwh">142</div><div class="lc-unit">kWh</div></div>
+      <div class="live-card"><div class="lc-label">Reactive Power</div><div class="lc-value" id="v-rp">2.1</div><div class="lc-unit">kVAr</div></div>
+      <div class="live-card"><div class="lc-label">Apparent Power</div><div class="lc-value" id="v-ap">4.2</div><div class="lc-unit">kVA</div></div>
+      <div class="live-card"><div class="lc-label">Current</div><div class="lc-value" id="v-a">15.2</div><div class="lc-unit">A</div></div>
+      <div class="live-card"><div class="lc-label">Voltage</div><div class="lc-value" id="v-v">231</div><div class="lc-unit">V</div></div>
+    </div>
+
+    <!-- Table -->
+    <div class="tbl-panel" style="margin-top:20px">
+      <div class="tbl-header">
+        <div class="tbl-title">Recent Readings</div>
+        <button class="btn sm" onclick="exportCSV()">Export CSV ↓</button>
+      </div>
+      <div class="tbl-wrap">
+        <table><thead><tr><th>Time</th><th>kW</th><th>Voltage (V)</th><th>Current (A)</th><th>Energy (kWh)</th><th>PF</th><th>Status</th></tr></thead>
+        <tbody id="tBody"></tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════ MODALS ════ -->
+
+<!-- Settings modal -->
 <div class="overlay" id="settings-modal" onclick="if(event.target===this)closeModal('settings-modal')">
   <div class="modal">
-    <div class="mtitle">Preferences</div>
-    <div class="fg"><label class="flb">Refresh interval (sec)</label><input type="number" class="fi" id="refresh-interval" value="5" min="2" max="60"></div>
-    <div class="fg"><label class="flb">Currency</label><select class="fi" id="currency-select"><option value="$">USD ($)</option><option value="€">EUR (€)</option><option value="£">GBP (£)</option><option value="₹">INR (₹)</option></select></div>
-    <div class="fg"><label class="flb">Rate per kWh</label><input type="number" class="fi" id="unit-rate" value="0.14" step="0.01"></div>
-    <div class="macts"><button class="hbtn" onclick="closeModal('settings-modal')">Cancel</button><button class="hbtn primary" onclick="saveSettings()">Save</button></div>
+    <div class="modal-title">Preferences</div>
+    <div class="form-group"><label class="form-label">Refresh interval (sec)</label><input type="number" class="form-input" id="refresh-interval" value="5" min="2" max="60"></div>
+    <div class="form-group"><label class="form-label">Currency</label><select class="form-input form-select" id="currency-select"><option>USD ($)</option><option>EUR (€)</option><option>GBP (£)</option><option>INR (₹)</option></select></div>
+    <div class="form-group"><label class="form-label">Rate per kWh</label><input type="number" class="form-input" id="unit-rate" value="0.14" step="0.01"></div>
+    <div class="modal-acts"><button class="btn" onclick="closeModal('settings-modal')">Cancel</button><button class="btn primary" onclick="saveSettings()">Save</button></div>
   </div>
 </div>
 
-<!-- System Status Modal -->
+<!-- System Status modal -->
 <div class="overlay" id="system-status-modal" onclick="if(event.target===this)closeModal('system-status-modal')">
-  <div class="modal sys-status-modal">
-    <div class="mtitle">System Status</div>
-    <div class="sys-status-grid">
-      <div class="sys-status-item">
-        <div class="sys-status-left">
-          <div class="sys-status-icon" style="background:rgba(16,185,129,0.15)">🌐</div>
-          <div>
-            <div class="sys-status-label">Gateway</div>
-            <div class="sys-status-sub">Primary connection point</div>
-          </div>
-        </div>
-        <span class="sys-status-badge ok" id="ms-gw">Online</span>
-      </div>
-      <div class="sys-status-item">
-        <div class="sys-status-left">
-          <div class="sys-status-icon" style="background:rgba(59,130,246,0.15)">📊</div>
-          <div>
-            <div class="sys-status-label">Meter Polling</div>
-            <div class="sys-status-sub">Data collection service</div>
-          </div>
-        </div>
-        <span class="sys-status-badge ok" id="ms-poll">Active</span>
-      </div>
-      <div class="sys-status-item">
-        <div class="sys-status-left">
-          <div class="sys-status-icon" style="background:rgba(139,92,246,0.15)">📡</div>
-          <div>
-            <div class="sys-status-label">Cellular</div>
-            <div class="sys-status-sub">Backup network link</div>
-          </div>
-        </div>
-        <span class="sys-status-badge ok" id="ms-cell">Connected</span>
-      </div>
-      <div class="sys-status-item">
-        <div class="sys-status-left">
-          <div class="sys-status-icon" style="background:rgba(245,158,11,0.15)">☁️</div>
-          <div>
-            <div class="sys-status-label">Cloud</div>
-            <div class="sys-status-sub">Remote data ingestion</div>
-          </div>
-        </div>
-        <span class="sys-status-badge ok" id="ms-cloud">Receiving</span>
-      </div>
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title">System Status</div>
+    <div style="display:flex;flex-direction:column;gap:0">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border-subtle)"><div style="display:flex;align-items:center;gap:12px"><div style="width:32px;height:32px;border-radius:9px;background:rgba(16,185,129,0.12);display:flex;align-items:center;justify-content:center">🌐</div><div><div style="font-size:13px;font-weight:500">Gateway</div><div style="font-size:11px;color:var(--text-tertiary)">Primary connection</div></div></div><span class="badge success" id="ms-gw">Online</span></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border-subtle)"><div style="display:flex;align-items:center;gap:12px"><div style="width:32px;height:32px;border-radius:9px;background:rgba(59,130,246,0.12);display:flex;align-items:center;justify-content:center">📊</div><div><div style="font-size:13px;font-weight:500">Meter Polling</div><div style="font-size:11px;color:var(--text-tertiary)">Data collection</div></div></div><span class="badge success" id="ms-poll">Active</span></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border-subtle)"><div style="display:flex;align-items:center;gap:12px"><div style="width:32px;height:32px;border-radius:9px;background:rgba(139,92,246,0.12);display:flex;align-items:center;justify-content:center">📡</div><div><div style="font-size:13px;font-weight:500">Cellular</div><div style="font-size:11px;color:var(--text-tertiary)">Backup network</div></div></div><span class="badge success" id="ms-cell">Connected</span></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0"><div style="display:flex;align-items:center;gap:12px"><div style="width:32px;height:32px;border-radius:9px;background:rgba(245,158,11,0.12);display:flex;align-items:center;justify-content:center">☁️</div><div><div style="font-size:13px;font-weight:500">Cloud</div><div style="font-size:11px;color:var(--text-tertiary)">Remote ingestion</div></div></div><span class="badge success" id="ms-cloud">Receiving</span></div>
     </div>
-    <div class="macts"><button class="hbtn primary" onclick="closeModal('system-status-modal')">Close</button></div>
+    <div class="modal-acts"><button class="btn primary" onclick="closeModal('system-status-modal')">Close</button></div>
   </div>
 </div>
 
-<!-- Device Modal -->
-<div class="overlay" id="device-modal" onclick="if(event.target===this)closeModal('device-modal')"><div class="modal"><div class="mtitle">Register Device</div><div class="fg"><label class="flb">Device name</label><input type="text" class="fi" id="device-name" placeholder="e.g. HVAC"></div><div class="fg"><label class="flb">Type</label><select class="fi" id="device-type"><option value="ac">AC</option><option value="fridge">Fridge</option><option value="lights">Lights</option></select></div><div class="fg"><label class="flb">Rated power (Watts)</label><input type="number" class="fi" id="device-watts" placeholder="800"></div><div class="macts"><button class="hbtn" onclick="closeModal('device-modal')">Cancel</button><button class="hbtn primary" onclick="addDevice()">Add Device</button></div></div></div>
+<!-- Utility Request modal -->
+<div class="overlay" id="utility-request-modal" onclick="if(event.target===this)closeModal('utility-request-modal')">
+  <div class="modal">
+    <div class="modal-title">Request Interval Data from Utility</div>
+    <div class="modal-sub">We'll generate a Green Button / data authorization request for your utility.</div>
+    <div class="form-group"><label class="form-label">Utility Provider</label><select class="form-input form-select"><option>PG&E</option><option>SCE</option><option>SDG&E</option><option>APS</option><option>Other</option></select></div>
+    <div class="form-group"><label class="form-label">Account Number</label><input type="text" class="form-input" placeholder="e.g. 1234-567-890"></div>
+    <div class="form-group"><label class="form-label">Desired Date Range</label><input type="text" class="form-input" placeholder="e.g. Jan 2023 – Dec 2023"></div>
+    <div class="modal-acts"><button class="btn" onclick="closeModal('utility-request-modal')">Cancel</button><button class="btn primary" onclick="submitUtilityRequest()">Send Request</button></div>
+  </div>
+</div>
+
+<!-- Manual Entry modal -->
+<div class="overlay" id="manual-entry-modal" onclick="if(event.target===this)closeModal('manual-entry-modal')">
+  <div class="modal">
+    <div class="modal-title">Manual Data Entry Instructions</div>
+    <div class="modal-sub">Follow these steps to manually enter your energy consumption data.</div>
+    <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px">
+      <div style="display:flex;gap:12px;align-items:flex-start"><div style="width:24px;height:24px;border-radius:50%;background:var(--accent-blue);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">1</div><div><div style="font-weight:600;font-size:13px">Download our CSV template</div><div style="font-size:12px;color:var(--text-secondary)">Format: Date, Hour, kWh</div></div></div>
+      <div style="display:flex;gap:12px;align-items:flex-start"><div style="width:24px;height:24px;border-radius:50%;background:var(--accent-blue);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">2</div><div><div style="font-weight:600;font-size:13px">Fill in monthly kWh from your utility bills</div><div style="font-size:12px;color:var(--text-secondary)">At minimum, 12 months of data required</div></div></div>
+      <div style="display:flex;gap:12px;align-items:flex-start"><div style="width:24px;height:24px;border-radius:50%;background:var(--accent-blue);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">3</div><div><div style="font-weight:600;font-size:13px">Upload the completed file</div><div style="font-size:12px;color:var(--text-secondary)">We'll synthesize a synthetic load profile</div></div></div>
+    </div>
+    <div class="modal-acts"><button class="btn" onclick="closeModal('manual-entry-modal')">Close</button><button class="btn primary">↓ Download Template</button></div>
+  </div>
+</div>
+
+<!-- Custom Adjustment modal -->
+<div class="overlay" id="custom-adj-modal" onclick="if(event.target===this)closeModal('custom-adj-modal')">
+  <div class="modal">
+    <div class="modal-title">Request Customization</div>
+    <div class="modal-sub">Describe what you'd like adjusted in the agreement.</div>
+    <div class="form-group"><label class="form-label">Adjustment Type</label><select class="form-input form-select"><option>Savings split ratio</option><option>Contract term length</option><option>Performance guarantees</option><option>Exit provisions</option><option>Other</option></select></div>
+    <div class="form-group"><label class="form-label">Requested Change</label><textarea class="form-input form-textarea" placeholder="Describe your requested adjustment…"></textarea></div>
+    <div class="form-group"><label class="form-label">Business Justification</label><textarea class="form-input form-textarea" placeholder="Why is this change important to your organization?"></textarea></div>
+    <div class="modal-acts"><button class="btn" onclick="closeModal('custom-adj-modal')">Cancel</button><button class="btn primary" onclick="submitCustomAdj()">Submit Request</button></div>
+  </div>
+</div>
+
+<!-- Representative modal -->
+<div class="overlay" id="rep-modal" onclick="if(event.target===this)closeModal('rep-modal')">
+  <div class="modal">
+    <div class="modal-title">Schedule a Call</div>
+    <div class="modal-sub">Talk to an energy specialist about your agreement options.</div>
+    <div class="form-group"><label class="form-label">Your Name</label><input type="text" class="form-input" placeholder="Full name"></div>
+    <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" placeholder="you@company.com"></div>
+    <div class="form-group"><label class="form-label">Preferred Date & Time</label><input type="datetime-local" class="form-input"></div>
+    <div class="form-group"><label class="form-label">Topic / Questions</label><textarea class="form-input form-textarea" placeholder="What would you like to discuss?"></textarea></div>
+    <div class="modal-acts"><button class="btn" onclick="closeModal('rep-modal')">Cancel</button><button class="btn primary" onclick="submitRepRequest()">Schedule Call</button></div>
+  </div>
+</div>
+
+<!-- Success Toast -->
+<div id="toast" style="position:fixed;bottom:24px;right:24px;background:var(--bg-surface);border:1px solid rgba(16,185,129,0.3);border-radius:var(--r16);padding:16px 20px;box-shadow:var(--shadow-lg);display:none;align-items:center;gap:12px;z-index:500;max-width:360px;animation:fadeSlide 0.3s ease">
+  <span style="font-size:20px" id="toastIcon">✅</span>
+  <div><div style="font-weight:600;font-size:14px" id="toastTitle">Success</div><div style="font-size:12px;color:var(--text-secondary)" id="toastMsg"></div></div>
+</div>
 
 <script>
-  function formatESTTime() { return new Date().toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true }); }
-  let state = { chartView: 'today', currency: '$', unitRate: 0.14, refreshInterval: 5, liveTimer: null, liveOn: true, devices: [{ name:'Air Conditioner', pct:42, color:'#3B82F6' },{ name:'Refrigerator', pct:28, color:'#10B981' },{ name:'Lighting', pct:18, color:'#F59E0B' },{ name:'Home Office', pct:12, color:'#8B5CF6' }], stats: { currentUsage: 3.82, todayUsage: 19.4, monthlyCost: 58.30 } };
-  function rnd(n,b,s){return Array.from({length:n},()=>+((b+(Math.random()-.5)*s).toFixed(2)));}
-  let chartData = { today: { labels: Array.from({length:24},(_,i)=>`${i}:00`), data: rnd(24,3.9,2.2) }, week: { labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'], data: rnd(7,21,9) }, month: { labels: Array.from({length:30},(_,i)=>`${i+1}`), data: rnd(30,19,10) } };
-  let lineChart;
-  function buildChart() {
-    const ctx = document.getElementById('lineChart').getContext('2d');
-    const ds = chartData[state.chartView];
-    if (lineChart) lineChart.destroy();
-    const grad = ctx.createLinearGradient(0,0,0,300);
-    grad.addColorStop(0, 'rgba(59,130,246,0.35)');
-    grad.addColorStop(1, 'rgba(59,130,246,0.02)');
-    lineChart = new Chart(ctx, { type: 'line', data: { labels: ds.labels, datasets: [{ label: 'Energy (kWh)', data: ds.data, borderColor: '#3B82F6', backgroundColor: grad, borderWidth: 2.5, pointRadius: 3.5, pointHoverRadius: 6, pointBackgroundColor: '#60A5FA', pointBorderColor: '#0F172A', pointBorderWidth: 1.5, fill: true, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1E293B', titleColor: '#F1F5F9', bodyColor: '#CBD5E1', borderColor: '#334155', borderWidth: 1, callbacks: { label: c => ` ${c.parsed.y} kWh` } } }, scales: { x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94A3B8', font: { size: 10, weight: '500' }, maxTicksLimit: 8 } }, y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94A3B8', font: { size: 10 }, callback: v => v + ' kWh' }, beginAtZero: true } } } });
+// ── STATE ──
+const appState = {
+  currentStep: 1,
+  completedSteps: new Set([]),
+  uploadState: 'idle', // idle, progress, error, success
+  selectedAgreement: 'shared',
+  simRunning: false,
+  liveOn: true,
+  emsChartView: 'today',
+  currency: '$',
+  unitRate: 0.14,
+  refreshInterval: 5,
+  liveTimer: null,
+  modelParams: {
+    energyRate: 0.27,
+    demandRate: 18.50,
+    solar: 200,
+    battery: 400,
+    itc: 30
   }
-  function renderCards() { document.getElementById('cards-grid').innerHTML = ''; }
-  const tableRows = [ { ts:'14:00', v:231, a:35.5, kw:8.2, kwh:142.3, pf:0.96, s:'ok' },{ ts:'13:30', v:230, a:28.1, kw:6.5, kwh:139.1, pf:0.95, s:'ok' },{ ts:'13:00', v:232, a:26.4, kw:6.1, kwh:135.8, pf:0.94, s:'ok' },{ ts:'12:30', v:null, a:null, kw:null, kwh:null, pf:null, s:'gap' },{ ts:'12:00', v:231, a:22.5, kw:5.2, kwh:129.9, pf:0.94, s:'ok' },{ ts:'11:30', v:230, a:18.3, kw:4.2, kwh:127.3, pf:0.95, s:'ok' },{ ts:'11:00', v:228, a:14.7, kw:3.4, kwh:125.2, pf:0.96, s:'ok' } ];
-  function renderTable() { const tb = document.getElementById('tBody'); tb.innerHTML = ''; tableRows.forEach(r => { const tr = document.createElement('tr'); if (r.s === 'gap') { tr.className = 'gap-row'; tr.innerHTML = `<td>${r.ts}</td><td colspan="5" style="text-align:center;">⚠ No data — connection gap</td><td>Missing</td>`; } else { tr.innerHTML = `<td>${r.ts}</td><td>${r.kw.toFixed(1)}</td><td>${r.v}</td><td>${r.a.toFixed(1)}</td><td>${r.kwh.toFixed(1)}</td><td>${r.pf.toFixed(2)}</td><td style="color:#10B981;">✔ OK</td>`; } tb.appendChild(tr); }); }
-  function tickClock() { document.getElementById('clock').textContent = formatESTTime(); }
-  function tick() { 
-    tickClock(); 
-    if (!state.liveOn) return; 
-    // Simulate live values for all cards (Energy, Reactive, Apparent, Current, Voltage)
-    // Active Power is removed, so we simulate reactive, then derive apparent from a reasonable active base (not shown in UI)
-    const activeBase = 3.4; // simulated internal active power reference for apparent calculation
-    const reactive = (1.9 + Math.random() * 0.6).toFixed(1);
-    const apparent = (Math.sqrt(Math.pow(activeBase,2) + Math.pow(parseFloat(reactive),2))).toFixed(1);
-    document.getElementById('v-rp').textContent = reactive;
-    document.getElementById('v-ap').textContent = apparent;
-    document.getElementById('v-v').textContent = (229+Math.random()*4).toFixed(0);
-    document.getElementById('v-a').textContent = (14.5+Math.random()*1.2).toFixed(1);
-    document.getElementById('v-kwh').textContent = (140 + Math.random() * 8).toFixed(1);
-  }
-  function liveUpdate() { if (!lineChart || state.chartView !== 'today') return; const newVal = +(Math.random()*2.5+2.8).toFixed(2); let dataset = lineChart.data.datasets[0].data; dataset.push(newVal); dataset.shift(); lineChart.update('none'); }
-  function staleCards(on) { ['v','a','rp','ap','kwh'].forEach(k=>{const el=document.getElementById('c-'+k); if(el)el.classList.toggle('stale',on);}); }
-  function setConn(s) { document.getElementById('connDot').className='dot '+(s==='online'?'green':s==='offline'?'red':'amber'); document.getElementById('connText').textContent=s==='online'?'Online':s==='offline'?'Offline':'Reconnecting...'; }
+};
 
-  function syncStatusModal(gwCls, gwTxt, pollCls, pollTxt, cellCls, cellTxt, cloudCls, cloudTxt) {
-    const set = (id, cls, txt) => { const el = document.getElementById(id); el.className = 'sys-status-badge ' + cls; el.textContent = txt; };
-    set('ms-gw', gwCls, gwTxt);
-    set('ms-poll', pollCls, pollTxt);
-    set('ms-cell', cellCls, cellTxt);
-    set('ms-cloud', cloudCls, cloudTxt);
+// ── NAVIGATION ──
+function goStep(n) {
+  // Step guards
+  if (n > appState.currentStep + 1 && !appState.completedSteps.has(n - 1)) {
+    showToast('⚠️', 'Complete Previous Step', 'Please complete each step in order.');
+    return;
   }
+  const prev = document.getElementById('step-' + appState.currentStep);
+  if (prev) prev.classList.remove('active');
+  appState.currentStep = n;
+  const next = document.getElementById('step-' + n);
+  if (next) next.classList.add('active');
+  updateNavState();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 
-  function setH(id, cls, msg) {
-    const el = document.getElementById(id); if(el) el.className = 'ival ' + cls; if(el) el.textContent = '● ' + msg;
-    const map = { 'h-gw':'ms-gw', 'h-poll':'ms-poll', 'h-cell':'ms-cell', 'h-cloud':'ms-cloud' };
-    if (map[id]) { const mel = document.getElementById(map[id]); if(mel){ mel.className = 'sys-status-badge ' + cls; mel.textContent = msg; } }
+  // Init charts for this step
+  if (n === 1 && appState.uploadState === 'success') setTimeout(buildS1Chart, 100);
+  if (n === 2) setTimeout(buildS2Chart, 100);
+  if (n === 6) setTimeout(() => { buildEmsChart(); emsTickClock(); }, 100);
+}
+
+function updateNavState() {
+  for (let i = 1; i <= 6; i++) {
+    const btn = document.getElementById('nav-' + i);
+    if (!btn) continue;
+    btn.classList.remove('active', 'completed');
+    if (i === appState.currentStep) btn.classList.add('active');
+    else if (appState.completedSteps.has(i)) btn.classList.add('completed');
   }
+}
 
-  function showBanner(cls,msg){const b=document.getElementById('banner');b.className='banner show '+cls;document.getElementById('bannerMsg').textContent=msg;}
-  function closeBanner(){document.getElementById('banner').className='banner';}
-  function goOffline(){ state.liveOn=false; staleCards(true); setConn('offline'); showBanner('offline','⚠ Gateway offline — no data received.'); setH('h-gw','err','Offline');setH('h-poll','err','Stopped');setH('h-cell','warn','Unknown');setH('h-cloud','err','No data'); document.getElementById('rcBox').className='reconnect-box'; }
-  function goReconnecting(){ state.liveOn=false; staleCards(true); setConn('amber'); showBanner('reconnect','🔄 Reconnecting — attempt 2 of 5...'); setH('h-gw','warn','Reconnecting');setH('h-poll','warn','Paused');setH('h-cell','warn','Checking');setH('h-cloud','warn','Handshaking'); document.getElementById('rcBox').className='reconnect-box show'; }
-  function goOnline(){ state.liveOn=true; staleCards(false); setConn('online'); showBanner('restored','✔ Back online — all data restored.'); setTimeout(closeBanner,3000); setH('h-gw','ok','Online');setH('h-poll','ok','Active');setH('h-cell','ok','Connected');setH('h-cloud','ok','Receiving'); document.getElementById('rcBox').className='reconnect-box'; }
-  function switchChart(btn,view){ document.querySelectorAll('.ctab').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); state.chartView=view; buildChart(); }
-  function applyRange(){ renderCards(); buildChart(); }
-  function openModal(id){document.getElementById(id).classList.add('open');}
-  function closeModal(id){document.getElementById(id).classList.remove('open');}
-  function saveSettings(){ let iv=parseInt(document.getElementById('refresh-interval').value)||5; state.currency=document.getElementById('currency-select').value; state.unitRate=parseFloat(document.getElementById('unit-rate').value)||0.14; state.refreshInterval=Math.max(2,Math.min(60,iv)); if(state.liveTimer)clearInterval(state.liveTimer); state.liveTimer=setInterval(liveUpdate,state.refreshInterval*1000); closeModal('settings-modal'); }
-  function addDevice(){ const name=document.getElementById('device-name').value.trim(); if(!name)return; closeModal('device-modal'); document.getElementById('device-name').value=''; document.getElementById('device-watts').value=''; }
-  function exportCSV(){ const h='Time,kW,V,A,kWh,PF,Status\n'; const b=tableRows.map(r=>r.s==='gap'?`${r.ts},,,,,,MISSING`:`${r.ts},${r.kw},${r.v},${r.a},${r.kwh},${r.pf},OK`).join('\n'); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([h+b],{type:'text/csv'})); a.download='energy_data.csv'; a.click(); }
-  function updateOnline(){document.getElementById('offline-banner').classList.toggle('show',!navigator.onLine);} function tryReconnect(){setTimeout(updateOnline,800);}
-  function setDates(){ const now=new Date(), from=new Date(now); from.setDate(now.getDate()-7); document.getElementById('date-to').value=now.toISOString().split('T')[0]; document.getElementById('date-from').value=from.toISOString().split('T')[0]; }
-  function init(){ setDates(); updateOnline(); renderCards(); buildChart(); renderTable(); tick(); setInterval(tickClock,1000); setInterval(tick,5000); if(state.liveTimer)clearInterval(state.liveTimer); state.liveTimer=setInterval(liveUpdate,state.refreshInterval*1000); window.addEventListener('online',updateOnline); window.addEventListener('offline',updateOnline); }
-  document.addEventListener('DOMContentLoaded', init);
-  window.applyRange=applyRange; window.openModal=openModal; window.closeModal=closeModal; window.saveSettings=saveSettings; window.addDevice=addDevice; window.tryReconnect=tryReconnect; window.updateOnline=updateOnline; window.closeBanner=closeBanner; window.goOffline=goOffline; window.goReconnecting=goReconnecting; window.goOnline=goOnline; window.exportCSV=exportCSV; window.switchChart=switchChart;
+// ── STEP 1: DATA INGESTION ──
+function triggerUpload() { document.getElementById('fileInput').click(); }
+function onDragOver(e) { e.preventDefault(); document.getElementById('dropZone').classList.add('drag-over'); }
+function onDragLeave(e) { document.getElementById('dropZone').classList.remove('drag-over'); }
+function onDrop(e) {
+  e.preventDefault();
+  document.getElementById('dropZone').classList.remove('drag-over');
+  const files = e.dataTransfer.files;
+  if (files.length > 0) processFile(files[0]);
+}
+function handleFileSelect(e) {
+  if (e.target.files.length > 0) processFile(e.target.files[0]);
+}
+
+function processFile(file) {
+  // Validate
+  const allowed = ['pdf','csv','xlsx','xls','jpg','jpeg','png'];
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (!allowed.includes(ext)) {
+    showUploadState('error');
+    return;
+  }
+  document.getElementById('fileName').textContent = file.name;
+  document.getElementById('fileNameSuccess').textContent = file.name;
+  const kb = (file.size / 1024).toFixed(1);
+  document.getElementById('fileSize').textContent = kb + ' KB · ' + ext.toUpperCase();
+  showUploadState('progress');
+  animateUpload();
+}
+
+function showUploadState(state) {
+  appState.uploadState = state;
+  document.getElementById('s1-upload').style.display = 'none';
+  document.getElementById('s1-progress').classList.remove('show');
+  document.getElementById('s1-error').classList.remove('show');
+  document.getElementById('s1-success').classList.remove('show');
+
+  if (state === 'progress') document.getElementById('s1-progress').classList.add('show');
+  else if (state === 'error') document.getElementById('s1-error').classList.add('show');
+  else if (state === 'success') {
+    document.getElementById('s1-success').classList.add('show');
+    setTimeout(buildS1Chart, 200);
+    appState.completedSteps.add(1);
+    updateNavState();
+  } else {
+    document.getElementById('s1-upload').style.display = 'block';
+  }
+}
+
+function animateUpload() {
+  const bar = document.getElementById('uploadBar');
+  const status = document.getElementById('uploadStatus');
+  let pct = 0;
+  const iv = setInterval(() => {
+    pct += Math.random() * 15;
+    if (pct >= 100) {
+      pct = 100;
+      clearInterval(iv);
+      bar.style.width = '100%';
+      status.textContent = 'Processing…';
+      setTimeout(() => showUploadState('success'), 800);
+    } else {
+      bar.style.width = pct + '%';
+      status.textContent = 'Uploading… ' + Math.floor(pct) + '%';
+    }
+  }, 200);
+}
+
+function resetUpload() { showUploadState('idle'); }
+
+function submitUtilityRequest() {
+  closeModal('utility-request-modal');
+  showToast('📬', 'Request Sent', 'Utility data request submitted. Expect 3-5 business days.');
+}
+
+// ── STEP 1 CHART ──
+let s1Chart;
+function buildS1Chart() {
+  const ctx = document.getElementById('s1Chart');
+  if (!ctx) return;
+  if (s1Chart) s1Chart.destroy();
+  const labels = Array.from({length:12}, (_,i) => ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][i]);
+  const data = [9800,9200,10100,11400,13200,14800,15900,15200,13600,11800,10400,9900];
+  const c = ctx.getContext('2d');
+  const grad = c.createLinearGradient(0,0,0,200);
+  grad.addColorStop(0,'rgba(59,130,246,0.3)');
+  grad.addColorStop(1,'rgba(59,130,246,0.02)');
+  s1Chart = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [{ label: 'kWh', data, backgroundColor: data.map((v,i) => i===6?'rgba(239,68,68,0.7)':'rgba(59,130,246,0.5)'), borderRadius: 6 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: {display:false}, tooltip: { backgroundColor:'#1E293B', callbacks: {label: c=>' '+c.parsed.y.toLocaleString()+' kWh'} } }, scales: { x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#8A9BBE',font:{size:11}}}, y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#8A9BBE',callback:v=>(v/1000).toFixed(0)+'k'}} } }
+  });
+}
+
+function switchS1Chart(btn, type) {
+  btn.closest('.chart-tabs').querySelectorAll('.chart-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  buildS1Chart();
+}
+
+// ── STEP 2: MODELING ──
+let s2Chart;
+function rnd(n,b,s){return Array.from({length:n},()=>+((b+(Math.random()-.5)*s).toFixed(2)));}
+
+function buildS2Chart() {
+  const ctx = document.getElementById('s2Chart');
+  if (!ctx) return;
+  if (s2Chart) s2Chart.destroy();
+  const hours = Array.from({length:24},(_,i)=>`${i}:00`);
+  const solar = hours.map((_,i) => i<6||i>19?0: Math.max(0, Math.sin((i-6)/13*Math.PI)*+(appState.modelParams.solar*0.9+Math.random()*20).toFixed(0)));
+  const load  = hours.map((_,i) => 80+Math.sin(i/24*Math.PI*2)*30+Math.random()*20);
+  const battery = hours.map((_,i) => i<6?-(20+Math.random()*15): i<12?0 : 15+Math.random()*25);
+  const grid  = load.map((l,i) => Math.max(0,l-solar[i]-Math.max(0,battery[i])));
+  const c = ctx.getContext('2d');
+  const solarGrad = c.createLinearGradient(0,0,0,240);
+  solarGrad.addColorStop(0,'rgba(245,158,11,0.25)');
+  solarGrad.addColorStop(1,'rgba(245,158,11,0.02)');
+  s2Chart = new Chart(ctx, {
+    type:'line',
+    data:{ labels:hours, datasets:[
+      {label:'Solar',data:solar,borderColor:'#F59E0B',backgroundColor:solarGrad,fill:true,tension:0.4,borderWidth:2,pointRadius:0},
+      {label:'Load', data:load, borderColor:'#8B5CF6',fill:false,tension:0.4,borderWidth:2,pointRadius:0},
+      {label:'Grid', data:grid, borderColor:'#3B82F6',fill:false,tension:0.4,borderWidth:1.5,borderDash:[5,3],pointRadius:0}
+    ]},
+    options:{ responsive:true,maintainAspectRatio:false, plugins:{legend:{display:true,labels:{color:'#8A9BBE',font:{size:11},boxWidth:12}}, tooltip:{backgroundColor:'#1E293B',titleColor:'#F1F5F9',bodyColor:'#CBD5E1',borderColor:'#334155',borderWidth:1}}, scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#8A9BBE',font:{size:10},maxTicksLimit:8}}, y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#8A9BBE',font:{size:10},callback:v=>v+' kW'}}}}
+  });
+}
+
+function switchS2Chart(btn, type) {
+  btn.closest('.chart-tabs').querySelectorAll('.chart-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  buildS2Chart();
+}
+
+function updateModel(el, key, rawVal, prefix, suffix) {
+  const val = parseFloat(rawVal);
+  const displayEl = document.getElementById('m-'+key);
+  if (displayEl) displayEl.textContent = prefix + (Number.isInteger(val) ? val : val.toFixed(2)) + suffix;
+  if (key==='solar') appState.modelParams.solar = val;
+  if (key==='battery') appState.modelParams.battery = val;
+  if (key==='energy-rate') appState.modelParams.energyRate = val;
+  if (key==='demand-rate') appState.modelParams.demandRate = val;
+  if (key==='itc') appState.modelParams.itc = val;
+  recalcModel();
+}
+
+function recalcModel() {
+  const {solar, battery, energyRate, demandRate, itc} = appState.modelParams;
+  const annualSavings = Math.round((solar * 1400 * energyRate) + (battery * 2.2 * demandRate * 12));
+  const cost = solar * 350 + battery * 280;
+  const afterItc = Math.round(cost * (1 - itc/100));
+  const payback = (afterItc / annualSavings).toFixed(1);
+  const roi = Math.round((annualSavings * 25 / afterItc - 1) * 100);
+  const demandRed = Math.min(95, Math.round(battery / 10));
+  const solarCov = Math.min(99, Math.round(solar * 1400 / 142320 * 100));
+  document.getElementById('out-savings').textContent = '$' + annualSavings.toLocaleString();
+  document.getElementById('out-payback').textContent = payback + ' yrs';
+  document.getElementById('out-roi').textContent = roi + '%';
+  document.getElementById('out-demand-red').textContent = demandRed + '%';
+  document.getElementById('out-solar-cov').textContent = solarCov + '%';
+  document.getElementById('out-cost').textContent = '$' + cost.toLocaleString();
+  document.getElementById('out-after-itc').textContent = '$' + afterItc.toLocaleString();
+  if (s2Chart) buildS2Chart();
+}
+
+const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const scrubData = [
+  'January: Lowest solar (18,200 kWh) · Battery utilization 62%',
+  'February: Moderate solar · 65% battery util',
+  'March: Increasing solar gen · 70% battery util',
+  'April: Good solar · 78% battery util',
+  'May: High solar · 82% battery util',
+  'June: Peak season begins · 85% battery util',
+  'July: Highest solar gen (34,200 kWh) · Battery utilization 87%',
+  'August: Near-peak solar · 86% battery util',
+  'September: Tapering down · 80% battery util',
+  'October: Moderate solar · 75% battery util',
+  'November: Lower solar · 68% battery util',
+  'December: Lowest sun · 60% battery util',
+];
+function scrubTimeline(v) {
+  document.getElementById('scrubMonth').textContent = months[v-1];
+  document.getElementById('scrubStats').textContent = scrubData[v-1];
+}
+
+// ── STEP 3: AGREEMENT ──
+function selectAgreement(type) {
+  appState.selectedAgreement = type;
+  ['shared','ppa','owned'].forEach(t => {
+    const el = document.getElementById('ag-'+t);
+    el.classList.toggle('selected', t===type);
+    el.querySelector('.check').textContent = t===type ? '✓' : '';
+  });
+}
+
+function toggleAccordion(id) {
+  const body = document.getElementById('acc-body-'+id);
+  const item = document.getElementById('acc-'+id);
+  const isOpen = body.classList.contains('open');
+  // Close all
+  document.querySelectorAll('.accordion-body').forEach(b=>b.classList.remove('open'));
+  document.querySelectorAll('.accordion-item').forEach(i=>i.classList.remove('open'));
+  if (!isOpen) { body.classList.add('open'); item.classList.add('open'); }
+}
+
+function submitCustomAdj() { closeModal('custom-adj-modal'); showToast('✅','Request Submitted','Your customization request has been sent to the team.'); }
+function submitRepRequest() { closeModal('rep-modal'); showToast('📞','Call Scheduled','A representative will confirm your meeting within 24 hours.'); }
+
+// ── STEP 4: SIMULATION ──
+let simTimeout;
+function startSimulation() {
+  document.getElementById('s4-idle').classList.add('hidden');
+  document.getElementById('s4-running').classList.remove('hidden');
+  let step = 0;
+  const totalSteps = 5;
+  const times = [1200, 1500, 2000, 2500, 1800];
+  let elapsed = 0;
+
+  function runStep(n) {
+    const el = document.getElementById('ss-'+n);
+    const stat = document.getElementById('ss-'+n+'-status');
+    if (!el) return;
+    // Mark previous done
+    if (n > 1) {
+      document.getElementById('ss-'+(n-1)).classList.remove('active');
+      document.getElementById('ss-'+(n-1)).classList.add('done');
+      document.getElementById('ss-'+(n-1)+'-status').textContent = '✓ Done';
+      document.getElementById('ss-'+(n-1)+'-status').style.color = 'var(--success)';
+    }
+    el.classList.add('active');
+    stat.textContent = 'Running…';
+    stat.style.color = 'var(--accent-blue)';
+
+    const labels = ['Validating load data…','Applying tariff structure…','Modeling solar generation…','Optimizing battery dispatch…','Computing financials…'];
+    document.getElementById('simProgressText').textContent = labels[n-1];
+    const targetPct = (n / totalSteps) * 100;
+    const bar = document.getElementById('simBar');
+    bar.style.width = targetPct + '%';
+
+    elapsed += times[n-1];
+    if (n < totalSteps) {
+      setTimeout(() => runStep(n+1), times[n-1]);
+    } else {
+      setTimeout(() => {
+        el.classList.remove('active'); el.classList.add('done');
+        stat.textContent = '✓ Done'; stat.style.color = 'var(--success)';
+        bar.style.width = '100%';
+        document.getElementById('simProgressText').textContent = 'Complete!';
+        setTimeout(showSimComplete, 600);
+      }, times[n-1]);
+    }
+  }
+  runStep(1);
+}
+
+function showSimComplete() {
+  document.getElementById('s4-running').classList.add('hidden');
+  document.getElementById('s4-validation').classList.remove('hidden');
+  const projDate = document.getElementById('projDate');
+  if (projDate) projDate.textContent = new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  setTimeout(() => {
+    document.getElementById('s4-complete').classList.remove('hidden');
+    appState.completedSteps.add(4);
+    updateNavState();
+  }, 1200);
+}
+
+function checkLocks() {
+  const all = ['lock1','lock2','lock3'].every(id => document.getElementById(id)?.checked);
+  document.getElementById('lockBtn').disabled = !all;
+}
+
+function lockModel() {
+  openModal('lock-processing-modal-inline');
+  // Inline: just show toast
+  setTimeout(() => {
+    showToast('🔒','Model Locked','Project 3RE-2024-00247 initiated. Engineering can now begin.');
+    appState.completedSteps.add(4);
+    updateNavState();
+    setTimeout(() => goStep(5), 1200);
+  }, 1800);
+}
+
+// ── STEP 5: PROJECT ──
+function switchProjTab(btn, tab) {
+  btn.closest('.proj-tabs').querySelectorAll('.proj-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  ['overview','kanban','timeline','docs'].forEach(t => {
+    const el = document.getElementById('proj-'+t);
+    if (el) el.classList.toggle('hidden', t!==tab);
+  });
+  appState.completedSteps.add(5);
+  updateNavState();
+}
+
+// ── STEP 6: EMS ──
+let emsChart;
+const emsChartData = {
+  today: { labels: Array.from({length:24},(_,i)=>`${i}:00`), data: rnd(24,3.9,2.2) },
+  week:  { labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'], data: rnd(7,21,9) },
+  month: { labels: Array.from({length:30},(_,i)=>`${i+1}`), data: rnd(30,19,10) }
+};
+
+function buildEmsChart() {
+  const ctx = document.getElementById('emsLineChart');
+  if (!ctx) return;
+  if (emsChart) emsChart.destroy();
+  const ds = emsChartData[appState.emsChartView];
+  const c = ctx.getContext('2d');
+  const grad = c.createLinearGradient(0,0,0,220);
+  grad.addColorStop(0,'rgba(59,130,246,0.3)');
+  grad.addColorStop(1,'rgba(59,130,246,0.02)');
+  emsChart = new Chart(ctx, {
+    type:'line',
+    data:{ labels:ds.labels, datasets:[{label:'Energy (kWh)',data:ds.data,borderColor:'#3B82F6',backgroundColor:grad,borderWidth:2,fill:true,tension:0.4,pointRadius:0,pointHoverRadius:5}] },
+    options:{ responsive:true,maintainAspectRatio:false, plugins:{legend:{display:false},tooltip:{backgroundColor:'#1E293B',titleColor:'#F1F5F9',bodyColor:'#CBD5E1',borderColor:'#334155',borderWidth:1,callbacks:{label:c=>` ${c.parsed.y} kWh`}}}, scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#8A9BBE',font:{size:10},maxTicksLimit:8}}, y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#8A9BBE',font:{size:10},callback:v=>v+' kWh'},beginAtZero:true}} }
+  });
+}
+
+function switchEmsChart(btn, view) {
+  btn.closest('.chart-tabs').querySelectorAll('.chart-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  appState.emsChartView = view;
+  buildEmsChart();
+}
+
+function emsTickClock() {
+  const el = document.getElementById('ems-clock');
+  if (el) el.textContent = new Date().toLocaleTimeString('en-US',{timeZone:'America/New_York',hour:'numeric',minute:'2-digit',second:'2-digit',hour12:true});
+}
+
+function emsTick() {
+  if (!appState.liveOn || appState.currentStep !== 6) return;
+  const rp = (1.9+Math.random()*0.6).toFixed(1);
+  const ap = (Math.sqrt(Math.pow(3.4,2)+Math.pow(parseFloat(rp),2))).toFixed(1);
+  document.getElementById('v-rp').textContent = rp;
+  document.getElementById('v-ap').textContent = ap;
+  document.getElementById('v-v').textContent = (229+Math.random()*4).toFixed(0);
+  document.getElementById('v-a').textContent = (14.5+Math.random()*1.2).toFixed(1);
+  document.getElementById('v-kwh').textContent = (140+Math.random()*8).toFixed(1);
+
+  // Energy flow
+  const solarKw = (135+Math.random()*15).toFixed(0);
+  const loadKw = (160+Math.random()*15).toFixed(0);
+  const battPct = Math.round(75+Math.random()*10);
+  const toLoad = Math.min(solarKw, loadKw);
+  const toBatt = Math.max(0, solarKw - toLoad);
+
+  document.getElementById('ef-solar').textContent = solarKw + ' kW';
+  document.getElementById('ef-load').textContent = loadKw + ' kW';
+  document.getElementById('ef-battery').textContent = battPct + '%';
+  document.getElementById('ef-s2b').textContent = '→ ' + toBatt + ' kW';
+  document.getElementById('ef-b2l').textContent = '→ ' + Math.round(Math.random()*25) + ' kW';
+  document.getElementById('ef-grid').textContent = '0 kW';
+  document.getElementById('ef-g2l').textContent = '← 0 kW';
+  document.getElementById('battBar').style.width = battPct + '%';
+
+  // EMS cards
+  document.getElementById('ems-v-power').innerHTML = (3.5+Math.random()*0.5).toFixed(2) + ' <span style="font-size:16px;color:var(--text-secondary)">kW</span>';
+  document.getElementById('ems-v-solar').innerHTML = solarKw + '.0 <span style="font-size:16px;color:var(--text-secondary)">kW</span>';
+}
+
+function emsLiveUpdate() {
+  if (!emsChart || appState.emsChartView !== 'today') return;
+  const newVal = +(Math.random()*2.5+2.8).toFixed(2);
+  emsChart.data.datasets[0].data.push(newVal);
+  emsChart.data.datasets[0].data.shift();
+  emsChart.update('none');
+}
+
+// EMS connection states
+function setEmsConn(s) {
+  const dot = document.getElementById('emsConnDot');
+  const txt = document.getElementById('emsConnText');
+  if (!dot || !txt) return;
+  dot.className = 'dot ' + (s==='online'?'green':s==='offline'?'red':'amber');
+  txt.textContent = s==='online'?'Online':s==='offline'?'Offline':'Reconnecting…';
+}
+function emsShowBanner(cls,msg) {
+  const b = document.getElementById('emsBanner');
+  if (!b) return;
+  b.className = 'ems-banner show ' + cls;
+  document.getElementById('emsBannerMsg').textContent = msg;
+}
+function closeEmsBanner() { document.getElementById('emsBanner').className = 'ems-banner'; }
+function emsGoOffline() {
+  appState.liveOn = false; setEmsConn('offline');
+  emsShowBanner('offline','⚠ Gateway offline — no data received.');
+  document.getElementById('ems-offline-banner')?.classList.add('show');
+  setSysBadge('err','Offline','err','Stopped','warn','Unknown','err','No data');
+}
+function emsGoReconnect() {
+  appState.liveOn = false; setEmsConn('amber');
+  emsShowBanner('reconnect','🔄 Reconnecting — attempt 2 of 5…');
+  document.getElementById('emsRcBox').classList.add('show');
+  setSysBadge('warn','Reconnecting','warn','Paused','warn','Checking','warn','Handshaking');
+}
+function emsGoOnline() {
+  appState.liveOn = true; setEmsConn('online');
+  emsShowBanner('restored','✔ Back online — all data restored.');
+  setTimeout(closeEmsBanner, 3000);
+  document.getElementById('ems-offline-banner')?.classList.remove('show');
+  document.getElementById('emsRcBox').classList.remove('show');
+  setSysBadge('success','Online','success','Active','success','Connected','success','Receiving');
+}
+function emsTryReconnect() { setTimeout(emsGoOnline, 1200); }
+
+function setSysBadge(gwCls,gwTxt,pollCls,pollTxt,cellCls,cellTxt,cloudCls,cloudTxt) {
+  const set = (id,cls,txt) => { const el=document.getElementById(id); if(el){el.className='badge '+cls;el.textContent=txt;} };
+  set('ms-gw',gwCls,gwTxt); set('ms-poll',pollCls,pollTxt);
+  set('ms-cell',cellCls,cellTxt); set('ms-cloud',cloudCls,cloudTxt);
+}
+
+// Table
+const tableRows = [
+  {ts:'14:00',v:231,a:35.5,kw:8.2,kwh:142.3,pf:0.96,s:'ok'},
+  {ts:'13:30',v:230,a:28.1,kw:6.5,kwh:139.1,pf:0.95,s:'ok'},
+  {ts:'13:00',v:232,a:26.4,kw:6.1,kwh:135.8,pf:0.94,s:'ok'},
+  {ts:'12:30',v:null,a:null,kw:null,kwh:null,pf:null,s:'gap'},
+  {ts:'12:00',v:231,a:22.5,kw:5.2,kwh:129.9,pf:0.94,s:'ok'},
+  {ts:'11:30',v:230,a:18.3,kw:4.2,kwh:127.3,pf:0.95,s:'ok'},
+];
+function renderTable() {
+  const tb = document.getElementById('tBody');
+  if (!tb) return;
+  tb.innerHTML = '';
+  tableRows.forEach(r => {
+    const tr = document.createElement('tr');
+    if (r.s==='gap') {
+      tr.style.background='rgba(245,158,11,0.05)'; tr.style.color='var(--warning)';
+      tr.innerHTML=`<td>${r.ts}</td><td colspan="5" style="text-align:center">⚠ No data — connection gap</td><td>Missing</td>`;
+    } else {
+      tr.innerHTML=`<td>${r.ts}</td><td>${r.kw.toFixed(1)}</td><td>${r.v}</td><td>${r.a.toFixed(1)}</td><td>${r.kwh.toFixed(1)}</td><td>${r.pf.toFixed(2)}</td><td style="color:#10B981">✔ OK</td>`;
+    }
+    tb.appendChild(tr);
+  });
+}
+
+function exportCSV() {
+  const h='Time,kW,V,A,kWh,PF,Status\n';
+  const b=tableRows.map(r=>r.s==='gap'?`${r.ts},,,,,,MISSING`:`${r.ts},${r.kw},${r.v},${r.a},${r.kwh},${r.pf},OK`).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([h+b],{type:'text/csv'}));
+  a.download='energy_data.csv'; a.click();
+}
+
+// ── MODALS ──
+function openModal(id) { const el=document.getElementById(id); if(el)el.classList.add('open'); }
+function closeModal(id) { const el=document.getElementById(id); if(el)el.classList.remove('open'); }
+function saveSettings() {
+  let iv=parseInt(document.getElementById('refresh-interval')?.value)||5;
+  appState.refreshInterval=Math.max(2,Math.min(60,iv));
+  closeModal('settings-modal');
+  showToast('✅','Settings Saved','Preferences updated successfully.');
+}
+
+// ── TOAST ──
+function showToast(icon, title, msg) {
+  const el=document.getElementById('toast');
+  document.getElementById('toastIcon').textContent=icon;
+  document.getElementById('toastTitle').textContent=title;
+  document.getElementById('toastMsg').textContent=msg;
+  el.style.display='flex';
+  clearTimeout(el._t);
+  el._t=setTimeout(()=>{ el.style.display='none'; }, 4000);
+}
+
+// ── INIT ──
+function init() {
+  renderTable();
+  goStep(1);
+
+  // Show Step 1 upload zone initially
+  document.getElementById('s1-upload').style.display = 'block';
+
+  // Init step 1 chart with a small delay (simulate user already uploaded for demo convenience)
+  // Actually: show upload zone for proper flow
+
+  // Clocks & live ticks
+  setInterval(emsTickClock, 1000);
+  setInterval(emsTick, 5000);
+  setInterval(emsLiveUpdate, (appState.refreshInterval||5)*1000);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+
+// Expose globals
+window.goStep=goStep; window.openModal=openModal; window.closeModal=closeModal;
+window.triggerUpload=triggerUpload; window.onDragOver=onDragOver; window.onDragLeave=onDragLeave; window.onDrop=onDrop;
+window.handleFileSelect=handleFileSelect; window.resetUpload=resetUpload;
+window.submitUtilityRequest=submitUtilityRequest; window.submitCustomAdj=submitCustomAdj; window.submitRepRequest=submitRepRequest;
+window.selectAgreement=selectAgreement; window.toggleAccordion=toggleAccordion;
+window.startSimulation=startSimulation; window.checkLocks=checkLocks; window.lockModel=lockModel;
+window.switchProjTab=switchProjTab; window.switchS1Chart=switchS1Chart;
+window.switchS2Chart=switchS2Chart; window.updateModel=updateModel; window.recalcModel=recalcModel; window.scrubTimeline=scrubTimeline;
+window.switchEmsChart=switchEmsChart; window.emsGoOffline=emsGoOffline; window.emsGoReconnect=emsGoReconnect;
+window.emsGoOnline=emsGoOnline; window.emsTryReconnect=emsTryReconnect; window.closeEmsBanner=closeEmsBanner;
+window.exportCSV=exportCSV; window.saveSettings=saveSettings;
 </script>
 </body>
 </html>
