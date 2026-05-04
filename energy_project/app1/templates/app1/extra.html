@@ -1,14 +1,497 @@
-Carefully review the complete energy_dashboard page and act as an experienced frontend developer.
+Act as a senior frontend developer and UI/UX expert.
 
-I want to update the UI so that the entire dashboard uses a light theme for a clean and modern look. However, the "Consumption Trend" chart must retain its dark theme for better data visualization.
+Carefully review the current energy dashboard implementation and redesign the UI to support a Microgrid monitoring system.
 
-Ensure:
+Core Requirement:
 
-The overall page design is light, responsive, and visually modern
-The dark theme is applied only to the "Consumption Trend" chart
-There is no impact on existing backend functionality or data handling
-UI consistency and readability are maintained across all components
+Create a central graph canvas where multiple data streams (Solar, Battery, EV, Load, HVAC, etc.) are displayed simultaneously.
 
+Features to Implement:
+Multi-Graph System
+Display multiple parameters in a single graph or multiple synchronized graphs
+Use modern charting (like line/area charts)
+Dynamic Toggle System
+Provide checkboxes/toggles to:
+Show/hide each component (Solar, Battery, EV Chargers, HVAC, etc.)
+When disabled → graph line should disappear
+Drill-Down Capability
+Clicking on a graph element should show detailed data
+Add tooltips, zoom, and filtering options
+Clean & Non-Cluttered UI
+Avoid overcrowding
+Use legends, colors, and spacing properly
+Component-wise Data Integration
+Solar → Power generation
+Battery → Charge, discharge, health
+EV → Charging data
+Load → ON/OFF status
+HVAC → Temperature + schedule
+Genset → Backup usage
+Grid → Source switching
+Control Features (UI Level)
+Add UI controls for:
+Battery charge/discharge (manual)
+Load ON/OFF
+HVAC temperature control
+Grid/Battery switch
+Future-Ready Design
+Keep structure scalable for:
+V2X EV Chargers
+Additional devices
+Responsive & Modern UI
+Clean dashboard layout
+Sidebar + main canvas
+Cards for each system
+Smooth animations
+Important:
+Do NOT break existing backend functionality
+Focus on frontend improvements and data visualization
+Ensure real-time data compatibility
+
+this is models 
+"class SensorReading(models.Model):
+    """
+    Stores each Modbus reading as a separate record for historical data
+    """
+    unit_id = models.PositiveIntegerField(db_index=True)
+    timestamp = models.FloatField(help_text="Unix timestamp")
+    block1_start_reg = models.PositiveIntegerField(default=40100)
+    block1_raw = models.JSONField(help_text="Raw registers from block 1")
+    block2_start_reg = models.PositiveIntegerField(default=40138)
+    block2_raw = models.JSONField(help_text="Raw registers from block 2")
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    # Cached/decoded values for faster queries
+    voltage = models.FloatField(null=True, blank=True)
+    current = models.FloatField(null=True, blank=True)
+    active_power_kw = models.FloatField(null=True, blank=True)
+    reactive_power_kvar = models.FloatField(null=True, blank=True)
+    apparent_power_kva = models.FloatField(null=True, blank=True)
+    energy_today_kwh = models.FloatField(null=True, blank=True)
+    
+    class Meta:
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['unit_id', 'timestamp']),
+            models.Index(fields=['-timestamp']),
+        ]
+    
+    def save(self, *args, **kwargs):
+        # Decode registers before saving
+        if self.block1_raw and len(self.block1_raw) > 0:
+            self.voltage = self.block1_raw[0] / 10 if len(self.block1_raw) > 0 else 0
+            self.current = self.block1_raw[8] / 10 if len(self.block1_raw) > 8 else 0
+            self.active_power_kw = self.block1_raw[20] if len(self.block1_raw) > 20 else 0
+            self.reactive_power_kvar = self.block1_raw[21] if len(self.block1_raw) > 21 else 0
+            self.apparent_power_kva = self.block1_raw[22] if len(self.block1_raw) > 22 else 0
+        
+        if self.block2_raw and len(self.block2_raw) > 1:
+            self.energy_today_kwh = (self.block2_raw[1] * 65536) + self.block2_raw[0]
+        
+        super().save(*args, **kwargs)
+    
+    def __str__(self):
+        return f"Unit {self.unit_id} @ {datetime.fromtimestamp(self.timestamp)}"
+
+class HourlyAggregate(models.Model):
+    """
+    Pre-calculated hourly averages for graph performance
+    """
+    unit_id = models.PositiveIntegerField(db_index=True)
+    hour = models.DateTimeField(db_index=True)
+    avg_active_power_kw = models.FloatField(default=0)
+    min_active_power_kw = models.FloatField(default=0)
+    max_active_power_kw = models.FloatField(default=0)
+    total_energy_kwh = models.FloatField(default=0)
+    reading_count = models.PositiveIntegerField(default=0)
+    
+    class Meta:
+        unique_together = [['unit_id', 'hour']]
+        ordering = ['-hour']
+        
+        
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.core.cache import cache
+
+@receiver(post_save, sender=SensorReading)
+def clear_graph_cache(sender, instance, **kwargs):
+    """Clear cached graph data when new reading is added"""
+    # Clear cache for different time periods
+    cache_keys = [
+        f'graph_data_unit_{instance.unit_id}_today',
+        f'graph_data_unit_{instance.unit_id}_week',
+        f'graph_data_unit_{instance.unit_id}_month',
+    ]
+    for key in cache_keys:
+        cache.delete(key)"
+
+
+this is views.py 
+"from django.shortcuts import render
+
+# Create your views here.
+
+from django.shortcuts import render
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from django.db.models import Avg, Max, Min, Sum
+from django.utils import timezone
+from datetime import datetime, timedelta
+import logging
+
+from .models import SensorReading, HourlyAggregate
+from .serializers import SensorReadingSerializer, LatestReadingSerializer, SummaryStatsSerializer, GraphDataSerializer
+
+logger = logging.getLogger(__name__)
+
+def energy_dashboard(request):
+    """Serve the energy dashboard HTML"""
+    return render(request, 'app1/energy_dashboard.html')
+
+class SensorReadingAPIView(APIView):
+    """
+    POST: Receive and store Modbus readings
+    GET: Retrieve readings (with optional filtering)
+    """
+    
+    def post(self, request):
+        """Store a new reading from the SBC"""
+        try:
+            # Validate required fields
+            required_fields = ['unit_id', 'timestamp', 'block1_raw', 'block2_raw']
+            for field in required_fields:
+                if field not in request.data:
+                    return Response(
+                        {"error": f"Missing required field: {field}"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            
+            # Prepare data for serializer
+            data = {
+                'unit_id': request.data.get('unit_id'),
+                'timestamp': request.data.get('timestamp'),
+                'block1_start_reg': request.data.get('block1_start_reg', 40100),
+                'block1_raw': request.data.get('block1_raw'),
+                'block2_start_reg': request.data.get('block2_start_reg', 40138),
+                'block2_raw': request.data.get('block2_raw'),
+            }
+            
+            serializer = SensorReadingSerializer(data=data)
+            if serializer.is_valid():
+                reading = serializer.save()
+                
+                # Trigger hourly aggregation update
+                self.update_hourly_aggregate(reading)
+                
+                return Response({
+                    "status": "success",
+                    "message": "Reading stored successfully",
+                    "id": reading.id
+                }, status=status.HTTP_201_CREATED)
+            
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+        except Exception as e:
+            logger.error(f"Error storing reading: {str(e)}")
+            return Response(
+                {"error": f"Internal server error: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    def update_hourly_aggregate(self, reading):
+        """Update or create hourly aggregate for this reading's hour"""
+        try:
+            # Convert unix timestamp to datetime
+            reading_time = datetime.fromtimestamp(reading.timestamp)
+            hour_start = reading_time.replace(minute=0, second=0, microsecond=0)
+            
+            # Get all readings in this hour
+            hour_end = hour_start + timedelta(hours=1)
+            hour_readings = SensorReading.objects.filter(
+                unit_id=reading.unit_id,
+                timestamp__gte=hour_start.timestamp(),
+                timestamp__lt=hour_end.timestamp()
+            )
+            
+            if hour_readings.exists():
+                # Calculate aggregates
+                avg_power = hour_readings.aggregate(Avg('active_power_kw'))['active_power_kw__avg'] or 0
+                min_power = hour_readings.aggregate(Min('active_power_kw'))['active_power_kw__min'] or 0
+                max_power = hour_readings.aggregate(Max('active_power_kw'))['active_power_kw__max'] or 0
+                count = hour_readings.count()
+                
+                # Energy (kWh) = average power (kW) * 1 hour
+                total_energy = avg_power * 1.0
+                
+                # Update or create aggregate
+                HourlyAggregate.objects.update_or_create(
+                    unit_id=reading.unit_id,
+                    hour=hour_start,
+                    defaults={
+                        'avg_active_power_kw': avg_power,
+                        'min_active_power_kw': min_power,
+                        'max_active_power_kw': max_power,
+                        'total_energy_kwh': total_energy,
+                        'reading_count': count,
+                    }
+                )
+        except Exception as e:
+            logger.error(f"Error updating hourly aggregate: {str(e)}")
+    
+    def get(self, request):
+        """Retrieve readings (for debugging)"""
+        unit_id = request.query_params.get('unit_id')
+        limit = int(request.query_params.get('limit', 100))
+        
+        queryset = SensorReading.objects.all()
+        if unit_id:
+            queryset = queryset.filter(unit_id=unit_id)
+        
+        queryset = queryset[:limit]
+        serializer = SensorReadingSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+class LatestReadingView(APIView):
+    """Get the latest reading for live dashboard updates"""
+    
+    def get(self, request):
+        unit_id = request.query_params.get('unit_id', 100)
+        
+        try:
+            # Get the most recent reading
+            latest = SensorReading.objects.filter(unit_id=unit_id).latest('timestamp')
+            
+            # Check if data is stale (older than 30 seconds)
+            current_time = timezone.now().timestamp()
+            is_stale = (current_time - latest.timestamp) > 30
+            
+            data = {
+                'voltage': round(latest.voltage, 1),
+                'current': round(latest.current, 1),
+                'active_power_kw': round(latest.active_power_kw, 1),
+                'reactive_power_kvar': round(latest.reactive_power_kvar, 1),
+                'apparent_power_kva': round(latest.apparent_power_kva, 1),
+                'energy_today_kwh': round(latest.energy_today_kwh, 1),
+                'timestamp': datetime.fromtimestamp(latest.timestamp).isoformat(),
+                'status': 'stale' if is_stale else 'online'
+            }
+            
+            serializer = LatestReadingSerializer(data)
+            return Response(serializer.data)
+            
+        except SensorReading.DoesNotExist:
+            return Response({
+                'status': 'offline',
+                'message': 'No readings available'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+class SummaryStatsView(APIView):
+    """Get summary statistics for today, week, and month"""
+    
+    def get(self, request):
+        unit_id = request.query_params.get('unit_id', 100)
+        now = timezone.now()
+        
+        # Get the latest reading to know current energy value
+        try:
+            latest = SensorReading.objects.filter(unit_id=unit_id).latest('timestamp')
+            current_energy = latest.energy_today_kwh
+        except SensorReading.DoesNotExist:
+            current_energy = 0
+        
+        def get_energy_at_time(target_time):
+            """Get energy reading closest to a specific time"""
+            # Convert target_time to timestamp
+            target_ts = target_time.timestamp()
+            
+            # Find reading just before or at target time
+            reading = SensorReading.objects.filter(
+                unit_id=unit_id,
+                timestamp__lte=target_ts
+            ).order_by('-timestamp').first()
+            
+            return reading.energy_today_kwh if reading else current_energy
+        
+        # Calculate start times
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        week_start = today_start - timedelta(days=7)
+        month_start = today_start - timedelta(days=30)
+        
+        # Get energy at start of each period
+        energy_today_start = get_energy_at_time(today_start)
+        energy_week_start = get_energy_at_time(week_start)
+        energy_month_start = get_energy_at_time(month_start)
+        
+        # Calculate consumption
+        today_kwh = max(0, current_energy - energy_today_start)
+        week_kwh = max(0, current_energy - energy_week_start)
+        month_kwh = max(0, current_energy - energy_month_start)
+        
+        # Get peak demand for today
+        peak_demand = SensorReading.objects.filter(
+            unit_id=unit_id,
+            timestamp__gte=today_start.timestamp()
+        ).aggregate(Max('active_power_kw'))['active_power_kw__max'] or 0
+        
+        data = {
+            'today_kwh': round(today_kwh, 1),
+            'week_kwh': round(week_kwh, 1),
+            'month_kwh': round(month_kwh, 1),
+            'peak_demand_kw': round(peak_demand, 1)
+        }
+        
+        serializer = SummaryStatsSerializer(data)
+        return Response(serializer.data)
+
+class GraphDataView(APIView):
+    """Get data for consumption trend graph - NOW WITH RAW DATA OPTION"""
+    
+    def get(self, request):
+        unit_id = request.query_params.get('unit_id', 100)
+        period = request.query_params.get('period', 'today')
+        from_date = request.query_params.get('from')
+        to_date = request.query_params.get('to')
+        
+        now = timezone.now()
+        
+        # Determine date range
+        if from_date and to_date:
+            try:
+                start = datetime.fromisoformat(from_date)
+                end = datetime.fromisoformat(to_date)
+                # Add one day to include the end date
+                end = end + timedelta(days=1)
+            except ValueError:
+                return Response({"error": "Invalid date format"}, status=400)
+        elif period == 'today':
+            start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            end = now
+        elif period == 'week':
+            start = now - timedelta(days=7)
+            end = now
+        else:  # month
+            start = now - timedelta(days=30)
+            end = now
+        
+        start_ts = start.timestamp()
+        end_ts = end.timestamp()
+        
+        # FIX: ALWAYS get raw readings first for today/week view
+        # Only use aggregates for month view or large datasets
+        readings = SensorReading.objects.filter(
+            unit_id=unit_id,
+            timestamp__gte=start_ts,
+            timestamp__lte=end_ts
+        ).order_by('timestamp')
+        
+        if readings.exists():
+            # For better visibility, show individual readings for small datasets
+            if period == 'today' or readings.count() <= 48:  # Show individual readings for today or small datasets
+                labels = []
+                values = []
+                
+                for reading in readings:
+                    dt = datetime.fromtimestamp(reading.timestamp)
+                    # Format: HH:MM for today, MM-DD HH:MM for others
+                    if period == 'today':
+                        labels.append(dt.strftime('%H:%M'))
+                    else:
+                        labels.append(dt.strftime('%m-%d %H:%M'))
+                    
+                    # Get the power value
+                    power_value = reading.active_power_kw if reading.active_power_kw else 0
+                    values.append(round(power_value, 2))
+                
+                data = {
+                    'labels': labels,
+                    'values': values,
+                    'unit': 'kW',
+                    'type': 'raw_readings',
+                    'count': len(labels)
+                }
+            else:
+                # For large datasets, use hourly aggregation
+                hourly_data = {}
+                for reading in readings:
+                    hour_key = datetime.fromtimestamp(reading.timestamp).replace(minute=0, second=0, microsecond=0)
+                    if hour_key not in hourly_data:
+                        hourly_data[hour_key] = {'total': 0, 'count': 0}
+                    if reading.active_power_kw:
+                        hourly_data[hour_key]['total'] += reading.active_power_kw
+                        hourly_data[hour_key]['count'] += 1
+                
+                labels = []
+                values = []
+                for hour_key in sorted(hourly_data.keys()):
+                    if period == 'today':
+                        labels.append(hour_key.strftime('%H:00'))
+                    else:
+                        labels.append(hour_key.strftime('%m-%d %H:00'))
+                    avg_value = hourly_data[hour_key]['total'] / hourly_data[hour_key]['count']
+                    values.append(round(avg_value, 2))
+                
+                data = {
+                    'labels': labels,
+                    'values': values,
+                    'unit': 'kW',
+                    'type': 'hourly_aggregated',
+                    'count': len(labels)
+                }
+        else:
+            data = {
+                'labels': [],
+                'values': [],
+                'unit': 'kW',
+                'type': 'no_data',
+                'count': 0
+            }
+        
+        return Response(data)
+
+class RecentReadingsView(APIView):
+    """Get recent readings for the table"""
+    
+    def get(self, request):
+        unit_id = request.query_params.get('unit_id', 100)
+        limit = int(request.query_params.get('limit', 20))
+        
+        readings = SensorReading.objects.filter(unit_id=unit_id)[:limit]
+        
+        data = []
+        for reading in readings:
+            dt = datetime.fromtimestamp(reading.timestamp)
+            data.append({
+                'time': dt.strftime('%H:%M:%S'),
+                'date': dt.strftime('%Y-%m-%d'),
+                'kw': round(reading.active_power_kw, 2) if reading.active_power_kw else 0,
+                'voltage': round(reading.voltage, 1) if reading.voltage else 0,
+                'current': round(reading.current, 1) if reading.current else 0,
+                'energy': round(reading.energy_today_kwh, 1) if reading.energy_today_kwh else 0,
+                'pf': round(reading.active_power_kw / reading.apparent_power_kva, 2) if reading.apparent_power_kva and reading.apparent_power_kva > 0 else 0,
+                'status': 'ok'
+            })
+        
+        return Response(data)"
+
+
+this is urls.py 
+"from django.urls import path
+from . import views  # Ensure you're importing views properly
+from .views import SensorReadingAPIView
+
+urlpatterns = [
+    # Frontend
+    path('', views.energy_dashboard, name='energy_dashboard'),
+    
+    # API endpoints
+    path('readings/', views.SensorReadingAPIView.as_view(), name='sensor-readings'),
+    path('api/readings/latest/', views.LatestReadingView.as_view(), name='latest-reading'),
+    path('api/readings/summary/', views.SummaryStatsView.as_view(), name='summary-stats'),
+    path('api/readings/graph/', views.GraphDataView.as_view(), name='graph-data'),
+    path('api/readings/recent/', views.RecentReadingsView.as_view(), name='recent-readings'),
+]"
 
 this is energy_dashboard.html 
 "<!DOCTYPE html>
@@ -16,219 +499,427 @@ this is energy_dashboard.html
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>Energy Core · Dark Dashboard</title>
+  <title>Energy Core · Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      --bg-primary: #0A0F1A;
-      --bg-secondary: #0F172A;
-      --bg-surface: #1E293B;
-      --bg-surface-elevated: #2D3A4F;
-      --bg-card: #111827;
-      --border-subtle: rgba(255, 255, 255, 0.06);
-      --border-medium: rgba(255, 255, 255, 0.1);
-      --text-primary: #F1F5F9;
-      --text-secondary: #94A3B8;
-      --text-tertiary: #64748B;
-      --accent-blue: #3B82F6;
-      --accent-teal: #10B981;
-      --accent-amber: #F59E0B;
-      --accent-red: #EF4444;
-      --accent-purple: #8B5CF6;
-      --accent-glow: rgba(59, 130, 246, 0.25);
-      --success: #10B981;
-      --warning: #F59E0B;
-      --error: #EF4444;
+      /* ── Light theme tokens ── */
+      --bg-primary:   #F0F4F9;
+      --bg-secondary: #FFFFFF;
+      --bg-surface:   #F8FAFC;
+      --bg-surface-elevated: #EEF2F7;
+      --bg-card:      #FFFFFF;
+      --border-subtle: rgba(0,0,0,0.06);
+      --border-medium: rgba(0,0,0,0.11);
+      --text-primary:  #0F172A;
+      --text-secondary:#475569;
+      --text-tertiary: #94A3B8;
+      --accent-blue:   #2563EB;
+      --accent-blue-soft: rgba(37,99,235,0.10);
+      --accent-teal:   #059669;
+      --accent-amber:  #D97706;
+      --accent-red:    #DC2626;
+      --accent-purple: #7C3AED;
+      --accent-glow:   rgba(37,99,235,0.18);
+      --success: #059669;
+      --warning: #D97706;
+      --error:   #DC2626;
       --r8: 8px; --r12: 12px; --r16: 16px; --r20: 20px; --r24: 24px;
-      --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
-      --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
-      --shadow-lg: 0 8px 24px rgba(0,0,0,0.5);
-      --shadow-glow: 0 0 20px rgba(59,130,246,0.15);
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
+      --shadow-lg: 0 12px 32px rgba(0,0,0,0.10), 0 4px 10px rgba(0,0,0,0.05);
+
+      /* ── Dark chart panel tokens (scoped inside .cpanel) ── */
+      --chart-bg-panel:    #0D1829;
+      --chart-bg-header:   #0A1220;
+      --chart-bg-wrap:     #0D1829;
+      --chart-border:      rgba(255,255,255,0.07);
+      --chart-text-primary:#F1F5F9;
+      --chart-text-secondary:#94A3B8;
+      --chart-text-tertiary: #64748B;
+      --chart-surface:     #1E293B;
+      --chart-surface-el:  #273548;
+      --chart-input-border:rgba(255,255,255,0.12);
+      --chart-glow:        0 0 24px rgba(59,130,246,0.12);
     }
 
-    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg-primary); color: var(--text-primary); font-size: 14px; -webkit-font-smoothing: antialiased; line-height: 1.5; }
+    body {
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 14px;
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.5;
+    }
     .dash { display: flex; flex-direction: column; min-height: 100vh; }
 
-    .demo-bar { background: #050811; padding: 8px 24px; font-size: 12px; color: var(--text-tertiary); display: flex; gap: 12px; align-items: center; flex-wrap: wrap; border-bottom: 1px solid var(--border-subtle); }
-    .demo-bar span { font-weight: 500; letter-spacing: 0.3px; }
-    .dbtn { font-size: 11px; padding: 4px 14px; border: 1px solid var(--border-medium); border-radius: 20px; background: var(--bg-surface); color: var(--text-secondary); cursor: pointer; font-family: inherit; transition: all 0.2s ease; font-weight: 500; }
-    .dbtn:hover { background: var(--bg-surface-elevated); color: var(--text-primary); border-color: var(--accent-blue); }
+    /* ──────────────────────────── DEMO BAR ──────────────────────────── */
+    .demo-bar {
+      background: #fff;
+      padding: 8px 24px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .demo-bar span { font-weight: 600; color: var(--accent-blue); letter-spacing: 0.2px; }
+    .dbtn {
+      font-size: 11px; padding: 4px 14px;
+      border: 1px solid var(--border-medium);
+      border-radius: 20px;
+      background: var(--bg-surface);
+      color: var(--text-secondary);
+      cursor: pointer; font-family: inherit;
+      transition: all 0.2s ease; font-weight: 500;
+    }
+    .dbtn:hover { background: var(--accent-blue-soft); color: var(--accent-blue); border-color: var(--accent-blue); }
 
-    .hdr { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-subtle); position: sticky; top: 0; z-index: 10; backdrop-filter: blur(10px); flex-wrap: wrap; gap: 12px; }
+    /* ──────────────────────────── HEADER ──────────────────────────── */
+    .hdr {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 24px;
+      background: #fff;
+      border-bottom: 1px solid var(--border-subtle);
+      position: sticky; top: 0; z-index: 10;
+      backdrop-filter: blur(12px);
+      flex-wrap: wrap; gap: 12px;
+      box-shadow: var(--shadow-sm);
+    }
     .brand { display: flex; align-items: center; gap: 12px; }
-    .brand-icon { width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg, var(--accent-blue), var(--accent-teal)); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; box-shadow: var(--shadow-glow); }
-    .brand-name { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; background: linear-gradient(135deg, #fff, #94A3B8); -webkit-background-clip: text; background-clip: text; color: transparent; }
-    .brand-sub { font-size: 11px; color: var(--text-tertiary); margin-top: 4px; }
-    .hdr-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .brand-icon {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent-blue), #06B6D4);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; flex-shrink: 0;
+      box-shadow: 0 2px 10px rgba(37,99,235,0.30);
+    }
+    .brand-name {
+      font-size: 17px; font-weight: 700; letter-spacing: -0.3px;
+      color: var(--text-primary);
+    }
+    .brand-sub { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+    .hdr-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
-    .conn-status { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 500; color: var(--text-secondary); background: var(--bg-surface); padding: 6px 14px; border-radius: 40px; border: 1px solid var(--border-subtle); }
+    .conn-status {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; font-weight: 600;
+      color: var(--text-secondary);
+      background: var(--bg-surface);
+      padding: 6px 14px; border-radius: 40px;
+      border: 1px solid var(--border-subtle);
+    }
     .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-    .dot.green { background: var(--success); animation: blink 1s infinite; box-shadow: 0 0 6px var(--success); }
-    .dot.red   { background: var(--error); animation: blink 1s infinite; }
+    .dot.green { background: var(--success); animation: blink 1.2s infinite; box-shadow: 0 0 5px var(--success); }
+    .dot.red   { background: var(--error);   animation: blink 1s infinite; }
     .dot.amber { background: var(--warning); animation: blink 0.7s infinite; }
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.4} }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.35} }
 
-    .hbtn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 40px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid var(--border-medium); background: var(--bg-surface); color: var(--text-secondary); font-family: inherit; transition: all 0.2s ease; white-space: nowrap; }
-    .hbtn:hover { background: var(--bg-surface-elevated); color: var(--text-primary); border-color: var(--accent-blue); }
-    .hbtn.primary { background: var(--accent-blue); border-color: var(--accent-blue); color: #fff; box-shadow: 0 2px 8px rgba(59,130,246,0.3); }
-    .hbtn.primary:hover { background: #2563EB; transform: translateY(-1px); }
+    .hbtn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 16px; border-radius: 40px;
+      font-size: 12px; font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border-medium);
+      background: var(--bg-surface); color: var(--text-secondary);
+      font-family: inherit; transition: all 0.2s ease; white-space: nowrap;
+    }
+    .hbtn:hover { background: var(--accent-blue-soft); color: var(--accent-blue); border-color: var(--accent-blue); }
+    .hbtn.primary {
+      background: var(--accent-blue); border-color: var(--accent-blue);
+      color: #fff; box-shadow: 0 2px 8px rgba(37,99,235,0.28);
+    }
+    .hbtn.primary:hover { background: #1D4ED8; transform: translateY(-1px); }
 
     .settings-wrapper { position: relative; }
     .settings-dropdown {
-      position: absolute; top: calc(90% + 6px); right: 0; min-width: 180px;
-      background: var(--bg-surface); border: 1px solid var(--border-medium);
-      border-radius: var(--r12); box-shadow: var(--shadow-lg), 0 0 0 1px rgba(59,130,246,0.08);
+      position: absolute; top: calc(100% + 8px); right: 0; min-width: 190px;
+      background: #fff;
+      border: 1px solid var(--border-medium);
+      border-radius: var(--r16); box-shadow: var(--shadow-lg);
       overflow: hidden; z-index: 100; opacity: 0; pointer-events: none;
       transform: translateY(-6px); transition: opacity 0.18s ease, transform 0.18s ease;
     }
-    .settings-wrapper:hover .settings-dropdown, .settings-dropdown:hover { opacity: 1; pointer-events: all; transform: translateY(0); }
-    .settings-dropdown::before { content: ''; position: absolute; top: -6px; right: 18px; width: 10px; height: 10px; background: var(--bg-surface); border-left: 1px solid var(--border-medium); border-top: 1px solid var(--border-medium); transform: rotate(45deg); }
-    .dropdown-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 16px; font-size: 13px; font-weight: 500; color: var(--text-secondary); background: none; border: none; cursor: pointer; font-family: inherit; text-align: left; transition: background 0.15s ease, color 0.15s ease; border-bottom: 1px solid var(--border-subtle); }
+    .settings-wrapper:hover .settings-dropdown,
+    .settings-dropdown:hover { opacity: 1; pointer-events: all; transform: translateY(0); }
+    .settings-dropdown::before {
+      content: ''; position: absolute; top: -5px; right: 20px;
+      width: 9px; height: 9px;
+      background: #fff;
+      border-left: 1px solid var(--border-medium);
+      border-top: 1px solid var(--border-medium);
+      transform: rotate(45deg);
+    }
+    .dropdown-item {
+      display: flex; align-items: center; gap: 10px;
+      width: 100%; padding: 11px 16px;
+      font-size: 13px; font-weight: 500;
+      color: var(--text-secondary); background: none; border: none;
+      cursor: pointer; font-family: inherit; text-align: left;
+      transition: background 0.15s ease, color 0.15s ease;
+      border-bottom: 1px solid var(--border-subtle);
+    }
     .dropdown-item:last-child { border-bottom: none; }
-    .dropdown-item:hover { background: rgba(59,130,246,0.1); color: var(--text-primary); }
-    .dropdown-item .di-icon { width: 26px; height: 26px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
-    .dropdown-item:nth-child(1) .di-icon { background: rgba(59,130,246,0.15); }
-    .dropdown-item:nth-child(2) .di-icon { background: rgba(16,185,129,0.15); }
+    .dropdown-item:hover { background: var(--accent-blue-soft); color: var(--accent-blue); }
+    .dropdown-item .di-icon {
+      width: 28px; height: 28px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; flex-shrink: 0;
+    }
+    .dropdown-item:nth-child(1) .di-icon { background: rgba(37,99,235,0.10); }
+    .dropdown-item:nth-child(2) .di-icon { background: rgba(5,150,105,0.10); }
 
-    .banner { display: none; padding: 12px 24px; font-size: 13px; font-weight: 500; align-items: center; gap: 12px; }
+    /* ──────────────────────────── BANNER ──────────────────────────── */
+    .banner { display: none; padding: 10px 24px; font-size: 13px; font-weight: 500; align-items: center; gap: 12px; }
     .banner.show { display: flex; }
-    .banner.offline   { background: rgba(239,68,68,0.15); color: var(--error); border-bottom: 1px solid rgba(239,68,68,0.3); }
-    .banner.reconnect { background: rgba(245,158,11,0.15); color: var(--warning); border-bottom: 1px solid rgba(245,158,11,0.3); }
-    .banner.restored  { background: rgba(16,185,129,0.15); color: var(--success); border-bottom: 1px solid rgba(16,185,129,0.3); }
-    .banner-close { margin-left: auto; background: none; border: none; cursor: pointer; font-size: 18px; color: inherit; opacity: .7; }
+    .banner.offline   { background: rgba(220,38,38,0.08); color: var(--error);   border-bottom: 1px solid rgba(220,38,38,0.20); }
+    .banner.reconnect { background: rgba(217,119,6,0.08); color: var(--warning); border-bottom: 1px solid rgba(217,119,6,0.20); }
+    .banner.restored  { background: rgba(5,150,105,0.08); color: var(--success); border-bottom: 1px solid rgba(5,150,105,0.20); }
+    .banner-close { margin-left: auto; background: none; border: none; cursor: pointer; font-size: 16px; color: inherit; opacity: .6; }
     .banner-close:hover { opacity: 1; }
 
-    .main { padding: 24px; flex: 1; display: flex; flex-direction: column; gap: 24px; max-width: 1400px; width: 100%; margin: 0 auto; }
+    /* ──────────────────────────── MAIN ──────────────────────────── */
+    .main {
+      padding: 24px; flex: 1; display: flex; flex-direction: column;
+      gap: 24px; max-width: 1400px; width: 100%; margin: 0 auto;
+    }
 
-    .cards { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
-    .scard { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--r20); padding: 24px; transition: all 0.25s ease; position: relative; overflow: hidden; box-shadow: var(--shadow-sm); }
-    .scard::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
-    .scard.blue::before  { background: linear-gradient(90deg, var(--accent-blue), #60A5FA); }
-    .scard.teal::before  { background: linear-gradient(90deg, var(--accent-teal), #34D399); }
-    .scard.amber::before { background: linear-gradient(90deg, var(--accent-amber), #FCD34D); }
-    .scard:hover { transform: translateY(-2px); border-color: rgba(59,130,246,0.3); box-shadow: var(--shadow-lg); }
-    .ctop { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
-    .cicon { width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
-    .cicon.blue  { background: rgba(59,130,246,0.15); color: var(--accent-blue); }
-    .cicon.teal  { background: rgba(16,185,129,0.15); color: var(--accent-teal); }
-    .cicon.amber { background: rgba(245,158,11,0.15); color: var(--accent-amber); }
-    .badge { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; }
-    .badge.up { background: rgba(239,68,68,0.15); color: var(--error); }
-    .badge.dn { background: rgba(16,185,129,0.15); color: var(--success); }
-    .cval { font-size: 32px; font-weight: 700; letter-spacing: -0.03em; color: var(--text-primary); line-height: 1.2; margin-bottom: 6px; }
-    .cval span { font-size: 14px; font-weight: 400; color: var(--text-tertiary); }
-    .clbl { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .6px; color: var(--text-tertiary); }
+    /* ── Summary Cards (REMOVED: entire cards container is hidden) ── */
+    .cards { display: none; }
 
-    .live-section-title { font-size: 11px; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; }
-    .live-section-title::after { content:''; flex:1; height:1px; background: var(--border-subtle); }
-
+    /* ── Live Meter Cards ── */
     .live-grid { display: grid; grid-template-columns: repeat(6,1fr); gap: 14px; }
-    .live-card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--r16); padding: 16px; transition: all 0.2s; box-shadow: var(--shadow-sm); }
-    .live-card.stale { border-color: var(--warning); background: rgba(245,158,11,0.08); }
-    .live-card.primary { border-color: var(--accent-blue); background: rgba(59,130,246,0.08); }
-    .live-card .lc-label { font-size: 10px; color: var(--text-tertiary); margin-bottom: 10px; text-transform: uppercase; letter-spacing: .6px; font-weight: 600; }
-    .live-card .lc-value { font-size: 24px; font-weight: 700; color: var(--text-primary); line-height: 1.2; }
+    .live-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--r16); padding: 16px;
+      transition: all 0.2s; box-shadow: var(--shadow-sm);
+    }
+    .live-card.stale  { border-color: var(--warning); background: rgba(217,119,6,0.04); }
+    .live-card.primary { border-color: var(--accent-blue); background: rgba(37,99,235,0.04); }
+    .live-card .lc-label {
+      font-size: 10px; color: var(--text-tertiary);
+      margin-bottom: 10px; text-transform: uppercase; letter-spacing: .7px; font-weight: 700;
+    }
+    .live-card .lc-value {
+      font-size: 22px; font-weight: 700;
+      color: var(--text-primary); line-height: 1.2;
+      font-variant-numeric: tabular-nums;
+    }
     .live-card.primary .lc-value { color: var(--accent-blue); }
     .live-card .lc-unit  { font-size: 10px; color: var(--text-tertiary); margin-top: 6px; }
 
-    .kpi-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-top: 8px; }
-    .kpi { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--r16); padding: 18px; box-shadow: var(--shadow-sm); }
-    .kpi .klabel { font-size: 10px; color: var(--text-tertiary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .6px; font-weight: 600; }
-    .kpi .kval   { font-size: 22px; font-weight: 700; color: var(--text-primary); }
-    .kpi .ksub   { font-size: 11px; margin-top: 6px; font-weight: 500; }
+    /* ── KPI Row (removed in favor of live cards) but keep for safety? No need: we remove the KPI row completely */
 
-    .cpanel { background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: var(--r24); overflow: hidden; box-shadow: var(--shadow-lg), var(--shadow-glow); }
-    .phdr { display: flex; align-items: center; justify-content: space-between; padding: 20px 28px 16px 28px; flex-wrap: wrap; gap: 18px; background: linear-gradient(135deg, var(--bg-secondary) 0%, #0B1120 100%); border-bottom: 1px solid var(--border-subtle); }
-    .ptitle { font-size: 1.35rem; font-weight: 700; background: linear-gradient(135deg, #FFFFFF 0%, #94A3B8 100%); -webkit-background-clip: text; background-clip: text; color: transparent; letter-spacing: -0.3px; }
-    .psub { font-size: 0.75rem; color: var(--text-tertiary); margin-top: 6px; display: flex; align-items: center; gap: 6px; }
-    .psub::before { content: "⚡"; font-size: 10px; opacity: 0.8; }
-    /* Graph status badge */
+
+    /* ──────────────────────────────────────────────────────────────────
+       CONSUMPTION TREND PANEL — Dark theme preserved exactly
+    ────────────────────────────────────────────────────────────────── */
+    .cpanel {
+      background: var(--chart-bg-panel);
+      border: 1px solid var(--chart-border);
+      border-radius: var(--r24); overflow: hidden;
+      box-shadow: var(--shadow-lg), var(--chart-glow);
+    }
+    .phdr {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 28px 16px 28px; flex-wrap: wrap; gap: 18px;
+      background: linear-gradient(135deg, var(--chart-bg-header) 0%, #060E1C 100%);
+      border-bottom: 1px solid var(--chart-border);
+    }
+    .ptitle {
+      font-size: 1.25rem; font-weight: 700;
+      background: linear-gradient(135deg, #FFFFFF 0%, #94A3B8 100%);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      letter-spacing: -0.3px;
+    }
+    .psub {
+      font-size: 0.75rem; color: var(--chart-text-tertiary);
+      margin-top: 6px; display: flex; align-items: center; gap: 6px;
+    }
+    .psub::before { content: "⚡"; font-size: 10px; opacity: 0.7; }
+
     .graph-status { font-size: 10px; padding: 3px 10px; border-radius: 20px; font-weight: 600; margin-left: 8px; display: none; }
-    .graph-status.loading { display: inline-flex; align-items: center; gap: 5px; background: rgba(59,130,246,0.15); color: var(--accent-blue); }
-    .graph-status.no-data { display: inline-flex; background: rgba(245,158,11,0.15); color: var(--warning); }
-    .graph-status.live { display: inline-flex; background: rgba(16,185,129,0.15); color: var(--success); }
-    .chart-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
-    .ctabs { display: flex; background: rgba(255,255,255,0.03); border-radius: 14px; padding: 4px; gap: 6px; border: 1px solid var(--border-subtle); }
-    .ctab { padding: 8px 22px; border-radius: 10px; font-size: 0.8125rem; font-weight: 600; background: transparent; border: none; cursor: pointer; color: var(--text-secondary); font-family: inherit; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); letter-spacing: 0.3px; }
-    .ctab:hover { color: var(--text-primary); background: rgba(255,255,255,0.06); }
-    .ctab.on { background: var(--accent-blue); color: white; box-shadow: 0 2px 12px rgba(59,130,246,0.4); }
-    .date-range-tools { display: flex; align-items: center; gap: 14px; background: rgba(0,0,0,0.3); padding: 6px 16px 6px 20px; border-radius: 60px; border: 1px solid var(--border-subtle); backdrop-filter: blur(4px); }
-    .drange { display: flex; align-items: center; gap: 10px; }
-    .dinput { background: var(--bg-surface); border: 1px solid var(--border-medium); border-radius: 30px; padding: 7px 14px; font-size: 0.75rem; color: var(--text-primary); font-family: 'Inter', monospace; font-weight: 500; transition: all 0.2s ease; cursor: pointer; }
-    .dinput:focus { outline: none; border-color: var(--accent-blue); box-shadow: 0 0 0 3px var(--accent-glow); }
-    .drange span { color: var(--text-tertiary); font-size: 0.75rem; font-weight: 500; }
-    .abtn { padding: 7px 20px; border-radius: 30px; background: linear-gradient(135deg, var(--accent-blue), #2563EB); border: none; color: white; font-size: 0.75rem; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.2s ease; letter-spacing: 0.3px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
-    .abtn:hover { background: linear-gradient(135deg, #3B82F6, #1D4ED8); transform: translateY(-1px); box-shadow: 0 6px 16px rgba(59,130,246,0.35); }
-    .cwrap { padding: 20px 28px 28px 28px; height: 340px; position: relative; background: var(--bg-secondary); }
+    .graph-status.loading { display: inline-flex; align-items: center; gap: 5px; background: rgba(59,130,246,0.18); color: #60A5FA; }
+    .graph-status.no-data { display: inline-flex; background: rgba(245,158,11,0.18); color: #FCD34D; }
+    .graph-status.live    { display: inline-flex; background: rgba(16,185,129,0.18); color: #34D399; }
+
+    .chart-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
+    .ctabs {
+      display: flex; background: rgba(255,255,255,0.04);
+      border-radius: 14px; padding: 4px; gap: 4px;
+      border: 1px solid var(--chart-border);
+    }
+    .ctab {
+      padding: 7px 20px; border-radius: 10px;
+      font-size: 0.8rem; font-weight: 600;
+      background: transparent; border: none; cursor: pointer;
+      color: var(--chart-text-secondary); font-family: inherit;
+      transition: all 0.2s cubic-bezier(0.4,0,0.2,1); letter-spacing: 0.3px;
+    }
+    .ctab:hover { color: var(--chart-text-primary); background: rgba(255,255,255,0.07); }
+    .ctab.on { background: var(--accent-blue); color: #fff; box-shadow: 0 2px 12px rgba(59,130,246,0.4); }
+
+    .date-range-tools {
+      display: flex; align-items: center; gap: 12px;
+      background: rgba(0,0,0,0.35); padding: 6px 16px 6px 18px;
+      border-radius: 60px; border: 1px solid var(--chart-border);
+    }
+    .drange { display: flex; align-items: center; gap: 8px; }
+    .dinput {
+      background: var(--chart-surface); border: 1px solid var(--chart-input-border);
+      border-radius: 30px; padding: 6px 14px;
+      font-size: 0.75rem; color: var(--chart-text-primary);
+      font-family: 'DM Mono', monospace; font-weight: 500;
+      transition: all 0.2s ease; cursor: pointer;
+    }
+    .dinput:focus { outline: none; border-color: #3B82F6; box-shadow: 0 0 0 3px rgba(59,130,246,0.22); }
+    /* Style date picker on dark background */
+    .dinput::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.5; cursor: pointer; }
+    .drange span { color: var(--chart-text-tertiary); font-size: 0.75rem; font-weight: 500; }
+    .abtn {
+      padding: 6px 18px; border-radius: 30px;
+      background: linear-gradient(135deg, #3B82F6, #2563EB);
+      border: none; color: #fff; font-size: 0.75rem; font-weight: 600;
+      cursor: pointer; font-family: inherit; transition: all 0.2s ease;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    }
+    .abtn:hover { background: linear-gradient(135deg, #60A5FA, #3B82F6); transform: translateY(-1px); }
+
+    .cwrap {
+      padding: 20px 28px 28px 28px; height: 340px; position: relative;
+      background: var(--chart-bg-wrap);
+    }
     .cwrap canvas { height: 100% !important; width: 100% !important; }
 
-    /* Empty state overlay on graph */
     .chart-empty-state {
       position: absolute; inset: 0; display: none; flex-direction: column;
       align-items: center; justify-content: center; gap: 10px;
-      background: rgba(10,15,26,0.75); backdrop-filter: blur(2px);
+      background: rgba(10,18,32,0.80); backdrop-filter: blur(3px);
       z-index: 5; border-radius: 0 0 var(--r24) var(--r24);
     }
     .chart-empty-state.show { display: flex; }
-    .chart-empty-state .es-icon { font-size: 36px; opacity: 0.4; }
-    .chart-empty-state .es-title { font-size: 14px; font-weight: 600; color: var(--text-secondary); }
-    .chart-empty-state .es-sub { font-size: 12px; color: var(--text-tertiary); }
+    .chart-empty-state .es-icon  { font-size: 36px; opacity: 0.35; }
+    .chart-empty-state .es-title { font-size: 14px; font-weight: 600; color: var(--chart-text-secondary); }
+    .chart-empty-state .es-sub   { font-size: 12px; color: var(--chart-text-tertiary); }
 
+    /* ────────────────────────────────────────────────────────────────── */
+
+    /* ── Bottom row panels (only table remains from original bottom-row, but keep panel for consistency) */
     .bottom-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 8px; }
-    .panel { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--r20); padding: 20px 24px; box-shadow: var(--shadow-sm); }
-    .panel-title { font-size: 11px; font-weight: 700; color: var(--text-tertiary); margin-bottom: 14px; text-transform: uppercase; letter-spacing: .8px; }
+    .panel {
+      background: var(--bg-card); border: 1px solid var(--border-subtle);
+      border-radius: var(--r20); padding: 20px 24px; box-shadow: var(--shadow-sm);
+    }
+    .panel-title {
+      font-size: 11px; font-weight: 700; color: var(--text-tertiary);
+      margin-bottom: 14px; text-transform: uppercase; letter-spacing: .8px;
+    }
 
-    .tbl-panel { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--r20); padding: 20px 24px; box-shadow: var(--shadow-sm); }
+    /* ── Table panel ── */
+    .tbl-panel {
+      background: var(--bg-card); border: 1px solid var(--border-subtle);
+      border-radius: var(--r20); padding: 20px 24px; box-shadow: var(--shadow-sm);
+    }
     .tbl-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
     .tbl-title { font-size: 11px; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: .8px; }
-    .export-btn { font-size: 12px; padding: 6px 16px; border: 1px solid var(--border-medium); border-radius: 30px; background: var(--bg-surface); cursor: pointer; color: var(--text-secondary); font-family: inherit; transition: .2s; font-weight: 500; }
-    .export-btn:hover { background: var(--bg-surface-elevated); color: var(--text-primary); border-color: var(--accent-blue); }
+    .export-btn {
+      font-size: 12px; padding: 6px 16px;
+      border: 1px solid var(--border-medium); border-radius: 30px;
+      background: var(--bg-surface); cursor: pointer;
+      color: var(--text-secondary); font-family: inherit;
+      transition: .2s; font-weight: 500;
+    }
+    .export-btn:hover { background: var(--accent-blue-soft); color: var(--accent-blue); border-color: var(--accent-blue); }
     .tbl-wrap { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 540px; }
-    thead th { text-align: left; padding: 10px 14px; color: var(--text-tertiary); font-weight: 600; font-size: 10px; border-bottom: 1px solid var(--border-subtle); text-transform: uppercase; letter-spacing: .6px; background: rgba(0,0,0,0.2); }
+    thead th {
+      text-align: left; padding: 10px 14px;
+      color: var(--text-tertiary); font-weight: 700; font-size: 10px;
+      border-bottom: 1px solid var(--border-subtle);
+      text-transform: uppercase; letter-spacing: .7px;
+      background: var(--bg-surface);
+    }
     tbody td { padding: 11px 14px; border-bottom: 1px solid var(--border-subtle); color: var(--text-secondary); }
     tbody tr:last-child td { border-bottom: none; }
-    tbody tr:hover td { background: rgba(59,130,246,0.05); color: var(--text-primary); }
-    tr.gap-row td { background: rgba(245,158,11,0.08); color: var(--warning); }
+    tbody tr:hover td { background: rgba(37,99,235,0.04); color: var(--text-primary); }
+    tr.gap-row td { background: rgba(217,119,6,0.06); color: var(--warning); }
 
-    .offbanner { display: none; background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); border-radius: var(--r12); padding: 12px 20px; font-size: 13px; color: var(--error); align-items: center; gap: 12px; font-weight: 500; }
+    /* ── Offline banner ── */
+    .offbanner {
+      display: none; background: rgba(220,38,38,0.07);
+      border: 1px solid rgba(220,38,38,0.20); border-radius: var(--r12);
+      padding: 12px 20px; font-size: 13px; color: var(--error);
+      align-items: center; gap: 12px; font-weight: 500;
+    }
     .offbanner.show { display: flex; }
-    .rbtn { background: rgba(239,68,68,0.2); border: 1px solid rgba(239,68,68,0.4); border-radius: 30px; padding: 4px 14px; color: var(--error); cursor: pointer; font-size: 11px; font-family: inherit; transition: .2s; }
-    .rbtn:hover { background: rgba(239,68,68,0.3); }
+    .rbtn {
+      background: rgba(220,38,38,0.12); border: 1px solid rgba(220,38,38,0.25);
+      border-radius: 30px; padding: 4px 14px; color: var(--error);
+      cursor: pointer; font-size: 11px; font-family: inherit; transition: .2s;
+    }
+    .rbtn:hover { background: rgba(220,38,38,0.22); }
 
-    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px; }
+    /* ── Modals ── */
+    .overlay {
+      position: fixed; inset: 0; background: rgba(15,23,42,0.45);
+      backdrop-filter: blur(5px); z-index: 200;
+      display: none; align-items: center; justify-content: center; padding: 20px;
+    }
     .overlay.open { display: flex; }
-    .modal { background: var(--bg-surface); border: 1px solid var(--border-medium); border-radius: var(--r24); padding: 28px; max-width: 420px; width: 100%; box-shadow: var(--shadow-lg); }
-    .mtitle { font-size: 18px; font-weight: 700; color: var(--text-primary); margin-bottom: 24px; }
-    .fg { margin-bottom: 18px; }
-    .flb { font-size: 12px; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 8px; }
-    .fi { width: 100%; padding: 10px 14px; border-radius: var(--r12); border: 1px solid var(--border-medium); background: var(--bg-card); color: var(--text-primary); font-family: inherit; font-size: 13px; outline: none; transition: .2s; }
+    .modal {
+      background: #fff; border: 1px solid var(--border-medium);
+      border-radius: var(--r24); padding: 28px; max-width: 420px; width: 100%;
+      box-shadow: var(--shadow-lg);
+    }
+    .mtitle { font-size: 17px; font-weight: 700; color: var(--text-primary); margin-bottom: 22px; }
+    .fg { margin-bottom: 16px; }
+    .flb { font-size: 12px; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 7px; }
+    .fi {
+      width: 100%; padding: 10px 14px; border-radius: var(--r12);
+      border: 1px solid var(--border-medium); background: var(--bg-surface);
+      color: var(--text-primary); font-family: inherit; font-size: 13px;
+      outline: none; transition: .2s;
+    }
     .fi:focus { border-color: var(--accent-blue); box-shadow: 0 0 0 3px var(--accent-glow); }
-    .macts { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
+    .macts { display: flex; justify-content: flex-end; gap: 12px; margin-top: 22px; }
 
     .sys-status-modal { max-width: 480px; }
     .sys-status-grid { display: flex; flex-direction: column; gap: 0; }
-    .sys-status-item { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--border-subtle); }
+    .sys-status-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 0; border-bottom: 1px solid var(--border-subtle);
+    }
     .sys-status-item:last-child { border-bottom: none; }
     .sys-status-left { display: flex; align-items: center; gap: 12px; }
-    .sys-status-icon { width: 32px; height: 32px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
-    .sys-status-label { font-size: 13px; font-weight: 500; color: var(--text-primary); }
-    .sys-status-sub { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
-    .sys-status-badge { font-size: 11px; font-weight: 600; padding: 4px 12px; border-radius: 20px; display: flex; align-items: center; gap: 5px; }
-    .sys-status-badge.ok   { background: rgba(16,185,129,0.15); color: var(--success); }
-    .sys-status-badge.warn { background: rgba(245,158,11,0.15); color: var(--warning); }
-    .sys-status-badge.err  { background: rgba(239,68,68,0.15); color: var(--error); }
+    .sys-status-icon {
+      width: 32px; height: 32px; border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; flex-shrink: 0; background: var(--bg-surface);
+    }
+    .sys-status-label { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+    .sys-status-sub   { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+    .sys-status-badge { font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 20px; display: flex; align-items: center; gap: 5px; }
+    .sys-status-badge.ok   { background: rgba(5,150,105,0.10); color: var(--success); }
+    .sys-status-badge.warn { background: rgba(217,119,6,0.10);  color: var(--warning); }
+    .sys-status-badge.err  { background: rgba(220,38,38,0.10);  color: var(--error); }
     .sys-status-badge::before { content: '●'; font-size: 8px; }
 
-    .loading-spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(59,130,246,0.3); border-top-color: var(--accent-blue); border-radius: 50%; animation: spin 0.6s linear infinite; }
+    /* ── Spinner ── */
+    .loading-spinner {
+      display: inline-block; width: 13px; height: 13px;
+      border: 2px solid rgba(59,130,246,0.3); border-top-color: #3B82F6;
+      border-radius: 50%; animation: spin 0.6s linear infinite;
+    }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* ── Responsive ── */
     @media (max-width: 1100px) { .live-grid { grid-template-columns: repeat(3,1fr); } }
-    @media (max-width: 800px) { .cards { grid-template-columns: repeat(2,1fr); } .kpi-row { grid-template-columns: repeat(2,1fr); } .bottom-row { grid-template-columns: 1fr; } .live-grid { grid-template-columns: repeat(2,1fr); } .cwrap { height: 260px; padding: 16px; } .phdr { padding: 16px 20px; } }
-    @media (max-width: 640px) { .chart-controls { width: 100%; flex-direction: column; align-items: stretch; } .ctabs { width: 100%; justify-content: stretch; } .ctab { flex: 1; text-align: center; } .date-range-tools { width: 100%; justify-content: center; flex-wrap: wrap; } .drange { width: 100%; justify-content: space-between; flex-wrap: wrap; gap: 8px; } .drange .dinput { flex: 1; min-width: 120px; } .abtn { width: auto; } }
-    @media (max-width: 500px) { .cards { grid-template-columns: 1fr; } .live-grid { grid-template-columns: repeat(2,1fr); } .kpi-row { grid-template-columns: 1fr; } .main { padding: 16px; gap: 18px; } .cwrap { height: 220px; } }
+    @media (max-width: 800px)  { .live-grid { grid-template-columns: repeat(2,1fr); } .cwrap { height: 260px; padding: 16px; } .phdr { padding: 16px 20px; } }
+    @media (max-width: 640px)  { .chart-controls { width: 100%; flex-direction: column; align-items: stretch; } .ctabs { width: 100%; justify-content: stretch; } .ctab { flex:1; text-align:center; } .date-range-tools { width: 100%; justify-content: center; flex-wrap: wrap; } .drange { width: 100%; justify-content: space-between; flex-wrap: wrap; gap: 8px; } .drange .dinput { flex:1; min-width: 120px; } .abtn { width: auto; } }
+    @media (max-width: 500px)  { .live-grid { grid-template-columns: repeat(2,1fr); } .main { padding: 16px; gap: 18px; } .cwrap { height: 220px; } }
   </style>
 </head>
 <body>
@@ -244,7 +935,6 @@ this is energy_dashboard.html
       <div class="brand-icon">⚡</div>
       <div>
         <div class="brand-name">3rd Rock Energy Systems</div>
-        <!-- FIX: Changed EST → IST -->
         <div class="brand-sub">Real-time monitoring · <span id="clock">—</span> IST</div>
       </div>
     </div>
@@ -280,7 +970,8 @@ this is energy_dashboard.html
       <button class="rbtn" onclick="reconnect()">↺ Reconnect</button>
     </div>
 
-    <div class="cards" id="cards-grid"></div>
+    <!-- CARDS section removed entirely as requested (Today's Usage / This Week / Peak Demand) -->
+    <!-- <div class="cards" id="cards-grid"></div> -> OMITTED -->
 
     <div class="live-section-title">Live Meter Readings</div>
     <div class="live-grid">
@@ -291,13 +982,12 @@ this is energy_dashboard.html
       <div class="live-card" id="c-v"><div class="lc-label">Voltage</div><div class="lc-value" id="v-v">--</div><div class="lc-unit">V</div></div>
     </div>
 
-
+    <!-- ★ Consumption Trend — dark panel preserved ★ -->
     <div class="cpanel">
       <div class="phdr">
         <div>
           <div class="ptitle">
             Consumption Trend
-            <!-- FIX: Graph status indicator -->
             <span class="graph-status" id="graph-status"></span>
           </div>
           <div class="psub" id="graph-psub">Power draw &amp; energy usage over time (IST)</div>
@@ -320,7 +1010,6 @@ this is energy_dashboard.html
       </div>
       <div class="cwrap" style="position:relative;">
         <canvas id="lineChart"></canvas>
-        <!-- FIX: Empty state overlay -->
         <div class="chart-empty-state" id="chart-empty-state">
           <div class="es-icon">📊</div>
           <div class="es-title">No data for this period</div>
@@ -340,9 +1029,9 @@ this is energy_dashboard.html
             <tr><th>Time (IST)</th><th>kW</th><th>Voltage (V)</th><th>Current (A)</th><th>Energy (kWh)</th><th>PF</th><th>Status</th></tr>
           </thead>
           <tbody id="tBody">
-            <tr><td colspan="7" style="text-align:center;">Loading...</td></tr>
+            <tr><td colspan="7" style="text-align:center;color:var(--text-tertiary);">Loading...</td></tr>
           </tbody>
-        </table>
+        </td>
       </div>
     </div>
   </div>
@@ -401,28 +1090,16 @@ this is energy_dashboard.html
   };
 
   // ─── IST TIMEZONE UTILITIES ────────────────────────────────────────────────────
-  // IST = UTC + 5:30 = UTC + 330 minutes
   const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 
-  /**
-   * Returns current time as a Date object representing IST
-   * (we shift UTC time by +5:30 so getHours/getMinutes give IST values)
-   */
   function nowIST() {
     return new Date(Date.now() + IST_OFFSET_MS);
   }
 
-  /**
-   * Convert a Unix timestamp (seconds) to an IST Date object.
-   * The returned Date's UTC methods will give IST local values.
-   */
   function unixToIST(unixSec) {
     return new Date(unixSec * 1000 + IST_OFFSET_MS);
   }
 
-  /**
-   * Format a Date (already shifted to IST) as HH:MM AM/PM
-   */
   function formatTimeIST(istDate) {
     let h = istDate.getUTCHours();
     const m = String(istDate.getUTCMinutes()).padStart(2, '0');
@@ -431,102 +1108,67 @@ this is energy_dashboard.html
     return `${h}:${m} ${ampm}`;
   }
 
-  /**
-   * Format IST date as YYYY-MM-DD
-   */
   function formatDateIST(istDate) {
-    const y = istDate.getUTCFullYear();
+    const y  = istDate.getUTCFullYear();
     const mo = String(istDate.getUTCMonth() + 1).padStart(2, '0');
-    const d = String(istDate.getUTCDate()).padStart(2, '0');
+    const d  = String(istDate.getUTCDate()).padStart(2, '0');
     return `${y}-${mo}-${d}`;
   }
 
-  /**
-   * Full IST clock string
-   */
   function formatISTClock() {
     return new Date().toLocaleTimeString('en-IN', {
       timeZone: 'Asia/Kolkata',
-      hour: 'numeric',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true
+      hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true
     });
   }
 
   // ─── GRAPH LABEL CONVERSION ────────────────────────────────────────────────────
-  /**
-   * FIX: The backend returns labels like "HH:00" (server local, possibly UTC).
-   * We need to re-interpret these as UTC hours and convert to IST.
-   * For "today" period: label is "HH:00" → parse as UTC hour → add 5:30 → IST HH:MM AM/PM
-   * For "week"/"month" period: label is "MM-DD HH:00" → parse → convert to IST
-   */
-  function convertBackendLabelsToIST(labels, period, rawLabels = null) {
+  function convertBackendLabelsToIST(labels, period) {
     if (!labels || labels.length === 0) return labels;
-    
-    return labels.map((label, index) => {
-        try {
-            // Check what format the label is in
-            if (label.includes(':')) {
-                // Case 1: "HH:MM" or "HH:MM:SS" format
-                if (label.length <= 8 && label.match(/^\d{2}:\d{2}/)) {
-                    // Just time, assume today's date
-                    const [hours, minutes] = label.split(':');
-                    const now = new Date();
-                    const istDate = new Date(now.getTime() + IST_OFFSET_MS);
-                    istDate.setUTCHours(parseInt(hours), parseInt(minutes), 0, 0);
-                    return formatTimeIST(istDate);
-                }
-                // Case 2: "MM-DD HH:MM" or "YYYY-MM-DD HH:MM"
-                else if (label.match(/\d{2}-\d{2} \d{2}:\d{2}/)) {
-                    const [datePart, timePart] = label.split(' ');
-                    const [month, day] = datePart.split('-');
-                    const [hours, minutes] = timePart.split(':');
-                    
-                    const year = new Date().getUTCFullYear();
-                    const utcDate = new Date(Date.UTC(year, parseInt(month) - 1, parseInt(day), parseInt(hours), parseInt(minutes), 0));
-                    const istDate = new Date(utcDate.getTime() + IST_OFFSET_MS);
-                    
-                    const istDay = String(istDate.getUTCDate()).padStart(2, '0');
-                    const istMonth = String(istDate.getUTCMonth() + 1).padStart(2, '0');
-                    const timeStr = formatTimeIST(istDate);
-                    return `${istDay}/${istMonth} ${timeStr}`;
-                }
-            }
-            
-            // Fallback: return original label
-            return label;
-        } catch (e) {
-            console.warn('Failed to convert label:', label, e);
-            return label;
+    return labels.map(label => {
+      try {
+        if (label.includes(':')) {
+          if (label.length <= 8 && label.match(/^\d{2}:\d{2}/)) {
+            const [hours, minutes] = label.split(':');
+            const now = new Date();
+            const istDate = new Date(now.getTime() + IST_OFFSET_MS);
+            istDate.setUTCHours(parseInt(hours), parseInt(minutes), 0, 0);
+            return formatTimeIST(istDate);
+          } else if (label.match(/\d{2}-\d{2} \d{2}:\d{2}/)) {
+            const [datePart, timePart] = label.split(' ');
+            const [month, day] = datePart.split('-');
+            const [hours, minutes] = timePart.split(':');
+            const year = new Date().getUTCFullYear();
+            const utcDate = new Date(Date.UTC(year, parseInt(month) - 1, parseInt(day), parseInt(hours), parseInt(minutes), 0));
+            const istDate = new Date(utcDate.getTime() + IST_OFFSET_MS);
+            const istDay = String(istDate.getUTCDate()).padStart(2, '0');
+            const istMonth = String(istDate.getUTCMonth() + 1).padStart(2, '0');
+            return `${istDay}/${istMonth} ${formatTimeIST(istDate)}`;
+          }
         }
+        return label;
+      } catch (e) {
+        console.warn('Failed to convert label:', label, e);
+        return label;
+      }
     });
-}
+  }
 
   // ─── UI HELPERS ──────────────────────────────────────────────────────────────
   function showBanner(cls, msg) {
     const banner = document.getElementById('banner');
     banner.className = 'banner show ' + cls;
     document.getElementById('bannerMsg').textContent = msg;
-    setTimeout(() => {
-      if (banner.classList.contains('show')) closeBanner();
-    }, 5000);
+    setTimeout(() => { if (banner.classList.contains('show')) closeBanner(); }, 5000);
   }
-
-  function closeBanner() {
-    document.getElementById('banner').className = 'banner';
-  }
+  function closeBanner() { document.getElementById('banner').className = 'banner'; }
 
   function setConnectionStatus(status) {
-    const dot = document.getElementById('connDot');
+    const dot  = document.getElementById('connDot');
     const text = document.getElementById('connText');
-    if (status === 'online') {
-      dot.className = 'dot green'; text.textContent = 'Online';
-    } else if (status === 'offline') {
-      dot.className = 'dot red'; text.textContent = 'Offline';
-    } else {
-      dot.className = 'dot amber'; text.textContent = 'Reconnecting...';
-    }
+    if (status === 'online')       { dot.className = 'dot green'; text.textContent = 'Online'; }
+    else if (status === 'offline') { dot.className = 'dot red';   text.textContent = 'Offline'; }
+    else                           { dot.className = 'dot amber'; text.textContent = 'Reconnecting...'; }
   }
 
   function staleCards(isStale) {
@@ -548,17 +1190,19 @@ this is energy_dashboard.html
 
   function showChartEmpty(show, msg) {
     const overlay = document.getElementById('chart-empty-state');
-    const sub = document.getElementById('chart-empty-sub');
+    const sub     = document.getElementById('chart-empty-sub');
     overlay.classList.toggle('show', show);
     if (msg) sub.textContent = msg;
   }
 
-  // ─── API CALLS ────────────────────────────────────────────────────────────────
+  // ─── API CALLS (summary stats removed because cards no longer exist) ───────────
+  // note: fetch summary no longer needed but we keep to avoid errors? Not used, but we won't break.
+  async function fetchSummaryStats() { /* summary stats not used after card removal */ return; }
+
   async function fetchLiveData() {
     try {
       const response = await fetch(`${API_BASE_URL}/api/readings/latest/?unit_id=100`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
       const data = await response.json();
 
       if (data.status === 'online' || data.status === 'stale') {
@@ -573,7 +1217,6 @@ this is energy_dashboard.html
         document.getElementById('offline-banner').classList.remove('show');
 
         if (data.timestamp) {
-          // FIX: parse ISO timestamp from backend and display in IST
           const ts = new Date(data.timestamp);
           const istDate = new Date(ts.getTime() + IST_OFFSET_MS);
           const istStr = formatTimeIST(istDate) + ' IST';
@@ -592,86 +1235,56 @@ this is energy_dashboard.html
     }
   }
 
-  async function fetchSummaryStats() {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/readings/summary/?unit_id=100`);
-      if (!response.ok) throw new Error('Failed to fetch summary');
-      const data = await response.json();
-      document.getElementById('today-usage').textContent  = (data.today_kwh ?? 0).toFixed(1);
-      document.getElementById('week-usage').textContent   = (data.week_kwh ?? 0).toFixed(1);
-      document.getElementById('month-usage').textContent  = (data.month_kwh ?? 0).toFixed(1);
-      document.getElementById('peak-demand').textContent  = (data.peak_demand_kw ?? 0).toFixed(1);
-    } catch (error) {
-      console.error('Failed to fetch summary stats:', error);
-    }
-  }
-
-  /**
-   * FIX: Core graph fetch — converts backend labels to IST,
-   * handles empty/partial responses, shows empty-state overlay,
-   * correctly reads avg_active_power_kw values.
-   */
   async function fetchGraphData(period = 'today', fromDate = null, toDate = null) {
     setGraphStatus('loading', 'Loading…');
     showChartEmpty(false);
-
     try {
-        let url = `${API_BASE_URL}/api/readings/graph/?unit_id=100&period=${period}`;
-        if (fromDate && toDate) {
-            url = `${API_BASE_URL}/api/readings/graph/?unit_id=100&from=${fromDate}&to=${toDate}`;
+      let url = `${API_BASE_URL}/api/readings/graph/?unit_id=100&period=${period}`;
+      if (fromDate && toDate) {
+        url = `${API_BASE_URL}/api/readings/graph/?unit_id=100&from=${fromDate}&to=${toDate}`;
+      }
+
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+
+      let rawLabels = Array.isArray(data.labels) ? data.labels : [];
+      let rawValues = Array.isArray(data.values) ? data.values : [];
+
+      const hasRealData = rawLabels.length > 0 && rawValues.length > 0 && rawValues.some(v => v > 0);
+
+      if (!hasRealData) {
+        showChartEmpty(true, period === 'today'
+          ? 'No readings for today yet. Data will appear once the sensor starts transmitting.'
+          : `No data found for the selected ${period} period.`);
+        setGraphStatus('no-data', 'No data');
+        if (lineChart) {
+          lineChart.data.labels = [];
+          lineChart.data.datasets[0].data = [];
+          lineChart.update();
         }
+        return;
+      }
 
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const istLabels = convertBackendLabelsToIST(rawLabels, period);
+      const values = rawValues.map(v => {
+        const num = parseFloat(v);
+        return isNaN(num) ? 0 : Math.max(0, parseFloat(num.toFixed(2)));
+      });
 
-        const data = await response.json();
+      updateChart(istLabels, values, period);
 
-        // FIX: Better validation
-        let rawLabels = Array.isArray(data.labels) ? data.labels : [];
-        let rawValues = Array.isArray(data.values) ? data.values : [];
-
-        console.log('Raw graph data:', { labels: rawLabels, values: rawValues, count: rawLabels.length });
-
-        // Check if we have real data
-        const hasRealData = rawLabels.length > 0 && rawValues.length > 0 && 
-                           rawValues.some(v => v > 0); // At least one positive reading
-
-        if (!hasRealData) {
-            showChartEmpty(true, period === 'today'
-                ? 'No readings for today yet. Data will appear once the sensor starts transmitting.'
-                : `No data found for the selected ${period} period.`);
-            setGraphStatus('no-data', 'No data');
-            if (lineChart) {
-                lineChart.data.labels = [];
-                lineChart.data.datasets[0].data = [];
-                lineChart.update();
-            }
-            return;
-        }
-
-        // FIX: Convert labels to IST display format
-        const istLabels = convertBackendLabelsToIST(rawLabels, period);
-
-        // Ensure values are numbers
-        const values = rawValues.map(v => {
-            const num = parseFloat(v);
-            return isNaN(num) ? 0 : Math.max(0, parseFloat(num.toFixed(2)));
-        });
-
-        updateChart(istLabels, values, period);
-
-        const pointCount = rawLabels.length;
-        const maxVal = values.length ? Math.max(...values).toFixed(1) : '0';
-        document.getElementById('graph-psub').innerHTML = 
-            `${pointCount} data point${pointCount !== 1 ? 's' : ''} · Peak ${maxVal} kW · IST`;
-        setGraphStatus('live', `${pointCount} points`);
-
+      const pointCount = rawLabels.length;
+      const maxVal = values.length ? Math.max(...values).toFixed(1) : '0';
+      document.getElementById('graph-psub').innerHTML =
+        `${pointCount} data point${pointCount !== 1 ? 's' : ''} · Peak ${maxVal} kW · IST`;
+      setGraphStatus('live', `${pointCount} points`);
     } catch (error) {
-        console.error('Failed to fetch graph data:', error);
-        showChartEmpty(true, 'Failed to load graph data. Check your connection.');
-        setGraphStatus('no-data', 'Error');
+      console.error('Failed to fetch graph data:', error);
+      showChartEmpty(true, 'Failed to load graph data. Check your connection.');
+      setGraphStatus('no-data', 'Error');
     }
-}
+  }
 
   async function fetchRecentReadings() {
     try {
@@ -689,9 +1302,9 @@ this is energy_dashboard.html
   // ─── CHART ────────────────────────────────────────────────────────────────────
   function buildGradient(ctx) {
     const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-    gradient.addColorStop(0, 'rgba(59,130,246,0.40)');
+    gradient.addColorStop(0,   'rgba(59,130,246,0.42)');
     gradient.addColorStop(0.5, 'rgba(59,130,246,0.12)');
-    gradient.addColorStop(1, 'rgba(59,130,246,0.01)');
+    gradient.addColorStop(1,   'rgba(59,130,246,0.01)');
     return gradient;
   }
 
@@ -732,10 +1345,7 @@ this is energy_dashboard.html
             borderWidth: 1,
             padding: 12,
             callbacks: {
-              // FIX: Improved tooltip with IST label context
-              title: function(items) {
-                return items[0]?.label || '';
-              },
+              title: function(items) { return items[0]?.label || ''; },
               label: function(context) {
                 const val = context.parsed.y;
                 if (val === null || val === undefined) return ' No data';
@@ -753,21 +1363,11 @@ this is energy_dashboard.html
         scales: {
           x: {
             grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false },
-            ticks: {
-              color: '#64748B',
-              font: { size: 10, weight: '500' },
-              maxTicksLimit: 10,
-              maxRotation: 45,
-              minRotation: 0
-            }
+            ticks: { color: '#64748B', font: { size: 10, weight: '500' }, maxTicksLimit: 10, maxRotation: 45, minRotation: 0 }
           },
           y: {
             grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false },
-            ticks: {
-              color: '#64748B',
-              font: { size: 10 },
-              callback: v => v.toFixed(1) + ' kW'
-            },
+            ticks: { color: '#64748B', font: { size: 10 }, callback: v => v.toFixed(1) + ' kW' },
             beginAtZero: true
           }
         }
@@ -775,49 +1375,27 @@ this is energy_dashboard.html
     });
   }
 
-  /**
-   * FIX: updateChart — updates existing chart or creates it.
-   * Handles empty data gracefully without destroying chart.
-   */
   function updateChart(labels, values, period) {
-    console.log(`Updating chart with ${labels.length} data points:`, { labels, values });
-    
-    if (!lineChart) {
-        createChart(labels, values);
-        return;
-    }
-    
-    // Check if data has actually changed
+    if (!lineChart) { createChart(labels, values); return; }
+
     const currentLabels = lineChart.data.labels || [];
     const currentValues = lineChart.data.datasets[0]?.data || [];
-    
-    const labelsChanged = JSON.stringify(currentLabels) !== JSON.stringify(labels);
-    const valuesChanged = JSON.stringify(currentValues) !== JSON.stringify(values);
-    
-    if (labelsChanged || valuesChanged) {
-        console.log('Chart data changed, updating...');
-        lineChart.data.labels = labels;
-        lineChart.data.datasets[0].data = values;
-        
-        // Adjust point radius based on data density
-        const pointRadius = labels.length > 48 ? 0 : (labels.length > 24 ? 2 : 4);
-        lineChart.data.datasets[0].pointRadius = pointRadius;
-        lineChart.data.datasets[0].pointHoverRadius = pointRadius + 2;
-        
-        lineChart.update('none'); // Use 'none' for smooth update
-    } else {
-        console.log('Chart data unchanged, skipping update');
+
+    if (JSON.stringify(currentLabels) !== JSON.stringify(labels) ||
+        JSON.stringify(currentValues) !== JSON.stringify(values)) {
+      lineChart.data.labels = labels;
+      lineChart.data.datasets[0].data = values;
+      const pointRadius = labels.length > 48 ? 0 : labels.length > 24 ? 2 : 4;
+      lineChart.data.datasets[0].pointRadius = pointRadius;
+      lineChart.data.datasets[0].pointHoverRadius = pointRadius + 2;
+      lineChart.update('none');
     }
-    
-    // Update the subtitle with data info
+
     const pointCount = labels.length;
     const maxVal = values.length ? Math.max(...values).toFixed(1) : '0';
-    document.getElementById('graph-psub').innerHTML = 
-        `${pointCount} reading${pointCount !== 1 ? 's' : ''} · Peak ${maxVal} kW · Real-time data`;
-}
-
-
-
+    document.getElementById('graph-psub').innerHTML =
+      `${pointCount} reading${pointCount !== 1 ? 's' : ''} · Peak ${maxVal} kW · Real-time data`;
+  }
 
   function switchChart(period) {
     currentPeriod = period;
@@ -830,44 +1408,28 @@ this is energy_dashboard.html
   function applyCustomRange() {
     const fromDate = document.getElementById('date-from').value;
     const toDate   = document.getElementById('date-to').value;
-    if (!fromDate || !toDate) {
-      showBanner('reconnect', 'Please select both start and end dates');
-      return;
-    }
-    if (fromDate > toDate) {
-      showBanner('reconnect', 'Start date must be before end date');
-      return;
-    }
-    // Deactivate period tabs
+    if (!fromDate || !toDate) { showBanner('reconnect', 'Please select both start and end dates'); return; }
+    if (fromDate > toDate)    { showBanner('reconnect', 'Start date must be before end date'); return; }
     document.querySelectorAll('.ctab').forEach(btn => btn.classList.remove('on'));
     currentPeriod = 'custom';
     fetchGraphData('custom', fromDate, toDate);
   }
 
   // ─── TABLE ────────────────────────────────────────────────────────────────────
-  /**
-   * FIX: renderTable — converts backend time strings to IST display.
-   * Backend returns time as local-server strings; we treat them as-is
-   * since RecentReadingsView uses datetime.fromtimestamp (server local).
-   * We add IST label to be explicit.
-   */
   function renderTable(readings) {
     const tbody = document.getElementById('tBody');
     if (!readings || readings.length === 0) {
       tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-tertiary);">No data available</td></tr>';
       return;
     }
-
     tbody.innerHTML = readings.map(r => {
       const kw      = parseFloat(r.kw)      || 0;
       const voltage = parseFloat(r.voltage) || 0;
       const current = parseFloat(r.current) || 0;
       const energy  = parseFloat(r.energy)  || 0;
       const pf      = parseFloat(r.pf)      || 0;
-
-      const statusColor = r.status === 'ok' ? '#10B981' : '#F59E0B';
+      const statusColor = r.status === 'ok' ? 'var(--success)' : 'var(--warning)';
       const statusIcon  = r.status === 'ok' ? '✔ Online' : '⚠ ' + r.status;
-
       return `<tr>
         <td>${r.time || '—'}</td>
         <td>${kw.toFixed(2)}</td>
@@ -875,7 +1437,7 @@ this is energy_dashboard.html
         <td>${current.toFixed(1)}</td>
         <td>${energy.toFixed(1)}</td>
         <td>${pf.toFixed(2)}</td>
-        <td style="color:${statusColor};">${statusIcon}</td>
+        <td style="color:${statusColor};font-weight:600;">${statusIcon}</td>
       </tr>`;
     }).join('');
   }
@@ -885,7 +1447,6 @@ this is energy_dashboard.html
     const table = document.getElementById('readings-table');
     const rows  = table.querySelectorAll('tbody tr');
     let csv = [['Time (IST)', 'kW', 'Voltage (V)', 'Current (A)', 'Energy (kWh)', 'PF', 'Status'].join(',')];
-
     rows.forEach(row => {
       const cells = row.querySelectorAll('td');
       if (cells.length > 1) {
@@ -897,28 +1458,21 @@ this is energy_dashboard.html
         csv.push(rowData.join(','));
       }
     });
-
     const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
-    a.href     = url;
-    a.download = `energy_data_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    a.href = url; a.download = `energy_data_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click(); URL.revokeObjectURL(url);
   }
 
   // ─── SETTINGS ─────────────────────────────────────────────────────────────────
   function saveSettings() {
     const interval = parseInt(document.getElementById('refresh-interval').value) || 5;
-    state.currency  = document.getElementById('currency-select').value;
-    state.unitRate  = parseFloat(document.getElementById('unit-rate').value) || 0.14;
+    state.currency = document.getElementById('currency-select').value;
+    state.unitRate = parseFloat(document.getElementById('unit-rate').value) || 0.14;
     refreshInterval = Math.max(2, Math.min(60, interval)) * 1000;
-
     restartRefreshTimer();
-
-    localStorage.setItem('energySettings', JSON.stringify({
-      refreshInterval, currency: state.currency, unitRate: state.unitRate
-    }));
+    localStorage.setItem('energySettings', JSON.stringify({ refreshInterval, currency: state.currency, unitRate: state.unitRate }));
     closeModal('settings-modal');
     showBanner('restored', 'Settings saved');
   }
@@ -931,68 +1485,51 @@ this is energy_dashboard.html
       refreshInterval = s.refreshInterval || 5000;
       state.currency  = s.currency || '₹';
       state.unitRate  = s.unitRate || 0.14;
-      document.getElementById('refresh-interval').value   = refreshInterval / 1000;
-      document.getElementById('currency-select').value    = state.currency;
-      document.getElementById('unit-rate').value          = state.unitRate;
+      document.getElementById('refresh-interval').value = refreshInterval / 1000;
+      document.getElementById('currency-select').value  = state.currency;
+      document.getElementById('unit-rate').value        = state.unitRate;
     } catch (e) { console.error('Failed to load settings', e); }
   }
 
-let lastDataTimestamp = null;
-let pollInterval = null;
+  // ─── POLLING ──────────────────────────────────────────────────────────────────
+  let lastDataTimestamp = null;
+  let pollInterval = null;
 
-// Function to check for new data and refresh graph
-async function checkForNewData() {
+  async function checkForNewData() {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/readings/latest/?unit_id=100`);
-        if (response.ok) {
-            const data = await response.json();
-            if (data.timestamp) {
-                const currentTimestamp = new Date(data.timestamp).getTime();
-                if (lastDataTimestamp && currentTimestamp > lastDataTimestamp) {
-                    console.log('New data detected! Refreshing graph...');
-                    // New data found, refresh the graph
-                    await fetchGraphData(currentPeriod);
-                    await fetchRecentReadings();
-                    await fetchSummaryStats();
-                    
-                    // Show a brief notification
-                    showBanner('restored', 'New data received! Graph updated.');
-                }
-                lastDataTimestamp = currentTimestamp;
-            }
+      const response = await fetch(`${API_BASE_URL}/api/readings/latest/?unit_id=100`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.timestamp) {
+          const currentTimestamp = new Date(data.timestamp).getTime();
+          if (lastDataTimestamp && currentTimestamp > lastDataTimestamp) {
+            await fetchGraphData(currentPeriod);
+            await fetchRecentReadings();
+            showBanner('restored', 'New data received! Graph updated.');
+          }
+          lastDataTimestamp = currentTimestamp;
         }
-    } catch (error) {
-        console.error('Error checking for new data:', error);
-    }
-}
+      }
+    } catch (error) { console.error('Error checking for new data:', error); }
+  }
 
   // ─── REFRESH ──────────────────────────────────────────────────────────────────
   function restartRefreshTimer() {
-    if (refreshTimer) clearInterval(refreshTimer);
-    if (pollInterval) clearInterval(pollInterval);
-    
-    // Normal data refresh
-    refreshTimer = setInterval(refreshAllData, refreshInterval);
-    
-    // Poll for new data more frequently (every 2 seconds)
-    pollInterval = setInterval(checkForNewData, 2000);
-    
-    // Graph refresh - more frequent for today view
+    if (refreshTimer)      clearInterval(refreshTimer);
+    if (pollInterval)      clearInterval(pollInterval);
     if (graphRefreshTimer) clearInterval(graphRefreshTimer);
-    const graphInterval = currentPeriod === 'today' ? 5000 : 30000; // Every 5 seconds for today
+
+    refreshTimer = setInterval(refreshAllData, refreshInterval);
+    pollInterval = setInterval(checkForNewData, 2000);
+
+    const graphInterval = currentPeriod === 'today' ? 5000 : 30000;
     graphRefreshTimer = setInterval(() => {
-        if (currentPeriod === 'today') {
-            fetchGraphData(currentPeriod);
-        }
+      if (currentPeriod === 'today') fetchGraphData(currentPeriod);
     }, graphInterval);
-}
+  }
 
   async function refreshAllData() {
-    await Promise.all([
-      fetchLiveData(),
-      fetchSummaryStats(),
-      fetchRecentReadings()
-    ]);
+    await Promise.all([fetchLiveData(), fetchRecentReadings()]);
     document.getElementById('clock').textContent = formatISTClock();
     updateSystemStatus();
   }
@@ -1001,23 +1538,19 @@ async function checkForNewData() {
     try {
       const response = await fetch(`${API_BASE_URL}/api/readings/latest/?unit_id=100`);
       const online   = response.ok;
-
       const setBadge = (id, text, cls) => {
         const el = document.getElementById(id);
         if (el) { el.textContent = text; el.className = 'sys-status-badge ' + cls; }
       };
-
       if (online) {
         setBadge('status-api',     'Online',      'ok');
         setBadge('status-db',      'Active',       'ok');
         setBadge('status-gateway', 'Connected',    'ok');
-
         const data = await response.json();
         if (data.timestamp) {
           const ts  = new Date(data.timestamp);
           const age = Math.floor((Date.now() - ts.getTime()) / 1000);
-          const cls = age < 10 ? 'ok' : age < 30 ? 'warn' : 'err';
-          setBadge('status-last', `${age}s ago`, cls);
+          setBadge('status-last', `${age}s ago`, age < 10 ? 'ok' : age < 30 ? 'warn' : 'err');
         }
       } else {
         setBadge('status-api',     'Offline',      'err');
@@ -1029,26 +1562,10 @@ async function checkForNewData() {
   }
 
   // ─── ACTIONS ──────────────────────────────────────────────────────────────────
-  function forceRefresh() {
-    refreshAllData();
-    fetchGraphData(currentPeriod);
-    showBanner('restored', 'Manual refresh done');
-  }
-
-  function clearCache() {
-    localStorage.removeItem('energySettings');
-    loadSettings();
-    showBanner('restored', 'Cache cleared, settings reset');
-  }
-
-  function reconnect() {
-    setConnectionStatus('reconnecting');
-    refreshAllData().then(() => {
-      document.getElementById('offline-banner').classList.remove('show');
-    });
-  }
-
-  function openModal(id) {
+  function forceRefresh()  { refreshAllData(); fetchGraphData(currentPeriod); showBanner('restored', 'Manual refresh done'); }
+  function clearCache()    { localStorage.removeItem('energySettings'); loadSettings(); showBanner('restored', 'Cache cleared, settings reset'); }
+  function reconnect()     { setConnectionStatus('reconnecting'); refreshAllData().then(() => { document.getElementById('offline-banner').classList.remove('show'); }); }
+  function openModal(id)   {
     document.getElementById(id).classList.add('open');
     if (id === 'system-status-modal') {
       updateSystemStatus();
@@ -1056,15 +1573,12 @@ async function checkForNewData() {
       window._statusInterval = setInterval(updateSystemStatus, 2000);
     }
   }
-
   function closeModal(id) {
     document.getElementById(id).classList.remove('open');
-    if (id === 'system-status-modal' && window._statusInterval) {
-      clearInterval(window._statusInterval);
-    }
+    if (id === 'system-status-modal' && window._statusInterval) clearInterval(window._statusInterval);
   }
 
-  // ─── DEFAULT DATES (IST-aware) ────────────────────────────────────────────────
+  // ─── DEFAULT DATES ────────────────────────────────────────────────────────────
   function setDefaultDates() {
     const todayIST   = formatDateIST(nowIST());
     const weekAgoIST = formatDateIST(new Date(Date.now() + IST_OFFSET_MS - 7 * 86400000));
@@ -1072,35 +1586,23 @@ async function checkForNewData() {
     document.getElementById('date-from').value = weekAgoIST;
   }
 
-  // ─── INIT ─────────────────────────────────────────────────────────────────────
+  // ─── INIT (cards omitted) ─────────────────────────────────────────────────────
   function init() {
     setDefaultDates();
     loadSettings();
-
-    // Create chart shell
     createChart([], []);
-
-    // Initial load
     refreshAllData();
     fetchGraphData('today');
-
-    // Start timers
     restartRefreshTimer();
-
-    // Clock
     document.getElementById('clock').textContent = formatISTClock();
-    setInterval(() => {
-      document.getElementById('clock').textContent = formatISTClock();
-    }, 1000);
-
-    // Network events
+    setInterval(() => { document.getElementById('clock').textContent = formatISTClock(); }, 1000);
     window.addEventListener('online',  () => { showBanner('restored', 'Network restored'); reconnect(); });
     window.addEventListener('offline', () => { showBanner('offline',  'Network lost'); setConnectionStatus('offline'); document.getElementById('offline-banner').classList.add('show'); });
+    // monthly usage placeholder no longer needed
   }
 
   document.addEventListener('DOMContentLoaded', init);
 
-  // Expose to HTML onclick
   Object.assign(window, {
     switchChart, applyCustomRange, exportCSV,
     saveSettings, openModal, closeModal,

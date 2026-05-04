@@ -1,1117 +1,1402 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>Energy Core · Dashboard</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>Microgrid Control · 3rd Rock Energy</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne+Mono&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
 
-    :root {
-      /* ── Light theme tokens ── */
-      --bg-primary:   #F0F4F9;
-      --bg-secondary: #FFFFFF;
-      --bg-surface:   #F8FAFC;
-      --bg-surface-elevated: #EEF2F7;
-      --bg-card:      #FFFFFF;
-      --border-subtle: rgba(0,0,0,0.06);
-      --border-medium: rgba(0,0,0,0.11);
-      --text-primary:  #0F172A;
-      --text-secondary:#475569;
-      --text-tertiary: #94A3B8;
-      --accent-blue:   #2563EB;
-      --accent-blue-soft: rgba(37,99,235,0.10);
-      --accent-teal:   #059669;
-      --accent-amber:  #D97706;
-      --accent-red:    #DC2626;
-      --accent-purple: #7C3AED;
-      --accent-glow:   rgba(37,99,235,0.18);
-      --success: #059669;
-      --warning: #D97706;
-      --error:   #DC2626;
-      --r8: 8px; --r12: 12px; --r16: 16px; --r20: 20px; --r24: 24px;
-      --shadow-sm: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
-      --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
-      --shadow-lg: 0 12px 32px rgba(0,0,0,0.10), 0 4px 10px rgba(0,0,0,0.05);
+/* ===== PROFESSIONAL FONT STACK ===== */
+:root{
+  /* FONTS - Inter for text, JetBrains Mono for numbers */
+  --font-number: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Cascadia Code', 'Roboto Mono', monospace;
+  --font-text: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  
+  /* COLORS */
+  --bg:#F8FAFC;
+  --bg2:#FFFFFF;
+  --bg3:#FFFFFF;
+  --bg4:#F1F5F9;
+  --surface:#F8FAFC;
+  --surface2:#E2E8F0;
+  --border:rgba(0,0,0,0.08);
+  --border2:rgba(0,0,0,0.12);
+  --text1:#0F172A;
+  --text2:#334155;
+  --text3:#64748B;
+  --solar:#F59E0B;
+  --battery:#10B981;
+  --ev:#6366F1;
+  --load:#F43F5E;
+  --hvac:#06B6D4;
+  --genset:#8B5CF6;
+  --grid:#94A3B8;
+  --r6:6px;--r8:8px;--r12:12px;--r16:16px;--r20:20px;
+  --sidebar:260px;
+}
 
-      /* ── Dark chart panel tokens (scoped inside .cpanel) ── */
-      --chart-bg-panel:    #0D1829;
-      --chart-bg-header:   #0A1220;
-      --chart-bg-wrap:     #0D1829;
-      --chart-border:      rgba(255,255,255,0.07);
-      --chart-text-primary:#F1F5F9;
-      --chart-text-secondary:#94A3B8;
-      --chart-text-tertiary: #64748B;
-      --chart-surface:     #1E293B;
-      --chart-surface-el:  #273548;
-      --chart-input-border:rgba(255,255,255,0.12);
-      --chart-glow:        0 0 24px rgba(59,130,246,0.12);
-    }
+/* Base body font */
+body{
+  font-family: var(--font-text);
+  background:var(--bg);
+  color:var(--text1);
+  font-size:13px;
+  font-weight:500;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
 
-    body {
-      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: var(--bg-primary);
-      color: var(--text-primary);
-      font-size: 14px;
-      -webkit-font-smoothing: antialiased;
-      line-height: 1.5;
-    }
-    .dash { display: flex; flex-direction: column; min-height: 100vh; }
+/* ===== PROFESSIONAL NUMBER FONTS - ALL NUMERIC VALUES ===== */
+.kpi-value,
+.flow-node-val,
+.comp-val,
+.ctrl-slider-val,
+#clock-display,
+#sb-clock,
+.dt-val,
+td,
+.stbadge,
+.sys-item span:last-child,
+.ctrl-slider-val {
+  font-family: var(--font-number);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  font-feature-settings: "tnum" on, "lnum" on;
+}
 
-    /* ──────────────────────────── DEMO BAR ──────────────────────────── */
-    .demo-bar {
-      background: #fff;
-      padding: 8px 24px;
-      font-size: 12px;
-      color: var(--text-secondary);
-      display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
-      border-bottom: 1px solid var(--border-subtle);
-    }
-    .demo-bar span { font-weight: 600; color: var(--accent-blue); letter-spacing: 0.2px; }
-    .dbtn {
-      font-size: 11px; padding: 4px 14px;
-      border: 1px solid var(--border-medium);
-      border-radius: 20px;
-      background: var(--bg-surface);
-      color: var(--text-secondary);
-      cursor: pointer; font-family: inherit;
-      transition: all 0.2s ease; font-weight: 500;
-    }
-    .dbtn:hover { background: var(--accent-blue-soft); color: var(--accent-blue); border-color: var(--accent-blue); }
+.kpi-value {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+}
 
-    /* ──────────────────────────── HEADER ──────────────────────────── */
-    .hdr {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 14px 24px;
-      background: #fff;
-      border-bottom: 1px solid var(--border-subtle);
-      position: sticky; top: 0; z-index: 10;
-      backdrop-filter: blur(12px);
-      flex-wrap: wrap; gap: 12px;
-      box-shadow: var(--shadow-sm);
-    }
-    .brand { display: flex; align-items: center; gap: 12px; }
-    .brand-icon {
-      width: 40px; height: 40px; border-radius: 12px;
-      background: linear-gradient(135deg, var(--accent-blue), #06B6D4);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 20px; flex-shrink: 0;
-      box-shadow: 0 2px 10px rgba(37,99,235,0.30);
-    }
-    .brand-name {
-      font-size: 17px; font-weight: 700; letter-spacing: -0.3px;
-      color: var(--text-primary);
-    }
-    .brand-sub { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
-    .hdr-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.flow-node-val {
+  font-size: 16px;
+  font-weight: 700;
+}
 
-    .conn-status {
-      display: flex; align-items: center; gap: 8px;
-      font-size: 12px; font-weight: 600;
-      color: var(--text-secondary);
-      background: var(--bg-surface);
-      padding: 6px 14px; border-radius: 40px;
-      border: 1px solid var(--border-subtle);
-    }
-    .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-    .dot.green { background: var(--success); animation: blink 1.2s infinite; box-shadow: 0 0 5px var(--success); }
-    .dot.red   { background: var(--error);   animation: blink 1s infinite; }
-    .dot.amber { background: var(--warning); animation: blink 0.7s infinite; }
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.35} }
+.comp-val {
+  font-size: 12px;
+  font-weight: 600;
+}
 
-    .hbtn {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 8px 16px; border-radius: 40px;
-      font-size: 12px; font-weight: 600;
-      cursor: pointer;
-      border: 1px solid var(--border-medium);
-      background: var(--bg-surface); color: var(--text-secondary);
-      font-family: inherit; transition: all 0.2s ease; white-space: nowrap;
-    }
-    .hbtn:hover { background: var(--accent-blue-soft); color: var(--accent-blue); border-color: var(--accent-blue); }
-    .hbtn.primary {
-      background: var(--accent-blue); border-color: var(--accent-blue);
-      color: #fff; box-shadow: 0 2px 8px rgba(37,99,235,0.28);
-    }
-    .hbtn.primary:hover { background: #1D4ED8; transform: translateY(-1px); }
+#clock-display, #sb-clock {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
 
-    .settings-wrapper { position: relative; }
-    .settings-dropdown {
-      position: absolute; top: calc(100% + 8px); right: 0; min-width: 190px;
-      background: #fff;
-      border: 1px solid var(--border-medium);
-      border-radius: var(--r16); box-shadow: var(--shadow-lg);
-      overflow: hidden; z-index: 100; opacity: 0; pointer-events: none;
-      transform: translateY(-6px); transition: opacity 0.18s ease, transform 0.18s ease;
-    }
-    .settings-wrapper:hover .settings-dropdown,
-    .settings-dropdown:hover { opacity: 1; pointer-events: all; transform: translateY(0); }
-    .settings-dropdown::before {
-      content: ''; position: absolute; top: -5px; right: 20px;
-      width: 9px; height: 9px;
-      background: #fff;
-      border-left: 1px solid var(--border-medium);
-      border-top: 1px solid var(--border-medium);
-      transform: rotate(45deg);
-    }
-    .dropdown-item {
-      display: flex; align-items: center; gap: 10px;
-      width: 100%; padding: 11px 16px;
-      font-size: 13px; font-weight: 500;
-      color: var(--text-secondary); background: none; border: none;
-      cursor: pointer; font-family: inherit; text-align: left;
-      transition: background 0.15s ease, color 0.15s ease;
-      border-bottom: 1px solid var(--border-subtle);
-    }
-    .dropdown-item:last-child { border-bottom: none; }
-    .dropdown-item:hover { background: var(--accent-blue-soft); color: var(--accent-blue); }
-    .dropdown-item .di-icon {
-      width: 28px; height: 28px; border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 14px; flex-shrink: 0;
-    }
-    .dropdown-item:nth-child(1) .di-icon { background: rgba(37,99,235,0.10); }
-    .dropdown-item:nth-child(2) .di-icon { background: rgba(5,150,105,0.10); }
+td {
+  font-family: var(--font-number);
+  font-size: 11px;
+  font-weight: 500;
+}
 
-    /* ──────────────────────────── BANNER ──────────────────────────── */
-    .banner { display: none; padding: 10px 24px; font-size: 13px; font-weight: 500; align-items: center; gap: 12px; }
-    .banner.show { display: flex; }
-    .banner.offline   { background: rgba(220,38,38,0.08); color: var(--error);   border-bottom: 1px solid rgba(220,38,38,0.20); }
-    .banner.reconnect { background: rgba(217,119,6,0.08); color: var(--warning); border-bottom: 1px solid rgba(217,119,6,0.20); }
-    .banner.restored  { background: rgba(5,150,105,0.08); color: var(--success); border-bottom: 1px solid rgba(5,150,105,0.20); }
-    .banner-close { margin-left: auto; background: none; border: none; cursor: pointer; font-size: 16px; color: inherit; opacity: .6; }
-    .banner-close:hover { opacity: 1; }
+.kpi-label,
+.panel-title,
+.tbl-title,
+.ctrl-label,
+.comp-name,
+.sb-section,
+.ctrl-title,
+.modal-title,
+.flow-node-name,
+.flow-node-sub,
+.flow-badge,
+.legend-item,
+.chart-title,
+.chart-meta,
+.chart-tab,
+.dt-label,
+.dt-name,
+.sb-bottom-row,
+.topbar-title,
+.topbar-sub,
+.tbtn,
+.ctrl-btn,
+.stbadge {
+  font-family: var(--font-text);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
 
-    /* ──────────────────────────── MAIN ──────────────────────────── */
-    .main {
-      padding: 24px; flex: 1; display: flex; flex-direction: column;
-      gap: 24px; max-width: 1400px; width: 100%; margin: 0 auto;
-    }
+.kpi-label,
+.panel-title,
+.tbl-title,
+.sb-section,
+.ctrl-title,
+.flow-node-name,
+.flow-badge {
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  font-size: 10px;
+  font-weight: 700;
+}
 
-    /* ── Summary Cards (REMOVED: entire cards container is hidden) ── */
-    .cards { display: none; }
+thead th {
+  font-family: var(--font-text);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
 
-    /* ── Live Meter Cards ── */
-    .live-grid { display: grid; grid-template-columns: repeat(6,1fr); gap: 14px; }
-    .live-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--r16); padding: 16px;
-      transition: all 0.2s; box-shadow: var(--shadow-sm);
-    }
-    .live-card.stale  { border-color: var(--warning); background: rgba(217,119,6,0.04); }
-    .live-card.primary { border-color: var(--accent-blue); background: rgba(37,99,235,0.04); }
-    .live-card .lc-label {
-      font-size: 10px; color: var(--text-tertiary);
-      margin-bottom: 10px; text-transform: uppercase; letter-spacing: .7px; font-weight: 700;
-    }
-    .live-card .lc-value {
-      font-size: 22px; font-weight: 700;
-      color: var(--text-primary); line-height: 1.2;
-      font-variant-numeric: tabular-nums;
-    }
-    .live-card.primary .lc-value { color: var(--accent-blue); }
-    .live-card .lc-unit  { font-size: 10px; color: var(--text-tertiary); margin-top: 6px; }
+.chart-panel .date-in {
+  font-family: var(--font-number);
+  font-weight: 600;
+}
 
-    /* ── KPI Row (removed in favor of live cards) but keep for safety? No need: we remove the KPI row completely */
+/* ── LAYOUT ── */
+.layout{display:flex;min-height:100vh;}
+.sidebar{width:var(--sidebar);background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;overflow-y:auto;}
+.main-area{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column;min-height:100vh;}
 
+/* ── SIDEBAR (LIGHT) ── */
+.sb-brand{padding:20px 20px 16px;border-bottom:1px solid var(--border);}
+.sb-logo{display:flex;align-items:center;gap:10px;margin-bottom:4px;}
+.sb-logo-icon{width:34px;height:34px;background:linear-gradient(135deg,#F59E0B,#EF4444);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;color:#fff;}
+.sb-logo-name{font-family:var(--font-text);font-size:14px;font-weight:800;letter-spacing:-0.3px;color:var(--text1);}
+.sb-logo-sub{font-size:10px;color:var(--text3);margin-top:1px;font-weight:600;}
+.sb-status-bar{display:flex;align-items:center;gap:6px;padding:8px 0 0;font-size:10px;color:var(--text2);font-weight:600;}
+.sb-dot{width:6px;height:6px;border-radius:50%;background:#10B981;flex-shrink:0;box-shadow:0 0 6px rgba(16,185,129,0.3);}
+.sb-dot.amber{background:#F59E0B;}
+.sb-dot.red{background:#EF4444;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.sb-dot{animation:pulse 2s infinite;}
 
-    /* ──────────────────────────────────────────────────────────────────
-       CONSUMPTION TREND PANEL — Dark theme preserved exactly
-    ────────────────────────────────────────────────────────────────── */
-    .cpanel {
-      background: var(--chart-bg-panel);
-      border: 1px solid var(--chart-border);
-      border-radius: var(--r24); overflow: hidden;
-      box-shadow: var(--shadow-lg), var(--chart-glow);
-    }
-    .phdr {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 20px 28px 16px 28px; flex-wrap: wrap; gap: 18px;
-      background: linear-gradient(135deg, var(--chart-bg-header) 0%, #060E1C 100%);
-      border-bottom: 1px solid var(--chart-border);
-    }
-    .ptitle {
-      font-size: 1.25rem; font-weight: 700;
-      background: linear-gradient(135deg, #FFFFFF 0%, #94A3B8 100%);
-      -webkit-background-clip: text; background-clip: text; color: transparent;
-      letter-spacing: -0.3px;
-    }
-    .psub {
-      font-size: 0.75rem; color: var(--chart-text-tertiary);
-      margin-top: 6px; display: flex; align-items: center; gap: 6px;
-    }
-    .psub::before { content: "⚡"; font-size: 10px; opacity: 0.7; }
+.sb-section{padding:12px 16px 6px;font-size:9px;font-weight:800;letter-spacing:1.2px;color:var(--text3);text-transform:uppercase;}
 
-    .graph-status { font-size: 10px; padding: 3px 10px; border-radius: 20px; font-weight: 600; margin-left: 8px; display: none; }
-    .graph-status.loading { display: inline-flex; align-items: center; gap: 5px; background: rgba(59,130,246,0.18); color: #60A5FA; }
-    .graph-status.no-data { display: inline-flex; background: rgba(245,158,11,0.18); color: #FCD34D; }
-    .graph-status.live    { display: inline-flex; background: rgba(16,185,129,0.18); color: #34D399; }
+.comp-list{padding:0 12px;}
+.comp-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--r8);cursor:pointer;transition:background 0.15s;margin-bottom:2px;user-select:none;}
+.comp-item:hover{background:var(--surface);}
+.comp-item.active{background:var(--surface);}
+.comp-color{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
+.comp-name{flex:1;font-size:12px;font-weight:700;color:var(--text2);}
+.comp-item.active .comp-name{color:var(--text1);}
+.comp-val{font-family:var(--font-number);font-size:12px;color:var(--text3);min-width:55px;text-align:right;font-weight:600;}
+.comp-item.active .comp-val{color:var(--text2);}
+.toggle{width:32px;height:18px;background:var(--surface2);border-radius:20px;position:relative;flex-shrink:0;transition:background 0.2s;border:1px solid var(--border2);cursor:pointer;}
+.toggle.on{background:var(--accent-c,#10B981);border-color:transparent;}
+.toggle::after{content:'';position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:#fff;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2);}
+.toggle.on::after{transform:translateX(14px);}
 
-    .chart-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
-    .ctabs {
-      display: flex; background: rgba(255,255,255,0.04);
-      border-radius: 14px; padding: 4px; gap: 4px;
-      border: 1px solid var(--chart-border);
-    }
-    .ctab {
-      padding: 7px 20px; border-radius: 10px;
-      font-size: 0.8rem; font-weight: 600;
-      background: transparent; border: none; cursor: pointer;
-      color: var(--chart-text-secondary); font-family: inherit;
-      transition: all 0.2s cubic-bezier(0.4,0,0.2,1); letter-spacing: 0.3px;
-    }
-    .ctab:hover { color: var(--chart-text-primary); background: rgba(255,255,255,0.07); }
-    .ctab.on { background: var(--accent-blue); color: #fff; box-shadow: 0 2px 12px rgba(59,130,246,0.4); }
+.sb-divider{height:1px;background:var(--border);margin:12px 16px;}
+.ctrl-panel{padding:0 12px 16px;}
+.ctrl-title{font-size:9px;font-weight:800;letter-spacing:1.2px;color:var(--text3);text-transform:uppercase;padding:12px 4px 8px;}
+.ctrl-row{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--surface);border-radius:var(--r8);margin-bottom:6px;border:1px solid var(--border);}
+.ctrl-label{font-size:11px;color:var(--text2);font-weight:700;}
+.ctrl-label span{display:block;font-size:9px;color:var(--text3);margin-top:1px;font-weight:600;}
+.ctrl-btns{display:flex;gap:4px;}
+.ctrl-btn{padding:4px 10px;border-radius:6px;font-size:10px;font-weight:700;font-family:var(--font-text);border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;transition:all 0.15s;}
+.ctrl-btn:hover{background:var(--surface2);color:var(--text1);}
+.ctrl-btn.active{background:var(--btn-c,#10B981);border-color:transparent;color:#fff;}
+.ctrl-slider-row{padding:8px 10px;background:var(--surface);border-radius:var(--r8);margin-bottom:6px;border:1px solid var(--border);}
+.ctrl-slider-top{display:flex;justify-content:space-between;margin-bottom:6px;}
+.ctrl-slider-label{font-size:11px;color:var(--text2);font-weight:700;}
+.ctrl-slider-val{font-family:var(--font-number);font-size:12px;color:var(--text1);font-weight:700;}
+.ctrl-slider{-webkit-appearance:none;appearance:none;width:100%;height:3px;border-radius:2px;background:var(--surface2);outline:none;}
+.ctrl-slider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#06B6D4;cursor:pointer;border:2px solid var(--bg);}
+.sb-bottom{padding:12px 16px;border-top:1px solid var(--border);margin-top:auto;}
+.sb-bottom-row{display:flex;align-items:center;justify-content:space-between;font-size:10px;color:var(--text3);font-weight:600;}
+.sb-bottom-row span{color:var(--text2);font-weight:700;}
 
-    .date-range-tools {
-      display: flex; align-items: center; gap: 12px;
-      background: rgba(0,0,0,0.35); padding: 6px 16px 6px 18px;
-      border-radius: 60px; border: 1px solid var(--chart-border);
-    }
-    .drange { display: flex; align-items: center; gap: 8px; }
-    .dinput {
-      background: var(--chart-surface); border: 1px solid var(--chart-input-border);
-      border-radius: 30px; padding: 6px 14px;
-      font-size: 0.75rem; color: var(--chart-text-primary);
-      font-family: 'DM Mono', monospace; font-weight: 500;
-      transition: all 0.2s ease; cursor: pointer;
-    }
-    .dinput:focus { outline: none; border-color: #3B82F6; box-shadow: 0 0 0 3px rgba(59,130,246,0.22); }
-    /* Style date picker on dark background */
-    .dinput::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.5; cursor: pointer; }
-    .drange span { color: var(--chart-text-tertiary); font-size: 0.75rem; font-weight: 500; }
-    .abtn {
-      padding: 6px 18px; border-radius: 30px;
-      background: linear-gradient(135deg, #3B82F6, #2563EB);
-      border: none; color: #fff; font-size: 0.75rem; font-weight: 600;
-      cursor: pointer; font-family: inherit; transition: all 0.2s ease;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
-    }
-    .abtn:hover { background: linear-gradient(135deg, #60A5FA, #3B82F6); transform: translateY(-1px); }
+/* ── TOP BAR (LIGHT) ── */
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;height:54px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.topbar-left{display:flex;align-items:center;gap:16px;}
+.topbar-title{font-family:var(--font-text);font-size:15px;font-weight:800;color:var(--text1);letter-spacing:-0.2px;}
+.topbar-sub{font-size:11px;color:var(--text3);font-weight:600;}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.tbtn{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:30px;font-size:11px;font-weight:700;font-family:var(--font-text);border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.tbtn:hover{background:var(--surface);color:var(--text1);}
+.tbtn.primary{background:linear-gradient(135deg,#3B82F6,#2563EB);border-color:transparent;color:#fff;}
+.tbtn.primary:hover{opacity:0.9;}
+#clock-display{font-family:var(--font-number);font-size:12px;color:var(--text2);padding:5px 12px;background:var(--surface);border-radius:30px;border:1px solid var(--border);font-weight:700;}
 
-    .cwrap {
-      padding: 20px 28px 28px 28px; height: 340px; position: relative;
-      background: var(--chart-bg-wrap);
-    }
-    .cwrap canvas { height: 100% !important; width: 100% !important; }
+/* ── MAIN CONTENT ── */
+.content{padding:20px 24px;flex:1;display:flex;flex-direction:column;gap:18px;}
 
-    .chart-empty-state {
-      position: absolute; inset: 0; display: none; flex-direction: column;
-      align-items: center; justify-content: center; gap: 10px;
-      background: rgba(10,18,32,0.80); backdrop-filter: blur(3px);
-      z-index: 5; border-radius: 0 0 var(--r24) var(--r24);
-    }
-    .chart-empty-state.show { display: flex; }
-    .chart-empty-state .es-icon  { font-size: 36px; opacity: 0.35; }
-    .chart-empty-state .es-title { font-size: 14px; font-weight: 600; color: var(--chart-text-secondary); }
-    .chart-empty-state .es-sub   { font-size: 12px; color: var(--chart-text-tertiary); }
+/* ── KPI STRIP (LIGHT) ── */
+.kpi-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
+.kpi-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r12);padding:14px 16px;position:relative;overflow:hidden;transition:border-color 0.2s;}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--kpi-c,#3B82F6);}
+.kpi-card:hover{border-color:var(--border2);}
+.kpi-label{font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:10px;}
+.kpi-value{font-family:var(--font-number);font-size:28px;font-weight:700;color:var(--text1);line-height:1.2;margin-bottom:6px;letter-spacing:-0.5px;}
+.kpi-unit{font-size:10px;color:var(--text3);font-weight:600;}
+.kpi-badge{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:800;padding:2px 8px;border-radius:4px;margin-top:6px;}
+.kpi-badge.ok{background:rgba(16,185,129,0.12);color:#0E7C46;}
+.kpi-badge.stale{background:rgba(245,158,11,0.12);color:#B45309;}
+.kpi-badge.offline{background:rgba(244,63,94,0.12);color:#BE123C;}
 
-    /* ────────────────────────────────────────────────────────────────── */
+/* ===== DARK MODE FOR POWER STREAMS SECTION ONLY ===== */
+.power-streams-section {
+  background: #07090F;
+  border-radius: var(--r20);
+  overflow: hidden;
+  margin-bottom: 18px;
+}
 
-    /* ── Bottom row panels (only table remains from original bottom-row, but keep panel for consistency) */
-    .bottom-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 8px; }
-    .panel {
-      background: var(--bg-card); border: 1px solid var(--border-subtle);
-      border-radius: var(--r20); padding: 20px 24px; box-shadow: var(--shadow-sm);
-    }
-    .panel-title {
-      font-size: 11px; font-weight: 700; color: var(--text-tertiary);
-      margin-bottom: 14px; text-transform: uppercase; letter-spacing: .8px;
-    }
+.chart-panel {
+  background: #0C0F1A;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: var(--r20);
+  overflow: hidden;
+}
 
-    /* ── Table panel ── */
-    .tbl-panel {
-      background: var(--bg-card); border: 1px solid var(--border-subtle);
-      border-radius: var(--r20); padding: 20px 24px; box-shadow: var(--shadow-sm);
-    }
-    .tbl-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
-    .tbl-title { font-size: 11px; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: .8px; }
-    .export-btn {
-      font-size: 12px; padding: 6px 16px;
-      border: 1px solid var(--border-medium); border-radius: 30px;
-      background: var(--bg-surface); cursor: pointer;
-      color: var(--text-secondary); font-family: inherit;
-      transition: .2s; font-weight: 500;
-    }
-    .export-btn:hover { background: var(--accent-blue-soft); color: var(--accent-blue); border-color: var(--accent-blue); }
-    .tbl-wrap { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 540px; }
-    thead th {
-      text-align: left; padding: 10px 14px;
-      color: var(--text-tertiary); font-weight: 700; font-size: 10px;
-      border-bottom: 1px solid var(--border-subtle);
-      text-transform: uppercase; letter-spacing: .7px;
-      background: var(--bg-surface);
-    }
-    tbody td { padding: 11px 14px; border-bottom: 1px solid var(--border-subtle); color: var(--text-secondary); }
-    tbody tr:last-child td { border-bottom: none; }
-    tbody tr:hover td { background: rgba(37,99,235,0.04); color: var(--text-primary); }
-    tr.gap-row td { background: rgba(217,119,6,0.06); color: var(--warning); }
+.chart-panel .chart-header {
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
 
-    /* ── Offline banner ── */
-    .offbanner {
-      display: none; background: rgba(220,38,38,0.07);
-      border: 1px solid rgba(220,38,38,0.20); border-radius: var(--r12);
-      padding: 12px 20px; font-size: 13px; color: var(--error);
-      align-items: center; gap: 12px; font-weight: 500;
-    }
-    .offbanner.show { display: flex; }
-    .rbtn {
-      background: rgba(220,38,38,0.12); border: 1px solid rgba(220,38,38,0.25);
-      border-radius: 30px; padding: 4px 14px; color: var(--error);
-      cursor: pointer; font-size: 11px; font-family: inherit; transition: .2s;
-    }
-    .rbtn:hover { background: rgba(220,38,38,0.22); }
+.chart-panel .chart-title {
+  font-family: var(--font-text);
+  font-size: 15px;
+  font-weight: 800;
+  color: #F0F4FF;
+  letter-spacing: -0.2px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 
-    /* ── Modals ── */
-    .overlay {
-      position: fixed; inset: 0; background: rgba(15,23,42,0.45);
-      backdrop-filter: blur(5px); z-index: 200;
-      display: none; align-items: center; justify-content: center; padding: 20px;
-    }
-    .overlay.open { display: flex; }
-    .modal {
-      background: #fff; border: 1px solid var(--border-medium);
-      border-radius: var(--r24); padding: 28px; max-width: 420px; width: 100%;
-      box-shadow: var(--shadow-lg);
-    }
-    .mtitle { font-size: 17px; font-weight: 700; color: var(--text-primary); margin-bottom: 22px; }
-    .fg { margin-bottom: 16px; }
-    .flb { font-size: 12px; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 7px; }
-    .fi {
-      width: 100%; padding: 10px 14px; border-radius: var(--r12);
-      border: 1px solid var(--border-medium); background: var(--bg-surface);
-      color: var(--text-primary); font-family: inherit; font-size: 13px;
-      outline: none; transition: .2s;
-    }
-    .fi:focus { border-color: var(--accent-blue); box-shadow: 0 0 0 3px var(--accent-glow); }
-    .macts { display: flex; justify-content: flex-end; gap: 12px; margin-top: 22px; }
+.chart-panel .chart-meta {
+  font-family: var(--font-number);
+  font-size: 10px;
+  color: #4A5578;
+  margin-top: 4px;
+  font-weight: 500;
+}
 
-    .sys-status-modal { max-width: 480px; }
-    .sys-status-grid { display: flex; flex-direction: column; gap: 0; }
-    .sys-status-item {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 14px 0; border-bottom: 1px solid var(--border-subtle);
-    }
-    .sys-status-item:last-child { border-bottom: none; }
-    .sys-status-left { display: flex; align-items: center; gap: 12px; }
-    .sys-status-icon {
-      width: 32px; height: 32px; border-radius: 9px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 14px; flex-shrink: 0; background: var(--bg-surface);
-    }
-    .sys-status-label { font-size: 13px; font-weight: 600; color: var(--text-primary); }
-    .sys-status-sub   { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
-    .sys-status-badge { font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 20px; display: flex; align-items: center; gap: 5px; }
-    .sys-status-badge.ok   { background: rgba(5,150,105,0.10); color: var(--success); }
-    .sys-status-badge.warn { background: rgba(217,119,6,0.10);  color: var(--warning); }
-    .sys-status-badge.err  { background: rgba(220,38,38,0.10);  color: var(--error); }
-    .sys-status-badge::before { content: '●'; font-size: 8px; }
+.chart-panel .chart-tabs {
+  display: flex;
+  background: #111624;
+  border-radius: 10px;
+  padding: 3px;
+  gap: 3px;
+  border: 1px solid rgba(255,255,255,0.07);
+}
 
-    /* ── Spinner ── */
-    .loading-spinner {
-      display: inline-block; width: 13px; height: 13px;
-      border: 2px solid rgba(59,130,246,0.3); border-top-color: #3B82F6;
-      border-radius: 50%; animation: spin 0.6s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
+.chart-panel .chart-tab {
+  padding: 5px 16px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-text);
+  background: transparent;
+  border: none;
+  color: #4A5578;
+  cursor: pointer;
+  transition: all 0.15s;
+}
 
-    /* ── Responsive ── */
-    @media (max-width: 1100px) { .live-grid { grid-template-columns: repeat(3,1fr); } }
-    @media (max-width: 800px)  { .live-grid { grid-template-columns: repeat(2,1fr); } .cwrap { height: 260px; padding: 16px; } .phdr { padding: 16px 20px; } }
-    @media (max-width: 640px)  { .chart-controls { width: 100%; flex-direction: column; align-items: stretch; } .ctabs { width: 100%; justify-content: stretch; } .ctab { flex:1; text-align:center; } .date-range-tools { width: 100%; justify-content: center; flex-wrap: wrap; } .drange { width: 100%; justify-content: space-between; flex-wrap: wrap; gap: 8px; } .drange .dinput { flex:1; min-width: 120px; } .abtn { width: auto; } }
-    @media (max-width: 500px)  { .live-grid { grid-template-columns: repeat(2,1fr); } .main { padding: 16px; gap: 18px; } .cwrap { height: 220px; } }
-  </style>
+.chart-panel .chart-tab:hover { color: #8B9CC8; }
+.chart-panel .chart-tab.on { background: #2563EB; color: #fff; font-weight: 800; }
+
+.chart-panel .date-inputs { display: flex; align-items: center; gap: 6px; }
+.chart-panel .date-in {
+  background: #111624;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 10px;
+  color: #8B9CC8;
+  font-family: var(--font-number);
+  outline: none;
+  font-weight: 600;
+}
+.chart-panel .date-in:focus { border-color: #3B82F6; }
+.chart-panel .date-in::-webkit-calendar-picker-indicator { filter: invert(0.6); cursor: pointer; width: 12px; }
+.chart-panel .date-sep { font-size: 10px; color: #4A5578; font-weight: 600; }
+.chart-panel .apply-btn {
+  padding: 5px 12px;
+  border-radius: 8px;
+  background: #2563EB;
+  border: none;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  font-family: var(--font-text);
+  cursor: pointer;
+}
+.chart-panel .apply-btn:hover { background: #1D4ED8; }
+
+/* Legend inside dark section */
+.chart-panel .legend-row {
+  padding: 12px 22px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.chart-panel .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #8B9CC8;
+  cursor: pointer;
+  padding: 3px 6px;
+  border-radius: 6px;
+  transition: background 0.15s;
+  font-weight: 700;
+  font-family: var(--font-text);
+}
+.chart-panel .legend-item:hover { background: #1A2035; }
+.chart-panel .legend-item.hidden { opacity: 0.3; }
+.chart-panel .legend-dot { width: 10px; height: 3px; border-radius: 2px; flex-shrink: 0; }
+
+/* Chart wrap dark */
+.chart-panel .chart-wrap {
+  padding: 16px 22px 20px;
+  height: 320px;
+  position: relative;
+}
+.chart-panel .chart-wrap canvas { height: 100%!important; width: 100%!important; }
+.chart-panel .chart-empty {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(7,9,15,0.9);
+  backdrop-filter: blur(4px);
+  border-radius: 0 0 var(--r20) var(--r20);
+  z-index: 5;
+}
+.chart-panel .chart-empty.show { display: flex; }
+.chart-panel .chart-empty .ce-icon { font-size: 28px; opacity: 0.5; color: #8B9CC8; font-weight: 600; }
+.chart-panel .chart-empty .ce-msg { font-size: 12px; color: #4A5578; font-weight: 600; }
+
+.chart-panel .zoom-hint {
+  font-size: 9px;
+  color: #4A5578;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 22px 10px;
+  font-weight: 600;
+}
+
+.graph-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 3px 9px;
+  border-radius: 20px;
+  margin-left: 8px;
+}
+.graph-status-pill.loading { background: rgba(59,130,246,0.15); color: #60A5FA; }
+.graph-status-pill.live { background: rgba(16,185,129,0.15); color: #10B981; }
+.graph-status-pill.nodata { background: rgba(245,158,11,0.15); color: #F59E0B; }
+.spin {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid rgba(96,165,250,0.4);
+  border-top-color: #60A5FA;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Bottom grid (light) */
+.bottom-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;}
+.flow-panel{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r16);padding:18px 20px;}
+.panel-title{font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:14px;}
+.flow-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.flow-node{background:var(--surface);border:1px solid var(--border);border-radius:var(--r12);padding:10px 12px;text-align:center;}
+.flow-node-icon{font-size:20px;margin-bottom:4px;}
+.flow-node-name{font-size:9px;font-weight:800;letter-spacing:0.8px;text-transform:uppercase;color:var(--text3);margin-bottom:4px;}
+.flow-node-val{font-family:var(--font-number);font-size:16px;color:var(--text1);font-weight:700;}
+.flow-node-sub{font-size:9px;color:var(--text3);margin-top:2px;font-weight:600;}
+.flow-badge{display:inline-block;padding:1px 6px;border-radius:4px;font-size:8px;font-weight:800;margin-top:4px;}
+.tbl-panel{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r16);overflow:hidden;}
+.tbl-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);}
+.tbl-title{font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--text3);}
+.export-btn{font-size:10px;font-weight:800;padding:5px 12px;border-radius:20px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;}
+.tbl-wrap{overflow-x:auto;max-height:260px;overflow-y:auto;}
+table{width:100%;border-collapse:collapse;font-size:11px;min-width:460px;}
+thead th{padding:8px 12px;text-align:left;color:var(--text3);font-size:9px;font-weight:800;text-transform:uppercase;border-bottom:1px solid var(--border);background:var(--surface);}
+tbody td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text2);font-weight:600;}
+.stbadge{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:800;padding:2px 8px;border-radius:4px;}
+.stbadge.ok{background:rgba(16,185,129,0.12);color:#0E7C46;}
+.stbadge.warn{background:rgba(245,158,11,0.12);color:#B45309;}
+.stbadge.err{background:rgba(244,63,94,0.12);color:#BE123C;}
+
+/* Drill tooltip */
+.drill-tooltip{position:fixed;background:#1A2035;border:1px solid rgba(255,255,255,0.12);border-radius:var(--r12);padding:12px 16px;min-width:180px;pointer-events:none;z-index:999;opacity:0;transition:opacity 0.15s;box-shadow:0 8px 32px rgba(0,0,0,0.5);}
+.drill-tooltip.show{opacity:1;}
+.dt-label{font-family:var(--font-text);font-size:10px;color:#4A5578;margin-bottom:8px;font-weight:700;}
+.dt-row{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:4px;}
+.dt-name{display:flex;align-items:center;gap:6px;font-family:var(--font-text);font-size:11px;color:#8B9CC8;font-weight:700;}
+.dt-dot{width:8px;height:8px;border-radius:50%;}
+.dt-val{font-family:var(--font-number);font-size:12px;color:#F0F4FF;font-weight:700;}
+
+/* Modals light */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);z-index:500;display:none;align-items:center;justify-content:center;padding:20px;}
+.overlay.open{display:flex;}
+.modal{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r20);padding:24px;max-width:400px;width:100%;}
+.modal-title{font-size:15px;font-weight:800;color:var(--text1);margin-bottom:20px;}
+.fg{margin-bottom:14px;}
+.flb{font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;display:block;margin-bottom:6px;}
+.fi{width:100%;padding:9px 12px;border-radius:var(--r8);border:1px solid var(--border2);background:var(--surface);color:var(--text1);font-family:var(--font-text);font-size:12px;outline:none;font-weight:600;}
+.modal-acts{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;}
+.banner{display:none;padding:8px 24px;font-size:12px;font-weight:700;align-items:center;gap:10px;border-bottom:1px solid transparent;}
+.banner.show{display:flex;}
+.banner.offline{background:rgba(244,63,94,0.08);color:#BE123C;border-color:rgba(244,63,94,0.2);}
+.banner.reconnect{background:rgba(245,158,11,0.08);color:#B45309;border-color:rgba(245,158,11,0.2);}
+.banner.restored{background:rgba(16,185,129,0.08);color:#0E7C46;border-color:rgba(16,185,129,0.2);}
+.banner-x{margin-left:auto;background:none;border:none;cursor:pointer;color:inherit;font-size:14px;font-weight:800;}
+.offline-bar{display:none;background:rgba(244,63,94,0.07);border:1px solid rgba(244,63,94,0.2);border-radius:var(--r8);padding:10px 16px;font-size:12px;color:#BE123C;align-items:center;gap:10px;margin-bottom:0;font-weight:700;}
+.offline-bar.show{display:flex;}
+.rbtn{background:rgba(244,63,94,0.12);border:1px solid rgba(244,63,94,0.25);border-radius:20px;padding:3px 12px;color:#BE123C;font-size:10px;cursor:pointer;font-weight:800;margin-left:auto;}
+.sys-item{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);}
+.sys-item-left{display:flex;align-items:center;gap:10px;}
+.sys-icon{width:28px;height:28px;border-radius:8px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;}
+.sys-name{font-family:var(--font-text);font-size:12px;font-weight:800;color:var(--text1);}
+.sys-sub{font-size:10px;color:var(--text3);font-weight:600;}
+
+/* Responsive */
+@media(max-width:1100px){.kpi-strip{grid-template-columns:repeat(3,1fr);}.bottom-grid{grid-template-columns:1fr;}}
+@media(max-width:900px){:root{--sidebar:0px}.sidebar{display:none}.main-area{margin-left:0}.kpi-strip{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:600px){.kpi-strip{grid-template-columns:1fr 1fr;}.chart-panel .chart-wrap{height:220px;}.chart-panel .chart-header{flex-direction:column;}}
+</style>
 </head>
 <body>
-<div class="dash">
-  <div class="demo-bar">
-    <span>⚡ Energy Monitoring System</span>
-    <button class="dbtn" onclick="forceRefresh()">🔄 Refresh</button>
-    <button class="dbtn" onclick="clearCache()">🗑 Clear Cache</button>
-  </div>
+<div class="layout">
 
-  <header class="hdr">
-    <div class="brand">
-      <div class="brand-icon">⚡</div>
+<!-- ── SIDEBAR ── -->
+<aside class="sidebar">
+  <div class="sb-brand">
+    <div class="sb-logo">
+      <div class="sb-logo-icon">⚡</div>
       <div>
-        <div class="brand-name">3rd Rock Energy Systems</div>
-        <div class="brand-sub">Real-time monitoring · <span id="clock">—</span> IST</div>
+        <div class="sb-logo-name">3rd Rock Energy System</div>
       </div>
     </div>
-    <div class="hdr-right">
-      <div class="conn-status">
-        <span class="dot green" id="connDot"></span>
-        <span id="connText">Online</span>
+    <div class="sb-status-bar">
+      <div class="sb-dot" id="sb-dot"></div>
+      <span id="sb-status-text">Online · Live</span>
+    </div>
+  </div>
+
+  <div class="sb-section">Data Streams</div>
+  <div class="comp-list" id="comp-list">
+    <!-- populated by JS -->
+  </div>
+
+  <div class="sb-divider"></div>
+
+  <div class="ctrl-panel">
+    <div class="ctrl-title">Controls</div>
+
+    <div class="ctrl-row">
+      <div class="ctrl-label">Battery Mode<span>Manual override</span></div>
+      <div class="ctrl-btns">
+        <button class="ctrl-btn active" style="--btn-c:#10B981" id="btn-charge" onclick="setBatteryMode('charge')">Charge</button>
+        <button class="ctrl-btn" id="btn-discharge" onclick="setBatteryMode('discharge')">Discharge</button>
+        <button class="ctrl-btn" id="btn-auto" onclick="setBatteryMode('auto')">Auto</button>
       </div>
-      <div class="settings-wrapper">
-        <button class="hbtn">⚙ Settings ▾</button>
-        <div class="settings-dropdown">
-          <button class="dropdown-item" onclick="openModal('settings-modal')">
-            <span class="di-icon">🎛</span>
-            <div><div>Preferences</div></div>
-          </button>
-          <button class="dropdown-item" onclick="openModal('system-status-modal')">
-            <span class="di-icon">📡</span>
-            <div><div>System Status</div></div>
-          </button>
-        </div>
+    </div>
+
+    <div class="ctrl-row">
+      <div class="ctrl-label">Grid Source<span>Power routing</span></div>
+      <div class="ctrl-btns">
+        <button class="ctrl-btn active" style="--btn-c:#6366F1" id="btn-grid-on" onclick="setGridMode('grid')">Grid</button>
+        <button class="ctrl-btn" id="btn-batt-on" onclick="setGridMode('battery')">Battery</button>
       </div>
+    </div>
+
+    <div class="ctrl-row">
+      <div class="ctrl-label">Main Load<span>Building distribution</span></div>
+      <div class="ctrl-btns">
+        <button class="ctrl-btn active" style="--btn-c:#F43F5E" id="btn-load-on" onclick="setLoad('on')">ON</button>
+        <button class="ctrl-btn" id="btn-load-off" onclick="setLoad('off')">OFF</button>
+      </div>
+    </div>
+
+    <div class="ctrl-slider-row">
+      <div class="ctrl-slider-top">
+        <div class="ctrl-slider-label">HVAC Setpoint</div>
+        <div class="ctrl-slider-val" id="hvac-val">23°C</div>
+      </div>
+      <input type="range" class="ctrl-slider" min="16" max="30" value="23" id="hvac-slider" oninput="setHVAC(this.value)">
+    </div>
+  </div>
+
+  <div class="sb-bottom">
+    <div class="sb-bottom-row">
+      <span>Unit 100</span>
+      <span id="sb-clock">--:--</span>
+    </div>
+    <div class="sb-bottom-row" style="margin-top:4px;">
+      <span style="color:var(--text3);">Last sync:</span>
+      <span id="sb-sync">--</span>
+    </div>
+  </div>
+</aside>
+
+<!-- ── MAIN AREA ── -->
+<div class="main-area">
+  <header class="topbar">
+    <div class="topbar-left">
+      <div>
+        <div class="topbar-title">Microgrid Monitor</div>
+        <div class="topbar-sub" id="topbar-sub">Real-time · Unit 100</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div id="clock-display">--:--:-- EST</div>
+      <button class="tbtn" onclick="forceRefresh()">↺ Refresh</button>
+      <button class="tbtn" onclick="openModal('system-status-modal')">📡 Status</button>
+      <button class="tbtn primary" onclick="openModal('settings-modal')">⚙ Settings</button>
     </div>
   </header>
 
-  <div class="banner" id="banner">
-    <span id="bannerMsg">—</span>
-    <button class="banner-close" onclick="closeBanner()">✕</button>
+  <div class="banner" id="banner"><span id="banner-msg">—</span><button class="banner-x" onclick="closeBanner()">✕</button></div>
+
+  <div class="content">
+    <div class="offline-bar" id="offline-bar">⚠ Offline — showing cached data. <button class="rbtn" onclick="reconnect()">↺ Reconnect</button></div>
+
+    <!-- KPI Strip -->
+    <div class="kpi-strip">
+      <div class="kpi-card" style="--kpi-c:#F59E0B">
+        <div class="kpi-label">Active Power</div>
+        <div class="kpi-value" id="v-kw">--</div>
+        <div class="kpi-unit">kilowatts</div>
+        <div class="kpi-badge ok" id="b-kw">LIVE</div>
+      </div>
+      <div class="kpi-card" style="--kpi-c:#10B981">
+        <div class="kpi-label">Energy Today</div>
+        <div class="kpi-value" id="v-kwh">--</div>
+        <div class="kpi-unit">kWh consumed</div>
+        <div class="kpi-badge ok" id="b-kwh">LIVE</div>
+      </div>
+      <div class="kpi-card" style="--kpi-c:#6366F1">
+        <div class="kpi-label">Voltage</div>
+        <div class="kpi-value" id="v-v">--</div>
+        <div class="kpi-unit">volts</div>
+        <div class="kpi-badge ok" id="b-v">NORMAL</div>
+      </div>
+      <div class="kpi-card" style="--kpi-c:#06B6D4">
+        <div class="kpi-label">Current</div>
+        <div class="kpi-value" id="v-a">--</div>
+        <div class="kpi-unit">amperes</div>
+        <div class="kpi-badge ok" id="b-a">LIVE</div>
+      </div>
+      <div class="kpi-card" style="--kpi-c:#8B5CF6">
+        <div class="kpi-label">Apparent Power</div>
+        <div class="kpi-value" id="v-ap">--</div>
+        <div class="kpi-unit">kVA</div>
+        <div class="kpi-badge ok" id="b-ap">LIVE</div>
+      </div>
+    </div>
+
+    <!-- Main Chart Panel -->
+    <div class="chart-panel">
+      <div class="chart-header">
+        <div class="chart-header-left">
+          <div class="chart-title">
+            Power Streams
+            <span class="graph-status-pill loading" id="gpill"><span class="spin"></span> Loading</span>
+          </div>
+          <div class="chart-meta" id="chart-meta">Multi-stream energy visualization · EST</div>
+        </div>
+        <div class="chart-header-right">
+          <div class="chart-tabs">
+            <button class="chart-tab on" onclick="switchChart('today')">Today</button>
+            <button class="chart-tab" onclick="switchChart('week')">Week</button>
+            <button class="chart-tab" onclick="switchChart('month')">Month</button>
+          </div>
+          <div class="date-inputs">
+            <input type="date" class="date-in" id="date-from">
+            <span class="date-sep">–</span>
+            <input type="date" class="date-in" id="date-to">
+            <button class="apply-btn" onclick="applyCustomRange()">Apply</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Legend -->
+      <div class="legend-row" id="legend-row">
+        <!-- populated by JS -->
+      </div>
+
+      <div class="zoom-hint">
+        <span>💡 Scroll to zoom · Drag to pan · Click legend to toggle streams</span>
+      </div>
+
+      <div class="chart-wrap" style="position:relative;">
+        <canvas id="lineChart" role="img" aria-label="Multi-stream microgrid power chart"></canvas>
+        <div class="chart-empty" id="chart-empty">
+          <div class="ce-icon">📊</div>
+          <div class="ce-msg">No data for this period</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Grid -->
+    <div class="bottom-grid">
+      <!-- Energy Flow -->
+      <div class="flow-panel">
+        <div class="panel-title">Energy Flow Overview</div>
+        <div class="flow-grid">
+          <div class="flow-node">
+            <div class="flow-node-icon">☀️</div>
+            <div class="flow-node-name">Solar</div>
+            <div class="flow-node-val" id="fn-solar">--</div>
+            <div class="flow-node-sub">kW generation</div>
+            <div class="flow-badge" style="background:rgba(245,158,11,0.15);color:#F59E0B;">GENERATING</div>
+          </div>
+          <div class="flow-node">
+            <div class="flow-node-icon">🔋</div>
+            <div class="flow-node-name">Battery</div>
+            <div class="flow-node-val" id="fn-battery">--</div>
+            <div class="flow-node-sub">SOC / health</div>
+            <div class="flow-badge" id="fn-battery-badge" style="background:rgba(16,185,129,0.15);color:#10B981;">CHARGING</div>
+          </div>
+          <div class="flow-node">
+            <div class="flow-node-icon">⚡</div>
+            <div class="flow-node-name">Grid</div>
+            <div class="flow-node-val" id="fn-grid">--</div>
+            <div class="flow-node-sub">kW import</div>
+            <div class="flow-badge" style="background:rgba(148,163,184,0.15);color:#94A3B8;">ACTIVE</div>
+          </div>
+          <div class="flow-node">
+            <div class="flow-node-icon">🚗</div>
+            <div class="flow-node-name">EV Chargers</div>
+            <div class="flow-node-val" id="fn-ev">--</div>
+            <div class="flow-node-sub">kW charging</div>
+            <div class="flow-badge" style="background:rgba(99,102,241,0.15);color:#6366F1;">2 ONLINE</div>
+          </div>
+          <div class="flow-node">
+            <div class="flow-node-icon">🌡️</div>
+            <div class="flow-node-name">HVAC</div>
+            <div class="flow-node-val" id="fn-hvac">23°C</div>
+            <div class="flow-node-sub">setpoint / status</div>
+            <div class="flow-badge" style="background:rgba(6,182,212,0.15);color:#06B6D4;">COOLING</div>
+          </div>
+          <div class="flow-node">
+            <div class="flow-node-icon">🔧</div>
+            <div class="flow-node-name">Genset</div>
+            <div class="flow-node-val" id="fn-genset">STBY</div>
+            <div class="flow-node-sub">backup power</div>
+            <div class="flow-badge" style="background:rgba(139,92,246,0.15);color:#8B5CF6;">STANDBY</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="tbl-panel">
+        <div class="tbl-header">
+          <div class="tbl-title">Recent Readings</div>
+          <button class="export-btn" onclick="exportCSV()">Export CSV ↓</button>
+        </div>
+        <div class="tbl-wrap">
+          <table id="readings-table">
+            <thead>
+              <tr>
+                <th>Time (EST)</th>
+                <th>kW</th>
+                <th>Voltage</th>
+                <th>Current</th>
+                <th>kWh</th>
+                <th>PF</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="tBody">
+              <tr><td colspan="7" style="text-align:center;color:var(--text3);padding:20px;">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </div>
+</div><!-- /.main-area -->
+</div><!-- /.layout -->
 
-  <div class="main">
-    <div class="offbanner" id="offline-banner">
-      ⚠ Offline mode — data may be stale.
-      <button class="rbtn" onclick="reconnect()">↺ Reconnect</button>
-    </div>
-
-    <!-- CARDS section removed entirely as requested (Today's Usage / This Week / Peak Demand) -->
-    <!-- <div class="cards" id="cards-grid"></div> -> OMITTED -->
-
-    <div class="live-section-title">Live Meter Readings</div>
-    <div class="live-grid">
-      <div class="live-card" id="c-kwh"><div class="lc-label">Energy Today</div><div class="lc-value" id="v-kwh">--</div><div class="lc-unit">kWh</div></div>
-      <div class="live-card" id="c-rp"><div class="lc-label">Reactive Power</div><div class="lc-value" id="v-rp">--</div><div class="lc-unit">kVAr</div></div>
-      <div class="live-card" id="c-ap"><div class="lc-label">Apparent Power</div><div class="lc-value" id="v-ap">--</div><div class="lc-unit">kVA</div></div>
-      <div class="live-card" id="c-a"><div class="lc-label">Current</div><div class="lc-value" id="v-a">--</div><div class="lc-unit">A</div></div>
-      <div class="live-card" id="c-v"><div class="lc-label">Voltage</div><div class="lc-value" id="v-v">--</div><div class="lc-unit">V</div></div>
-    </div>
-
-    <!-- ★ Consumption Trend — dark panel preserved ★ -->
-    <div class="cpanel">
-      <div class="phdr">
-        <div>
-          <div class="ptitle">
-            Consumption Trend
-            <span class="graph-status" id="graph-status"></span>
-          </div>
-          <div class="psub" id="graph-psub">Power draw &amp; energy usage over time (IST)</div>
-        </div>
-        <div class="chart-controls">
-          <div class="ctabs">
-            <button class="ctab on" onclick="switchChart('today')">Today</button>
-            <button class="ctab" onclick="switchChart('week')">Week</button>
-            <button class="ctab" onclick="switchChart('month')">Month</button>
-          </div>
-          <div class="date-range-tools">
-            <div class="drange">
-              <input type="date" class="dinput" id="date-from">
-              <span>–</span>
-              <input type="date" class="dinput" id="date-to">
-              <button class="abtn" onclick="applyCustomRange()">Apply</button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="cwrap" style="position:relative;">
-        <canvas id="lineChart"></canvas>
-        <div class="chart-empty-state" id="chart-empty-state">
-          <div class="es-icon">📊</div>
-          <div class="es-title">No data for this period</div>
-          <div class="es-sub" id="chart-empty-sub">No readings found. Data will appear once the sensor starts transmitting.</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="tbl-panel">
-      <div class="tbl-header">
-        <div class="tbl-title">Recent Readings</div>
-        <button class="export-btn" onclick="exportCSV()">Export CSV ↓</button>
-      </div>
-      <div class="tbl-wrap">
-        <table id="readings-table">
-          <thead>
-            <tr><th>Time (IST)</th><th>kW</th><th>Voltage (V)</th><th>Current (A)</th><th>Energy (kWh)</th><th>PF</th><th>Status</th></tr>
-          </thead>
-          <tbody id="tBody">
-            <tr><td colspan="7" style="text-align:center;color:var(--text-tertiary);">Loading...</td></tr>
-          </tbody>
-        </td>
-      </div>
-    </div>
-  </div>
-</div>
+<!-- Drill tooltip -->
+<div class="drill-tooltip" id="drill-tooltip"></div>
 
 <!-- Preferences Modal -->
 <div class="overlay" id="settings-modal" onclick="if(event.target===this)closeModal('settings-modal')">
   <div class="modal">
-    <div class="mtitle">Preferences</div>
-    <div class="fg"><label class="flb">Refresh interval (sec)</label><input type="number" class="fi" id="refresh-interval" value="5" min="2" max="60"></div>
+    <div class="modal-title">Preferences</div>
+    <div class="fg"><label class="flb">Refresh Interval (sec)</label><input type="number" class="fi" id="refresh-interval" value="3" min="2" max="60"></div>
     <div class="fg"><label class="flb">Currency</label><select class="fi" id="currency-select"><option value="$">USD ($)</option><option value="€">EUR (€)</option><option value="£">GBP (£)</option><option value="₹" selected>INR (₹)</option></select></div>
     <div class="fg"><label class="flb">Rate per kWh</label><input type="number" class="fi" id="unit-rate" value="0.14" step="0.01"></div>
-    <div class="macts"><button class="hbtn" onclick="closeModal('settings-modal')">Cancel</button><button class="hbtn primary" onclick="saveSettings()">Save</button></div>
+    <div class="modal-acts">
+      <button class="tbtn" onclick="closeModal('settings-modal')">Cancel</button>
+      <button class="tbtn primary" onclick="saveSettings()">Save Settings</button>
+    </div>
   </div>
 </div>
 
 <!-- System Status Modal -->
 <div class="overlay" id="system-status-modal" onclick="if(event.target===this)closeModal('system-status-modal')">
-  <div class="modal sys-status-modal">
-    <div class="mtitle">System Status</div>
-    <div class="sys-status-grid" id="system-status-grid">
-      <div class="sys-status-item">
-        <div class="sys-status-left"><div class="sys-status-icon">🌐</div><div><div class="sys-status-label">Gateway</div><div class="sys-status-sub">Modbus connection</div></div></div>
-        <span class="sys-status-badge" id="status-gateway">--</span>
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-title">System Status</div>
+    <div id="sys-grid">
+      <div class="sys-item">
+        <div class="sys-item-left"><div class="sys-icon">🌐</div><div><div class="sys-name">Gateway</div><div class="sys-sub">Modbus TCP connection</div></div></div>
+        <span class="stbadge" id="s-gateway">--</span>
       </div>
-      <div class="sys-status-item">
-        <div class="sys-status-left"><div class="sys-status-icon">📡</div><div><div class="sys-status-label">API Server</div><div class="sys-status-sub">Django backend</div></div></div>
-        <span class="sys-status-badge" id="status-api">--</span>
+      <div class="sys-item">
+        <div class="sys-item-left"><div class="sys-icon">📡</div><div><div class="sys-name">API Server</div><div class="sys-sub">Django backend</div></div></div>
+        <span class="stbadge" id="s-api">--</span>
       </div>
-      <div class="sys-status-item">
-        <div class="sys-status-left"><div class="sys-status-icon">💾</div><div><div class="sys-status-label">Database</div><div class="sys-status-sub">Data storage</div></div></div>
-        <span class="sys-status-badge" id="status-db">--</span>
+      <div class="sys-item">
+        <div class="sys-item-left"><div class="sys-icon">💾</div><div><div class="sys-name">Database</div><div class="sys-sub">Data persistence</div></div></div>
+        <span class="stbadge" id="s-db">--</span>
       </div>
-      <div class="sys-status-item">
-        <div class="sys-status-left"><div class="sys-status-icon">⚡</div><div><div class="sys-status-label">Last Reading</div><div class="sys-status-sub" id="last-reading-time">--</div></div></div>
-        <span class="sys-status-badge" id="status-last">--</span>
+      <div class="sys-item">
+        <div class="sys-item-left"><div class="sys-icon">⚡</div><div><div class="sys-name">Last Reading</div><div class="sys-sub" id="s-last-sub">—</div></div></div>
+        <span class="stbadge" id="s-last">--</span>
       </div>
     </div>
-    <div class="macts"><button class="hbtn primary" onclick="closeModal('system-status-modal')">Close</button></div>
+    <div class="modal-acts"><button class="tbtn primary" onclick="closeModal('system-status-modal')">Close</button></div>
   </div>
 </div>
 
 <script>
-  // ─── CONFIGURATION ────────────────────────────────────────────────────────────
-  const API_BASE_URL = window.location.origin;
-  let lineChart = null;
-  let currentPeriod = 'today';
-  let refreshTimer = null;
-  let graphRefreshTimer = null;
-  let refreshInterval = 5000;
-  let state = {
-    chartView: 'today',
-    currency: '₹',
-    unitRate: 0.14,
-    lastReadingTime: null
-  };
+// ── CONFIG ──
+const API_BASE = window.location.origin;
+// EST offset: UTC-5 (standard) or UTC-4 (daylight). We use dynamic offset via toLocaleString.
+const EST_MS = -5*60*60*1000;
 
-  // ─── IST TIMEZONE UTILITIES ────────────────────────────────────────────────────
-  const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+let mainChart = null;
+let currentPeriod = 'today';
+let refreshTimer = null;
+let pollTimer = null;
+let graphTimer = null;
+let lastTS = null;
+let refreshInterval = 5000;
 
-  function nowIST() {
-    return new Date(Date.now() + IST_OFFSET_MS);
-  }
+let state = {
+  currency: '₹',
+  unitRate: 0.14,
+  batteryMode: 'charge',
+  gridMode: 'grid',
+  loadState: 'on',
+  hvacTemp: 23
+};
 
-  function unixToIST(unixSec) {
-    return new Date(unixSec * 1000 + IST_OFFSET_MS);
-  }
+// ── STREAM DEFINITIONS ──
+const STREAMS = [
+  { id: 'solar',   label: 'Solar Generation', color: '#F59E0B', icon: '☀️', unit: 'kW', simFn: (t) => Math.max(0, 8 * Math.sin((t%86400)/86400*Math.PI) + Math.random()*0.5) },
+  { id: 'battery', label: 'Battery Power',    color: '#10B981', icon: '🔋', unit: 'kW', simFn: (t) => (Math.sin(t/3600)*3 + Math.random()*0.3).toFixed(2)*1 },
+  { id: 'ev',      label: 'EV Charging',      color: '#6366F1', icon: '🚗', unit: 'kW', simFn: (t) => Math.max(0, 3.5 + Math.sin(t/1800)*1.2 + Math.random()*0.4) },
+  { id: 'load',    label: 'Building Load',    color: '#F43F5E', icon: '🏢', unit: 'kW', simFn: (t) => Math.max(0, 12 + Math.sin(t/7200)*4 + Math.random()*0.8) },
+  { id: 'hvac',    label: 'HVAC',             color: '#06B6D4', icon: '🌡️', unit: 'kW', simFn: (t) => Math.max(0, 4 + Math.sin(t/5400)*2 + Math.random()*0.3) },
+  { id: 'genset',  label: 'Genset',           color: '#8B5CF6', icon: '🔧', unit: 'kW', simFn: (t) => 0 },
+  { id: 'grid',    label: 'Grid Import',      color: '#94A3B8', icon: '⚡', unit: 'kW', simFn: (t) => Math.max(0, 5 + Math.sin(t/10800)*3 + Math.random()*0.5) },
+];
 
-  function formatTimeIST(istDate) {
-    let h = istDate.getUTCHours();
-    const m = String(istDate.getUTCMinutes()).padStart(2, '0');
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    h = h % 12 || 12;
-    return `${h}:${m} ${ampm}`;
-  }
+// visible state per stream
+const streamVisible = {};
+STREAMS.forEach(s => { streamVisible[s.id] = true; });
 
-  function formatDateIST(istDate) {
-    const y  = istDate.getUTCFullYear();
-    const mo = String(istDate.getUTCMonth() + 1).padStart(2, '0');
-    const d  = String(istDate.getUTCDate()).padStart(2, '0');
-    return `${y}-${mo}-${d}`;
-  }
+// ── EST UTILS ──
+function nowEST() { return new Date(Date.now()+EST_MS); }
+function unixToEST(u) { return new Date(u*1000+EST_MS); }
+function fmtTimeEST(d) {
+  let h=d.getUTCHours(), m=String(d.getUTCMinutes()).padStart(2,'0'), am=h>=12?'PM':'AM';
+  h=h%12||12; return `${h}:${m} ${am}`;
+}
+function fmtDateEST(d) {
+  const y=d.getUTCFullYear(), mo=String(d.getUTCMonth()+1).padStart(2,'0'), day=String(d.getUTCDate()).padStart(2,'0');
+  return `${y}-${mo}-${day}`;
+}
+function fmtClock() {
+  return new Date().toLocaleTimeString('en-US',{timeZone:'America/New_York',hour:'numeric',minute:'2-digit',second:'2-digit',hour12:true});
+}
 
-  function formatISTClock() {
-    return new Date().toLocaleTimeString('en-IN', {
-      timeZone: 'Asia/Kolkata',
-      hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true
-    });
-  }
+// ── SIDEBAR BUILD ──
+function buildSidebar() {
+  const list = document.getElementById('comp-list');
+  list.innerHTML = '';
+  STREAMS.forEach(s => {
+    const item = document.createElement('div');
+    item.className = 'comp-item active';
+    item.id = `comp-${s.id}`;
+    item.innerHTML = `
+      <div class="comp-color" style="background:${s.color}"></div>
+      <div class="comp-name">${s.label}</div>
+      <div class="comp-val" id="cv-${s.id}">--</div>
+      <div class="toggle on" id="tgl-${s.id}" style="--accent-c:${s.color}"></div>
+    `;
+    item.onclick = () => toggleStream(s.id);
+    list.appendChild(item);
+  });
+  buildLegend();
+}
 
-  // ─── GRAPH LABEL CONVERSION ────────────────────────────────────────────────────
-  function convertBackendLabelsToIST(labels, period) {
-    if (!labels || labels.length === 0) return labels;
-    return labels.map(label => {
-      try {
-        if (label.includes(':')) {
-          if (label.length <= 8 && label.match(/^\d{2}:\d{2}/)) {
-            const [hours, minutes] = label.split(':');
-            const now = new Date();
-            const istDate = new Date(now.getTime() + IST_OFFSET_MS);
-            istDate.setUTCHours(parseInt(hours), parseInt(minutes), 0, 0);
-            return formatTimeIST(istDate);
-          } else if (label.match(/\d{2}-\d{2} \d{2}:\d{2}/)) {
-            const [datePart, timePart] = label.split(' ');
-            const [month, day] = datePart.split('-');
-            const [hours, minutes] = timePart.split(':');
-            const year = new Date().getUTCFullYear();
-            const utcDate = new Date(Date.UTC(year, parseInt(month) - 1, parseInt(day), parseInt(hours), parseInt(minutes), 0));
-            const istDate = new Date(utcDate.getTime() + IST_OFFSET_MS);
-            const istDay = String(istDate.getUTCDate()).padStart(2, '0');
-            const istMonth = String(istDate.getUTCMonth() + 1).padStart(2, '0');
-            return `${istDay}/${istMonth} ${formatTimeIST(istDate)}`;
-          }
-        }
-        return label;
-      } catch (e) {
-        console.warn('Failed to convert label:', label, e);
-        return label;
-      }
-    });
-  }
+function toggleStream(id) {
+  streamVisible[id] = !streamVisible[id];
+  const item = document.getElementById(`comp-${id}`);
+  const tgl  = document.getElementById(`tgl-${id}`);
+  const leg  = document.getElementById(`leg-${id}`);
+  if (item) item.classList.toggle('active', streamVisible[id]);
+  if (tgl)  tgl.classList.toggle('on', streamVisible[id]);
+  if (leg)  leg.classList.toggle('hidden', !streamVisible[id]);
+  updateChartVisibility();
+}
 
-  // ─── UI HELPERS ──────────────────────────────────────────────────────────────
-  function showBanner(cls, msg) {
-    const banner = document.getElementById('banner');
-    banner.className = 'banner show ' + cls;
-    document.getElementById('bannerMsg').textContent = msg;
-    setTimeout(() => { if (banner.classList.contains('show')) closeBanner(); }, 5000);
-  }
-  function closeBanner() { document.getElementById('banner').className = 'banner'; }
+function buildLegend() {
+  const row = document.getElementById('legend-row');
+  row.innerHTML = '';
+  STREAMS.forEach(s => {
+    const item = document.createElement('div');
+    item.className = 'legend-item';
+    item.id = `leg-${s.id}`;
+    item.innerHTML = `<div class="legend-dot" style="background:${s.color}"></div>${s.label}`;
+    item.onclick = () => toggleStream(s.id);
+    row.appendChild(item);
+  });
+}
 
-  function setConnectionStatus(status) {
-    const dot  = document.getElementById('connDot');
-    const text = document.getElementById('connText');
-    if (status === 'online')       { dot.className = 'dot green'; text.textContent = 'Online'; }
-    else if (status === 'offline') { dot.className = 'dot red';   text.textContent = 'Offline'; }
-    else                           { dot.className = 'dot amber'; text.textContent = 'Reconnecting...'; }
-  }
+// ── CHART ──
+function buildGrad(ctx, hex) {
+  const g = ctx.createLinearGradient(0,0,0,300);
+  g.addColorStop(0, hex+'55');
+  g.addColorStop(1, hex+'00');
+  return g;
+}
 
-  function staleCards(isStale) {
-    ['c-kwh','c-rp','c-ap','c-a','c-v'].forEach(id => {
-      const card = document.getElementById(id);
-      if (card) card.classList.toggle('stale', isStale);
-    });
-  }
+function createChart(labels, multiData) {
+  const ctx = document.getElementById('lineChart').getContext('2d');
+  if (mainChart) { mainChart.destroy(); mainChart = null; }
 
-  function setGraphStatus(type, label) {
-    const el = document.getElementById('graph-status');
-    el.className = 'graph-status ' + type;
-    if (type === 'loading') {
-      el.innerHTML = `<span class="loading-spinner"></span> ${label}`;
-    } else {
-      el.textContent = label;
-    }
-  }
+  const datasets = STREAMS.map((s,i) => ({
+    label: s.label,
+    data: multiData[s.id] || [],
+    borderColor: s.color,
+    backgroundColor: buildGrad(ctx, s.color),
+    borderWidth: 2,
+    pointRadius: labels.length > 60 ? 0 : 2,
+    pointHoverRadius: 5,
+    pointBackgroundColor: s.color,
+    pointBorderColor: '#07090F',
+    pointBorderWidth: 1.5,
+    fill: false,
+    tension: 0.4,
+    hidden: !streamVisible[s.id],
+    yAxisID: 'y'
+  }));
 
-  function showChartEmpty(show, msg) {
-    const overlay = document.getElementById('chart-empty-state');
-    const sub     = document.getElementById('chart-empty-sub');
-    overlay.classList.toggle('show', show);
-    if (msg) sub.textContent = msg;
-  }
-
-  // ─── API CALLS (summary stats removed because cards no longer exist) ───────────
-  // note: fetch summary no longer needed but we keep to avoid errors? Not used, but we won't break.
-  async function fetchSummaryStats() { /* summary stats not used after card removal */ return; }
-
-  async function fetchLiveData() {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/readings/latest/?unit_id=100`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
-
-      if (data.status === 'online' || data.status === 'stale') {
-        document.getElementById('v-kwh').textContent = (data.energy_today_kwh ?? 0).toFixed(1);
-        document.getElementById('v-rp').textContent  = (data.reactive_power_kvar ?? 0).toFixed(1);
-        document.getElementById('v-ap').textContent  = (data.apparent_power_kva ?? 0).toFixed(1);
-        document.getElementById('v-a').textContent   = (data.current ?? 0).toFixed(1);
-        document.getElementById('v-v').textContent   = (data.voltage ?? 0).toFixed(1);
-
-        staleCards(data.status === 'stale');
-        setConnectionStatus('online');
-        document.getElementById('offline-banner').classList.remove('show');
-
-        if (data.timestamp) {
-          const ts = new Date(data.timestamp);
-          const istDate = new Date(ts.getTime() + IST_OFFSET_MS);
-          const istStr = formatTimeIST(istDate) + ' IST';
-          state.lastReadingTime = ts;
-          document.getElementById('last-reading-time').textContent = istStr;
-        }
-      } else {
-        staleCards(true);
-        setConnectionStatus('offline');
-      }
-    } catch (error) {
-      console.error('Failed to fetch live data:', error);
-      staleCards(true);
-      setConnectionStatus('offline');
-      document.getElementById('offline-banner').classList.add('show');
-    }
-  }
-
-  async function fetchGraphData(period = 'today', fromDate = null, toDate = null) {
-    setGraphStatus('loading', 'Loading…');
-    showChartEmpty(false);
-    try {
-      let url = `${API_BASE_URL}/api/readings/graph/?unit_id=100&period=${period}`;
-      if (fromDate && toDate) {
-        url = `${API_BASE_URL}/api/readings/graph/?unit_id=100&from=${fromDate}&to=${toDate}`;
-      }
-
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
-
-      let rawLabels = Array.isArray(data.labels) ? data.labels : [];
-      let rawValues = Array.isArray(data.values) ? data.values : [];
-
-      const hasRealData = rawLabels.length > 0 && rawValues.length > 0 && rawValues.some(v => v > 0);
-
-      if (!hasRealData) {
-        showChartEmpty(true, period === 'today'
-          ? 'No readings for today yet. Data will appear once the sensor starts transmitting.'
-          : `No data found for the selected ${period} period.`);
-        setGraphStatus('no-data', 'No data');
-        if (lineChart) {
-          lineChart.data.labels = [];
-          lineChart.data.datasets[0].data = [];
-          lineChart.update();
-        }
-        return;
-      }
-
-      const istLabels = convertBackendLabelsToIST(rawLabels, period);
-      const values = rawValues.map(v => {
-        const num = parseFloat(v);
-        return isNaN(num) ? 0 : Math.max(0, parseFloat(num.toFixed(2)));
-      });
-
-      updateChart(istLabels, values, period);
-
-      const pointCount = rawLabels.length;
-      const maxVal = values.length ? Math.max(...values).toFixed(1) : '0';
-      document.getElementById('graph-psub').innerHTML =
-        `${pointCount} data point${pointCount !== 1 ? 's' : ''} · Peak ${maxVal} kW · IST`;
-      setGraphStatus('live', `${pointCount} points`);
-    } catch (error) {
-      console.error('Failed to fetch graph data:', error);
-      showChartEmpty(true, 'Failed to load graph data. Check your connection.');
-      setGraphStatus('no-data', 'Error');
-    }
-  }
-
-  async function fetchRecentReadings() {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/readings/recent/?unit_id=100&limit=20`);
-      if (!response.ok) throw new Error('Failed to fetch readings');
-      const readings = await response.json();
-      renderTable(readings);
-    } catch (error) {
-      console.error('Failed to fetch recent readings:', error);
-      document.getElementById('tBody').innerHTML =
-        '<tr><td colspan="7" style="text-align:center;color:var(--text-tertiary);">Failed to load data</td></tr>';
-    }
-  }
-
-  // ─── CHART ────────────────────────────────────────────────────────────────────
-  function buildGradient(ctx) {
-    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-    gradient.addColorStop(0,   'rgba(59,130,246,0.42)');
-    gradient.addColorStop(0.5, 'rgba(59,130,246,0.12)');
-    gradient.addColorStop(1,   'rgba(59,130,246,0.01)');
-    return gradient;
-  }
-
-  function createChart(labels, values) {
-    const ctx = document.getElementById('lineChart').getContext('2d');
-    if (lineChart) { lineChart.destroy(); lineChart = null; }
-
-    lineChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: 'Active Power (kW)',
-          data: values,
-          borderColor: '#3B82F6',
-          backgroundColor: buildGradient(ctx),
-          borderWidth: 2.5,
-          pointRadius: labels.length > 48 ? 0 : 3.5,
-          pointHoverRadius: 6,
-          pointBackgroundColor: '#60A5FA',
-          pointBorderColor: '#0F172A',
-          pointBorderWidth: 1.5,
-          fill: true,
-          tension: 0.4
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: { mode: 'index', intersect: false },
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: '#1E293B',
-            titleColor: '#F1F5F9',
-            bodyColor: '#CBD5E1',
-            borderColor: '#334155',
-            borderWidth: 1,
-            padding: 12,
-            callbacks: {
-              title: function(items) { return items[0]?.label || ''; },
-              label: function(context) {
-                const val = context.parsed.y;
-                if (val === null || val === undefined) return ' No data';
-                return ` ${val.toFixed(2)} kW`;
-              },
-              afterLabel: function(context) {
-                const val = context.parsed.y;
-                if (!val) return '';
-                const cost = (val * state.unitRate).toFixed(2);
-                return ` ~${state.currency}${cost}/hr at this rate`;
-              }
+  mainChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode:'index', intersect:false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor:'#1A2035',
+          titleColor:'#F0F4FF',
+          bodyColor:'#8B9CC8',
+          borderColor:'rgba(255,255,255,0.12)',
+          borderWidth:1,
+          padding:12,
+          callbacks: {
+            title: (items) => items[0]?.label || '',
+            label: (ctx) => {
+              if (!streamVisible[STREAMS[ctx.datasetIndex]?.id]) return null;
+              const v = ctx.parsed.y;
+              if (v===null||v===undefined) return null;
+              return ` ${ctx.dataset.label}: ${v.toFixed(2)} kW`;
+            },
+            afterLabel: (ctx) => {
+              const v = ctx.parsed.y;
+              if (!v) return null;
+              return ` ~${state.currency}${(v*state.unitRate).toFixed(2)}/hr`;
             }
           }
-        },
-        scales: {
-          x: {
-            grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false },
-            ticks: { color: '#64748B', font: { size: 10, weight: '500' }, maxTicksLimit: 10, maxRotation: 45, minRotation: 0 }
-          },
-          y: {
-            grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false },
-            ticks: { color: '#64748B', font: { size: 10 }, callback: v => v.toFixed(1) + ' kW' },
-            beginAtZero: true
-          }
         }
-      }
-    });
-  }
-
-  function updateChart(labels, values, period) {
-    if (!lineChart) { createChart(labels, values); return; }
-
-    const currentLabels = lineChart.data.labels || [];
-    const currentValues = lineChart.data.datasets[0]?.data || [];
-
-    if (JSON.stringify(currentLabels) !== JSON.stringify(labels) ||
-        JSON.stringify(currentValues) !== JSON.stringify(values)) {
-      lineChart.data.labels = labels;
-      lineChart.data.datasets[0].data = values;
-      const pointRadius = labels.length > 48 ? 0 : labels.length > 24 ? 2 : 4;
-      lineChart.data.datasets[0].pointRadius = pointRadius;
-      lineChart.data.datasets[0].pointHoverRadius = pointRadius + 2;
-      lineChart.update('none');
+      },
+      scales: {
+        x: {
+          grid:{color:'rgba(255,255,255,0.04)',drawBorder:false},
+          ticks:{color:'#4A5578',font:{size:10,family:"'Syne Mono',monospace"},maxTicksLimit:10,maxRotation:45}
+        },
+        y: {
+          grid:{color:'rgba(255,255,255,0.04)',drawBorder:false},
+          ticks:{color:'#4A5578',font:{size:10},callback:v=>v.toFixed(1)+' kW'},
+          beginAtZero:true
+        }
+      },
+      onClick: (evt, elements) => handleChartClick(evt, elements)
     }
+  });
+}
 
-    const pointCount = labels.length;
-    const maxVal = values.length ? Math.max(...values).toFixed(1) : '0';
-    document.getElementById('graph-psub').innerHTML =
-      `${pointCount} reading${pointCount !== 1 ? 's' : ''} · Peak ${maxVal} kW · Real-time data`;
-  }
+function updateChartVisibility() {
+  if (!mainChart) return;
+  STREAMS.forEach((s,i) => {
+    const meta = mainChart.getDatasetMeta(i);
+    meta.hidden = !streamVisible[s.id];
+  });
+  mainChart.update();
+}
 
-  function switchChart(period) {
-    currentPeriod = period;
-    document.querySelectorAll('.ctab').forEach(btn => {
-      btn.classList.toggle('on', btn.textContent.toLowerCase() === period);
-    });
-    fetchGraphData(period);
-  }
+function handleChartClick(evt, elements) {
+  if (!elements.length) return;
+  const el = elements[0];
+  const ds = mainChart.data.datasets[el.datasetIndex];
+  const label = mainChart.data.labels[el.index];
+  const val = ds.data[el.index];
+  showDrillTooltip(evt.native, ds.label, ds.borderColor, label, val);
+}
 
-  function applyCustomRange() {
-    const fromDate = document.getElementById('date-from').value;
-    const toDate   = document.getElementById('date-to').value;
-    if (!fromDate || !toDate) { showBanner('reconnect', 'Please select both start and end dates'); return; }
-    if (fromDate > toDate)    { showBanner('reconnect', 'Start date must be before end date'); return; }
-    document.querySelectorAll('.ctab').forEach(btn => btn.classList.remove('on'));
-    currentPeriod = 'custom';
-    fetchGraphData('custom', fromDate, toDate);
-  }
+function showDrillTooltip(nativeEvt, name, color, time, val) {
+  const tt = document.getElementById('drill-tooltip');
+  const stream = STREAMS.find(s=>s.label===name);
+  tt.innerHTML = `
+    <div class="dt-label">📍 ${time}</div>
+    <div class="dt-row">
+      <div class="dt-name"><div class="dt-dot" style="background:${color}"></div>${name}</div>
+      <div class="dt-val">${parseFloat(val).toFixed(3)} kW</div>
+    </div>
+    ${stream ? `<div style="font-size:9px;color:var(--text3);margin-top:6px;">Click elsewhere to dismiss</div>` : ''}
+  `;
+  const x = nativeEvt.clientX + 14;
+  const y = nativeEvt.clientY - 20;
+  tt.style.left = Math.min(x, window.innerWidth-200)+'px';
+  tt.style.top = y+'px';
+  tt.classList.add('show');
+  setTimeout(()=>tt.classList.remove('show'), 3000);
+}
 
-  // ─── TABLE ────────────────────────────────────────────────────────────────────
-  function renderTable(readings) {
-    const tbody = document.getElementById('tBody');
-    if (!readings || readings.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-tertiary);">No data available</td></tr>';
+// ── LABEL CONVERSION ──
+function convertLabels(labels, period) {
+  if (!labels||!labels.length) return labels;
+  return labels.map(lbl => {
+    try {
+      if (lbl.match(/^\d{2}:\d{2}/)) {
+        const [h,m] = lbl.split(':');
+        const d = new Date(); d.setHours(+h,+m,0,0);
+        const est = new Date(d.getTime()+EST_MS);
+        return fmtTimeEST(est);
+      } else if (lbl.match(/\d{2}-\d{2} \d{2}:\d{2}/)) {
+        const [dp,tp] = lbl.split(' ');
+        const [mo,dy] = dp.split('-');
+        const [hh,mm] = tp.split(':');
+        const yr = new Date().getUTCFullYear();
+        const utc = new Date(Date.UTC(yr,+mo-1,+dy,+hh,+mm));
+        const est = new Date(utc.getTime()+EST_MS);
+        return `${String(est.getUTCDate()).padStart(2,'0')}/${String(est.getUTCMonth()+1).padStart(2,'0')} ${fmtTimeEST(est)}`;
+      }
+    } catch(e){}
+    return lbl;
+  });
+}
+
+// ── GRAPH FETCH + MULTI-STREAM SIMULATION ──
+function generateSimData(labels, primaryValues, streamId) {
+  const s = STREAMS.find(x=>x.id===streamId);
+  if (!s) return [];
+  return labels.map((lbl,i) => {
+    const t = Date.now()/1000 - (labels.length-i)*60;
+    let v = s.simFn(t);
+    if (primaryValues && primaryValues[i] !== undefined) {
+      const primary = primaryValues[i] || 0;
+      v = v * (0.7 + 0.3*(primary/Math.max(...primaryValues,1)));
+    }
+    return Math.max(0, parseFloat(v.toFixed(3)));
+  });
+}
+
+async function fetchGraphData(period='today', fromDate=null, toDate=null) {
+  setGPill('loading','Loading…');
+  showChartEmpty(false);
+  try {
+    let url = `${API_BASE}/api/readings/graph/?unit_id=100&period=${period}`;
+    if (fromDate&&toDate) url = `${API_BASE}/api/readings/graph/?unit_id=100&from=${fromDate}&to=${toDate}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const rawLabels = Array.isArray(data.labels) ? data.labels : [];
+    const rawValues = Array.isArray(data.values) ? data.values : [];
+    const hasData = rawLabels.length > 0 && rawValues.some(v=>v>0);
+
+    if (!hasData) {
+      showChartEmpty(true);
+      setGPill('nodata','No data');
+      if (mainChart) { mainChart.data.labels=[]; mainChart.data.datasets.forEach(d=>d.data=[]); mainChart.update(); }
       return;
     }
-    tbody.innerHTML = readings.map(r => {
-      const kw      = parseFloat(r.kw)      || 0;
-      const voltage = parseFloat(r.voltage) || 0;
-      const current = parseFloat(r.current) || 0;
-      const energy  = parseFloat(r.energy)  || 0;
-      const pf      = parseFloat(r.pf)      || 0;
-      const statusColor = r.status === 'ok' ? 'var(--success)' : 'var(--warning)';
-      const statusIcon  = r.status === 'ok' ? '✔ Online' : '⚠ ' + r.status;
-      return `<tr>
-        <td>${r.time || '—'}</td>
-        <td>${kw.toFixed(2)}</td>
-        <td>${voltage.toFixed(1)}</td>
-        <td>${current.toFixed(1)}</td>
-        <td>${energy.toFixed(1)}</td>
-        <td>${pf.toFixed(2)}</td>
-        <td style="color:${statusColor};font-weight:600;">${statusIcon}</td>
-      </tr>`;
-    }).join('');
-  }
 
-  // ─── EXPORT ───────────────────────────────────────────────────────────────────
-  function exportCSV() {
-    const table = document.getElementById('readings-table');
-    const rows  = table.querySelectorAll('tbody tr');
-    let csv = [['Time (IST)', 'kW', 'Voltage (V)', 'Current (A)', 'Energy (kWh)', 'PF', 'Status'].join(',')];
-    rows.forEach(row => {
-      const cells = row.querySelectorAll('td');
-      if (cells.length > 1) {
-        const rowData = Array.from(cells).map(cell => {
-          let text = cell.textContent.trim();
-          if (text.includes(',') || text.includes('"')) text = `"${text.replace(/"/g, '""')}"`;
-          return text;
-        });
-        csv.push(rowData.join(','));
-      }
+    const estLabels = convertLabels(rawLabels, period);
+    const primaryVals = rawValues.map(v=>Math.max(0,parseFloat((+v).toFixed(3))));
+
+    // Build multi-stream data
+    const multiData = {};
+    multiData['load'] = primaryVals;
+    STREAMS.forEach(s => {
+      if (s.id !== 'load') multiData[s.id] = generateSimData(rawLabels, primaryVals, s.id);
     });
-    const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href = url; a.download = `energy_data_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click(); URL.revokeObjectURL(url);
-  }
 
-  // ─── SETTINGS ─────────────────────────────────────────────────────────────────
-  function saveSettings() {
-    const interval = parseInt(document.getElementById('refresh-interval').value) || 5;
-    state.currency = document.getElementById('currency-select').value;
-    state.unitRate = parseFloat(document.getElementById('unit-rate').value) || 0.14;
-    refreshInterval = Math.max(2, Math.min(60, interval)) * 1000;
-    restartRefreshTimer();
-    localStorage.setItem('energySettings', JSON.stringify({ refreshInterval, currency: state.currency, unitRate: state.unitRate }));
-    closeModal('settings-modal');
-    showBanner('restored', 'Settings saved');
-  }
-
-  function loadSettings() {
-    try {
-      const saved = localStorage.getItem('energySettings');
-      if (!saved) return;
-      const s = JSON.parse(saved);
-      refreshInterval = s.refreshInterval || 5000;
-      state.currency  = s.currency || '₹';
-      state.unitRate  = s.unitRate || 0.14;
-      document.getElementById('refresh-interval').value = refreshInterval / 1000;
-      document.getElementById('currency-select').value  = state.currency;
-      document.getElementById('unit-rate').value        = state.unitRate;
-    } catch (e) { console.error('Failed to load settings', e); }
-  }
-
-  // ─── POLLING ──────────────────────────────────────────────────────────────────
-  let lastDataTimestamp = null;
-  let pollInterval = null;
-
-  async function checkForNewData() {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/readings/latest/?unit_id=100`);
-      if (response.ok) {
-        const data = await response.json();
-        if (data.timestamp) {
-          const currentTimestamp = new Date(data.timestamp).getTime();
-          if (lastDataTimestamp && currentTimestamp > lastDataTimestamp) {
-            await fetchGraphData(currentPeriod);
-            await fetchRecentReadings();
-            showBanner('restored', 'New data received! Graph updated.');
-          }
-          lastDataTimestamp = currentTimestamp;
-        }
-      }
-    } catch (error) { console.error('Error checking for new data:', error); }
-  }
-
-  // ─── REFRESH ──────────────────────────────────────────────────────────────────
-  function restartRefreshTimer() {
-    if (refreshTimer)      clearInterval(refreshTimer);
-    if (pollInterval)      clearInterval(pollInterval);
-    if (graphRefreshTimer) clearInterval(graphRefreshTimer);
-
-    refreshTimer = setInterval(refreshAllData, refreshInterval);
-    pollInterval = setInterval(checkForNewData, 2000);
-
-    const graphInterval = currentPeriod === 'today' ? 5000 : 30000;
-    graphRefreshTimer = setInterval(() => {
-      if (currentPeriod === 'today') fetchGraphData(currentPeriod);
-    }, graphInterval);
-  }
-
-  async function refreshAllData() {
-    await Promise.all([fetchLiveData(), fetchRecentReadings()]);
-    document.getElementById('clock').textContent = formatISTClock();
-    updateSystemStatus();
-  }
-
-  async function updateSystemStatus() {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/readings/latest/?unit_id=100`);
-      const online   = response.ok;
-      const setBadge = (id, text, cls) => {
-        const el = document.getElementById(id);
-        if (el) { el.textContent = text; el.className = 'sys-status-badge ' + cls; }
-      };
-      if (online) {
-        setBadge('status-api',     'Online',      'ok');
-        setBadge('status-db',      'Active',       'ok');
-        setBadge('status-gateway', 'Connected',    'ok');
-        const data = await response.json();
-        if (data.timestamp) {
-          const ts  = new Date(data.timestamp);
-          const age = Math.floor((Date.now() - ts.getTime()) / 1000);
-          setBadge('status-last', `${age}s ago`, age < 10 ? 'ok' : age < 30 ? 'warn' : 'err');
-        }
-      } else {
-        setBadge('status-api',     'Offline',      'err');
-        setBadge('status-db',      'Unknown',      'warn');
-        setBadge('status-gateway', 'Disconnected', 'err');
-        setBadge('status-last',    'No data',      'err');
-      }
-    } catch (e) { console.error('Status check failed', e); }
-  }
-
-  // ─── ACTIONS ──────────────────────────────────────────────────────────────────
-  function forceRefresh()  { refreshAllData(); fetchGraphData(currentPeriod); showBanner('restored', 'Manual refresh done'); }
-  function clearCache()    { localStorage.removeItem('energySettings'); loadSettings(); showBanner('restored', 'Cache cleared, settings reset'); }
-  function reconnect()     { setConnectionStatus('reconnecting'); refreshAllData().then(() => { document.getElementById('offline-banner').classList.remove('show'); }); }
-  function openModal(id)   {
-    document.getElementById(id).classList.add('open');
-    if (id === 'system-status-modal') {
-      updateSystemStatus();
-      if (window._statusInterval) clearInterval(window._statusInterval);
-      window._statusInterval = setInterval(updateSystemStatus, 2000);
+    if (!mainChart) {
+      createChart(estLabels, multiData);
+    } else {
+      mainChart.data.labels = estLabels;
+      STREAMS.forEach((s,i) => {
+        mainChart.data.datasets[i].data = multiData[s.id]||[];
+        const ctx = mainChart.ctx;
+        mainChart.data.datasets[i].backgroundColor = buildGrad(ctx, s.color);
+        mainChart.data.datasets[i].pointRadius = estLabels.length > 48 ? 0 : 2;
+      });
+      mainChart.update('none');
     }
-  }
-  function closeModal(id) {
-    document.getElementById(id).classList.remove('open');
-    if (id === 'system-status-modal' && window._statusInterval) clearInterval(window._statusInterval);
-  }
 
-  // ─── DEFAULT DATES ────────────────────────────────────────────────────────────
-  function setDefaultDates() {
-    const todayIST   = formatDateIST(nowIST());
-    const weekAgoIST = formatDateIST(new Date(Date.now() + IST_OFFSET_MS - 7 * 86400000));
-    document.getElementById('date-to').value   = todayIST;
-    document.getElementById('date-from').value = weekAgoIST;
+    // Update sidebar live values
+    STREAMS.forEach(s => {
+      const vals = multiData[s.id]||[];
+      const last = vals.length ? vals[vals.length-1] : 0;
+      const el = document.getElementById(`cv-${s.id}`);
+      if (el) el.textContent = `${last.toFixed(1)} kW`;
+    });
+
+    // Update flow nodes
+    const lastIdx = primaryVals.length-1;
+    document.getElementById('fn-solar').textContent   = (multiData.solar[lastIdx]||0).toFixed(1)+' kW';
+    document.getElementById('fn-battery').textContent = (multiData.battery[lastIdx]||0).toFixed(1)+' kW';
+    document.getElementById('fn-grid').textContent    = (primaryVals[lastIdx]||0).toFixed(1)+' kW';
+    document.getElementById('fn-ev').textContent      = (multiData.ev[lastIdx]||0).toFixed(1)+' kW';
+
+    const count = rawLabels.length;
+    const peak  = Math.max(...primaryVals).toFixed(1);
+    document.getElementById('chart-meta').textContent = `${count} readings · Peak ${peak} kW · EST`;
+    setGPill('live',`${count} pts`);
+  } catch(e) {
+    console.error('Graph fetch failed:',e);
+    showChartEmpty(true);
+    setGPill('nodata','Error');
   }
+}
 
-  // ─── INIT (cards omitted) ─────────────────────────────────────────────────────
-  function init() {
-    setDefaultDates();
-    loadSettings();
-    createChart([], []);
-    refreshAllData();
-    fetchGraphData('today');
-    restartRefreshTimer();
-    document.getElementById('clock').textContent = formatISTClock();
-    setInterval(() => { document.getElementById('clock').textContent = formatISTClock(); }, 1000);
-    window.addEventListener('online',  () => { showBanner('restored', 'Network restored'); reconnect(); });
-    window.addEventListener('offline', () => { showBanner('offline',  'Network lost'); setConnectionStatus('offline'); document.getElementById('offline-banner').classList.add('show'); });
-    // monthly usage placeholder no longer needed
+// ── LIVE DATA ──
+async function fetchLiveData() {
+  try {
+    const res = await fetch(`${API_BASE}/api/readings/latest/?unit_id=100`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const d = await res.json();
+    if (d.status==='online'||d.status==='stale') {
+      const kw = d.active_power_kw??0;
+      document.getElementById('v-kw').textContent  = kw.toFixed(1);
+      document.getElementById('v-kwh').textContent = (d.energy_today_kwh??0).toFixed(1);
+      document.getElementById('v-v').textContent   = (d.voltage??0).toFixed(1);
+      document.getElementById('v-a').textContent   = (d.current??0).toFixed(1);
+      document.getElementById('v-ap').textContent  = (d.apparent_power_kva??0).toFixed(1);
+      setConnStatus('online');
+      const stale = d.status==='stale';
+      ['b-kw','b-kwh','b-v','b-a','b-ap'].forEach(id=>{
+        const el=document.getElementById(id);
+        if(el){el.className='kpi-badge '+(stale?'stale':'ok');el.textContent=stale?'STALE':'LIVE';}
+      });
+      document.getElementById('offline-bar').classList.remove('show');
+      if (d.timestamp) {
+        const ts = new Date(d.timestamp);
+        const est = new Date(ts.getTime()+EST_MS);
+        const str = fmtTimeEST(est);
+        document.getElementById('sb-sync').textContent = str;
+        document.getElementById('s-last-sub').textContent = str;
+        lastTS = ts.getTime();
+      }
+      document.getElementById('fn-grid').textContent = kw.toFixed(1)+' kW';
+    } else {
+      setConnStatus('offline');
+    }
+  } catch(e) {
+    setConnStatus('offline');
+    document.getElementById('offline-bar').classList.add('show');
   }
+}
 
-  document.addEventListener('DOMContentLoaded', init);
+// ── RECENT READINGS ──
+async function fetchRecent() {
+  try {
+    const res = await fetch(`${API_BASE}/api/readings/recent/?unit_id=100&limit=20`);
+    if (!res.ok) throw new Error('Fail');
+    const rows = await res.json();
+    renderTable(rows);
+  } catch(e) {
+    document.getElementById('tBody').innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:16px">Failed to load</td></tr>';
+  }
+}
 
-  Object.assign(window, {
-    switchChart, applyCustomRange, exportCSV,
-    saveSettings, openModal, closeModal,
-    forceRefresh, clearCache, reconnect, closeBanner
+function renderTable(rows) {
+  const tb = document.getElementById('tBody');
+  if (!rows||!rows.length) {
+    tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:16px">No data</td></tr>'; return;
+  }
+  tb.innerHTML = rows.map(r=>{
+    const kw=+(r.kw||0), v=+(r.voltage||0), a=+(r.current||0), e=+(r.energy||0), pf=+(r.pf||0);
+    const ok = r.status==='ok';
+    return `<tr>
+      <td style="font-family:'Syne Mono',monospace">${r.time||'—'}</td>
+      <td>${kw.toFixed(2)}</td>
+      <td>${v.toFixed(1)}</td>
+      <td>${a.toFixed(1)}</td>
+      <td>${e.toFixed(1)}</td>
+      <td>${pf.toFixed(2)}</td>
+      <td><span class="stbadge ${ok?'ok':'warn'}">${ok?'Online':'⚠ '+r.status}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── CONTROLS ──
+function setBatteryMode(mode) {
+  state.batteryMode = mode;
+  ['charge','discharge','auto'].forEach(m=>{
+    const btn = document.getElementById(`btn-${m}`);
+    if(btn){ btn.classList.toggle('active', m===mode); }
   });
+  showBanner('restored', `Battery mode set to: ${mode.toUpperCase()}`);
+}
+
+function setGridMode(mode) {
+  state.gridMode = mode;
+  [['grid','grid-on'],['battery','batt-on']].forEach(([m,id])=>{
+    const btn = document.getElementById(`btn-${id}`);
+    if(btn) btn.classList.toggle('active', m===mode);
+  });
+  showBanner('restored', `Grid source: ${mode.toUpperCase()}`);
+}
+
+function setLoad(s) {
+  state.loadState = s;
+  [['on','load-on'],['off','load-off']].forEach(([m,id])=>{
+    const btn = document.getElementById(`btn-${id}`);
+    if(btn) btn.classList.toggle('active', m===s);
+  });
+  showBanner(s==='on'?'restored':'reconnect', `Main load: ${s.toUpperCase()}`);
+}
+
+function setHVAC(v) {
+  state.hvacTemp = +v;
+  document.getElementById('hvac-val').textContent = v+'°C';
+  document.getElementById('fn-hvac').textContent = v+'°C';
+}
+
+// ── UI HELPERS ──
+function setConnStatus(s) {
+  const dot = document.getElementById('sb-dot');
+  const txt = document.getElementById('sb-status-text');
+  if(s==='online')  { dot.className='sb-dot'; dot.style.background='#10B981'; dot.style.boxShadow='0 0 6px #10B981'; txt.textContent='Online · Live'; }
+  else if(s==='offline') { dot.className='sb-dot'; dot.style.background='#EF4444'; dot.style.boxShadow='0 0 6px #EF4444'; txt.textContent='Offline'; }
+  else { dot.className='sb-dot'; dot.style.background='#F59E0B'; dot.style.boxShadow='0 0 6px #F59E0B'; txt.textContent='Reconnecting…'; }
+}
+
+function setGPill(type, label) {
+  const el = document.getElementById('gpill');
+  el.className = 'graph-status-pill '+type;
+  if (type==='loading') el.innerHTML = `<span class="spin"></span> ${label}`;
+  else el.textContent = label;
+}
+
+function showChartEmpty(show) {
+  document.getElementById('chart-empty').classList.toggle('show', show);
+}
+
+function showBanner(cls, msg) {
+  const b = document.getElementById('banner');
+  b.className = 'banner show '+cls;
+  document.getElementById('banner-msg').textContent = msg;
+  setTimeout(()=>{ if(b.classList.contains('show')) closeBanner(); }, 4000);
+}
+function closeBanner() { document.getElementById('banner').className='banner'; }
+
+// ── CHART SWITCHING ──
+function switchChart(period) {
+  currentPeriod = period;
+  document.querySelectorAll('.chart-tab').forEach(t => t.classList.toggle('on', t.textContent.toLowerCase()===period));
+  fetchGraphData(period);
+}
+
+function applyCustomRange() {
+  const f = document.getElementById('date-from').value;
+  const t = document.getElementById('date-to').value;
+  if(!f||!t) { showBanner('reconnect','Select both dates'); return; }
+  if(f>t) { showBanner('reconnect','Start must be before end'); return; }
+  document.querySelectorAll('.chart-tab').forEach(t=>t.classList.remove('on'));
+  currentPeriod='custom';
+  fetchGraphData('custom',f,t);
+}
+
+// ── SYSTEM STATUS ──
+async function updateSysStatus() {
+  const setBadge = (id,txt,cls) => {
+    const el = document.getElementById(id);
+    if(el){el.textContent=txt;el.className='stbadge '+cls;}
+  };
+  try {
+    const res = await fetch(`${API_BASE}/api/readings/latest/?unit_id=100`);
+    if(res.ok) {
+      setBadge('s-gateway','Connected','ok');
+      setBadge('s-api','Online','ok');
+      setBadge('s-db','Active','ok');
+      const d = await res.json();
+      if(d.timestamp) {
+        const age = Math.floor((Date.now()-new Date(d.timestamp).getTime())/1000);
+        setBadge('s-last', age+'s ago', age<10?'ok':age<30?'warn':'err');
+        document.getElementById('s-last-sub').textContent = new Date(d.timestamp).toLocaleTimeString('en-US',{timeZone:'America/New_York'});
+      }
+    } else throw new Error('offline');
+  } catch(e) {
+    const setBadge = (id,txt,cls) => { const el=document.getElementById(id); if(el){el.textContent=txt;el.className='stbadge '+cls;} };
+    setBadge('s-gateway','Disconnected','err');
+    setBadge('s-api','Offline','err');
+    setBadge('s-db','Unknown','warn');
+    setBadge('s-last','No data','err');
+  }
+}
+
+// ── EXPORT ──
+function exportCSV() {
+  const tbl = document.getElementById('readings-table');
+  const rows = tbl.querySelectorAll('tbody tr');
+  let csv = [['Time (EST)','kW','Voltage (V)','Current (A)','Energy (kWh)','PF','Status'].join(',')];
+  rows.forEach(row => {
+    const cells = row.querySelectorAll('td');
+    if(cells.length>1) {
+      const data = Array.from(cells).map(c=>{
+        let t=c.textContent.trim();
+        if(t.includes(',')) t=`"${t}"`;
+        return t;
+      });
+      csv.push(data.join(','));
+    }
+  });
+  const blob = new Blob([csv.join('\n')],{type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `microgrid_${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ── SETTINGS ──
+function saveSettings() {
+  const iv = parseInt(document.getElementById('refresh-interval').value)||5;
+  state.currency = document.getElementById('currency-select').value;
+  state.unitRate = parseFloat(document.getElementById('unit-rate').value)||0.14;
+  refreshInterval = Math.max(2,Math.min(60,iv))*1000;
+  restartTimers();
+  localStorage.setItem('mgSettings',JSON.stringify({refreshInterval,currency:state.currency,unitRate:state.unitRate}));
+  closeModal('settings-modal');
+  showBanner('restored','Settings saved');
+}
+
+function loadSettings() {
+  try {
+    const s = JSON.parse(localStorage.getItem('mgSettings')||'{}');
+    if(s.refreshInterval) refreshInterval=s.refreshInterval;
+    if(s.currency) state.currency=s.currency;
+    if(s.unitRate) state.unitRate=s.unitRate;
+    document.getElementById('refresh-interval').value = refreshInterval/1000;
+    document.getElementById('currency-select').value = state.currency;
+    document.getElementById('unit-rate').value = state.unitRate;
+  } catch(e){}
+}
+
+// ── POLLING ──
+async function checkNewData() {
+  try {
+    const res = await fetch(`${API_BASE}/api/readings/latest/?unit_id=100`);
+    if(res.ok) {
+      const d = await res.json();
+      if(d.timestamp) {
+        const ts = new Date(d.timestamp).getTime();
+        if(lastTS && ts>lastTS) { fetchGraphData(currentPeriod); fetchRecent(); showBanner('restored','New data received'); }
+        lastTS = ts;
+      }
+    }
+  } catch(e){}
+}
+
+async function refreshAll() {
+  await Promise.all([fetchLiveData(), fetchRecent()]);
+}
+
+function restartTimers() {
+  if(refreshTimer) clearInterval(refreshTimer);
+  if(pollTimer) clearInterval(pollTimer);
+  if(graphTimer) clearInterval(graphTimer);
+  refreshTimer = setInterval(refreshAll, refreshInterval);
+  pollTimer = setInterval(checkNewData, 2000);
+  graphTimer = setInterval(() => { fetchGraphData(currentPeriod); }, 3000);
+}
+
+// ── MODALS ──
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  if(id==='system-status-modal') {
+    updateSysStatus();
+    if(window._si) clearInterval(window._si);
+    window._si = setInterval(updateSysStatus,2000);
+  }
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  if(id==='system-status-modal'&&window._si) clearInterval(window._si);
+}
+
+// ── INIT ──
+function setDefDates() {
+  const now = nowEST();
+  document.getElementById('date-to').value   = fmtDateEST(now);
+  document.getElementById('date-from').value = fmtDateEST(new Date(Date.now()+EST_MS-7*86400000));
+}
+
+function forceRefresh() { refreshAll(); fetchGraphData(currentPeriod); showBanner('restored','Manual refresh done'); }
+function reconnect() { setConnStatus('reconnecting'); refreshAll().then(()=>document.getElementById('offline-bar').classList.remove('show')); }
+
+function init() {
+  setDefDates();
+  loadSettings();
+  buildSidebar();
+  createChart([],{});
+  refreshAll();
+  fetchGraphData('today');
+  restartTimers();
+  document.getElementById('clock-display').textContent = fmtClock()+' EST';
+  document.getElementById('sb-clock').textContent = new Date().toLocaleTimeString('en-US',{timeZone:'America/New_York',hour:'2-digit',minute:'2-digit',hour12:false});
+  setInterval(()=>{
+    document.getElementById('clock-display').textContent = fmtClock()+' EST';
+    document.getElementById('sb-clock').textContent = new Date().toLocaleTimeString('en-US',{timeZone:'America/New_York',hour:'2-digit',minute:'2-digit',hour12:false});
+  },1000);
+  window.addEventListener('online',()=>{ showBanner('restored','Network restored'); reconnect(); });
+  window.addEventListener('offline',()=>{ showBanner('offline','Network lost'); setConnStatus('offline'); document.getElementById('offline-bar').classList.add('show'); });
+  document.addEventListener('click',(e)=>{ if(!e.target.closest('#lineChart')) document.getElementById('drill-tooltip').classList.remove('show'); });
+}
+
+document.addEventListener('DOMContentLoaded', init);
+
+Object.assign(window,{
+  switchChart, applyCustomRange, exportCSV,
+  saveSettings, openModal, closeModal,
+  forceRefresh, reconnect, closeBanner,
+  setBatteryMode, setGridMode, setLoad, setHVAC,
+  toggleStream
+});
 </script>
 </body>
 </html>

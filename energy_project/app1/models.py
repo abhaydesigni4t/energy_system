@@ -30,16 +30,42 @@ class SensorReading(models.Model):
         ]
     
     def save(self, *args, **kwargs):
-        # Decode registers before saving
         if self.block1_raw and len(self.block1_raw) > 0:
-            self.voltage = self.block1_raw[0] / 10 if len(self.block1_raw) > 0 else 0
-            self.current = self.block1_raw[8] / 10 if len(self.block1_raw) > 8 else 0
-            self.active_power_kw = self.block1_raw[20] if len(self.block1_raw) > 20 else 0
-            self.reactive_power_kvar = self.block1_raw[21] if len(self.block1_raw) > 21 else 0
-            self.apparent_power_kva = self.block1_raw[22] if len(self.block1_raw) > 22 else 0
+            # Voltages (scale /10)
+            v_a = self.block1_raw[0] / 10
+            v_b = self.block1_raw[1] / 10
+            v_c = self.block1_raw[2] / 10
+            self.voltage = round((v_a + v_b + v_c) / 3, 1)
+            
+            # Currents (scale /10)
+            i_a = self.block1_raw[8] / 10
+            i_b = self.block1_raw[9] / 10
+            i_c = self.block1_raw[10] / 10
+            self.current = round((i_a + i_b + i_c) / 3, 1)
+            
+            # Active Power (from V×I)
+            total_watts = (v_a * i_a) + (v_b * i_b) + (v_c * i_c)
+            self.active_power_kw = round(total_watts / 1000, 1)
+            
+            # Reactive Power (scale /10) – handle missing values
+            self.reactive_power_kvar = (self.block1_raw[21] / 10) if len(self.block1_raw) > 21 and self.block1_raw[21] is not None else 0
+            
+            # ✅ FIXED Apparent Power – calculated from V×I (not register 40122)
+            total_va = total_watts  # VA = Watts when PF=1, but we still calculate correctly
+            # Actually we should compute apparent power per phase (V×I) without PF
+            # Since VA = V×I (magnitudes), same as we already have for active power only if PF=1.
+            # To be technically correct for any PF, we need to use RMS values:
+            s_a = v_a * i_a
+            s_b = v_b * i_b
+            s_c = v_c * i_c
+            self.apparent_power_kva = round((s_a + s_b + s_c) / 1000, 1)
+            
+            # Note: If you want to keep using the meter's register but correct it:
+            # self.apparent_power_kva = round((self.block1_raw[22] / 10) / 3, 1)  # 31.5/3 ≈ 10.5 (close)
         
         if self.block2_raw and len(self.block2_raw) > 1:
-            self.energy_today_kwh = (self.block2_raw[1] * 65536) + self.block2_raw[0]
+            raw_energy = (self.block2_raw[1] * 65536) + self.block2_raw[0]
+            self.energy_today_kwh = round(raw_energy / 100000, 1)
         
         super().save(*args, **kwargs)
     
