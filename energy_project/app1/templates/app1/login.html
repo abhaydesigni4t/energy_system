@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign In · 3rd Rock Energy</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne+Mono&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --font-text:'Space Grotesk',-apple-system,BlinkMacSystemFont,sans-serif;
+  --font-mono:'Syne Mono',monospace;
+  --bg:#0A0D14;--surface:#111624;--surface2:#1A2035;
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.14);
+  --text1:#F0F4FF;--text2:rgba(255,255,255,0.65);--text3:rgba(255,255,255,0.35);
+  --accent:#3B82F6;--accent2:#2563EB;--success:#10B981;--error:#F43F5E;
+}
+body{font-family:var(--font-text);background:var(--bg);color:var(--text1);min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+
+/* Animated background grid */
+.bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(59,130,246,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,0.03) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;}
+.bg-glow{position:fixed;inset:0;background:radial-gradient(ellipse 60% 50% at 50% 0%,rgba(59,130,246,0.12),transparent);pointer-events:none;}
+.orb{position:fixed;border-radius:50%;filter:blur(80px);pointer-events:none;animation:drift 12s ease-in-out infinite;}
+.orb1{width:400px;height:400px;background:rgba(59,130,246,0.08);top:-100px;right:-100px;animation-delay:0s;}
+.orb2{width:300px;height:300px;background:rgba(16,185,129,0.06);bottom:-100px;left:-100px;animation-delay:6s;}
+@keyframes drift{0%,100%{transform:translate(0,0) scale(1);}50%{transform:translate(30px,-20px) scale(1.05);}}
+
+/* Card */
+.auth-card{position:relative;z-index:10;width:100%;max-width:420px;margin:24px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:40px;box-shadow:0 32px 80px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.05);}
+.auth-logo{display:flex;align-items:center;gap:10px;margin-bottom:32px;}
+.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,#3B82F6,#2563EB);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+.logo-name{font-size:15px;font-weight:700;color:var(--text1);letter-spacing:-0.3px;}
+.logo-sub{font-size:10px;color:var(--text3);font-family:var(--font-mono);letter-spacing:1px;margin-top:1px;}
+.auth-heading{font-size:24px;font-weight:700;letter-spacing:-0.5px;margin-bottom:6px;}
+.auth-sub{font-size:13px;color:var(--text2);margin-bottom:28px;font-weight:400;}
+
+/* Form */
+.fg{margin-bottom:16px;}
+.flb{display:block;font-size:11px;font-weight:700;color:var(--text2);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px;}
+.auth-input{width:100%;padding:11px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text1);font-family:var(--font-text);font-size:13px;font-weight:500;outline:none;transition:border-color 0.15s,box-shadow 0.15s;}
+.auth-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,130,246,0.12);}
+.auth-input::placeholder{color:var(--text3);}
+
+/* Error */
+.field-errors{margin-top:6px;}
+.field-errors li{font-size:11px;color:var(--error);list-style:none;display:flex;align-items:center;gap:4px;}
+.form-error{background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.2);border-radius:10px;padding:10px 14px;font-size:12px;color:#F87171;margin-bottom:20px;display:flex;align-items:center;gap:8px;}
+.form-success{background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:10px;padding:10px 14px;font-size:12px;color:#34D399;margin-bottom:20px;}
+
+/* Submit */
+.submit-btn{width:100%;padding:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:10px;color:#fff;font-family:var(--font-text);font-size:14px;font-weight:700;cursor:pointer;transition:opacity 0.15s,transform 0.1s;margin-top:4px;}
+.submit-btn:hover{opacity:0.92;transform:translateY(-1px);}
+.submit-btn:active{transform:translateY(0);}
+
+/* Link */
+.auth-link-row{text-align:center;margin-top:20px;font-size:12px;color:var(--text3);}
+.auth-link-row a{color:var(--accent);text-decoration:none;font-weight:600;}
+.auth-link-row a:hover{text-decoration:underline;}
+
+/* Role tabs */
+.role-tabs{display:flex;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:3px;gap:3px;margin-bottom:24px;}
+.role-tab{flex:1;padding:8px;text-align:center;font-size:11px;font-weight:700;border-radius:7px;cursor:pointer;transition:all 0.15s;color:var(--text3);background:transparent;border:none;letter-spacing:0.5px;text-transform:uppercase;}
+.role-tab.active{background:var(--surface2);color:var(--text1);border:1px solid var(--border);}
+
+/* Messages */
+.messages{margin-bottom:20px;}
+.msg{padding:10px 14px;border-radius:10px;font-size:12px;font-weight:600;margin-bottom:6px;}
+.msg.success{background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);color:#34D399;}
+.msg.error{background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.2);color:#F87171;}
+.msg.info{background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);color:#93C5FD;}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="bg-glow"></div>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+
+<div class="auth-card">
+  <div class="auth-logo">
+    <div class="logo-icon">⚡</div>
+    <div>
+      <div class="logo-name">3rd Rock Energy</div>
+      <div class="logo-sub">MICROGRID SYSTEM</div>
+    </div>
+  </div>
+
+  <h1 class="auth-heading">Welcome back</h1>
+  <p class="auth-sub">Sign in to access your energy dashboard</p>
+
+  {% if messages %}
+    <div class="messages">
+      {% for message in messages %}
+        <div class="msg {{ message.tags }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if form.non_field_errors %}
+    <div class="form-error">⚠ {{ form.non_field_errors|join:", " }}</div>
+  {% endif %}
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+
+    <div class="fg">
+      <label class="flb" for="{{ form.username.id_for_label }}">Username</label>
+      {{ form.username }}
+      {% if form.username.errors %}
+        <ul class="field-errors">{% for e in form.username.errors %}<li>✕ {{ e }}</li>{% endfor %}</ul>
+      {% endif %}
+    </div>
+
+    <div class="fg">
+      <label class="flb" for="{{ form.password.id_for_label }}">Password</label>
+      {{ form.password }}
+      {% if form.password.errors %}
+        <ul class="field-errors">{% for e in form.password.errors %}<li>✕ {{ e }}</li>{% endfor %}</ul>
+      {% endif %}
+    </div>
+
+    <button type="submit" class="submit-btn">Sign In →</button>
+  </form>
+
+  <div class="auth-link-row">
+    Don't have an account? <a href="{% url 'signup' %}">Create account</a>
+  </div>
+</div>
+</body>
+</html>

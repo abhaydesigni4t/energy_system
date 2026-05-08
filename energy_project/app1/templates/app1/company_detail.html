@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ company.name }} · 3rd Rock Energy</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#F8FAFC;--bg2:#fff;--border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.14);
+  --text1:#0F172A;--text2:#334155;--text3:#64748B;
+  --accent:#2563EB;--accent2:#1D4ED8;--green:#10B981;--red:#F43F5E;--amber:#F59E0B;
+  --r8:8px;--r12:12px;--r16:16px;--r20:20px;
+  --font:'Space Grotesk',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text1);font-size:14px;-webkit-font-smoothing:antialiased;}
+
+/* TOPBAR */
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.topbar-brand{font-size:18px;font-weight:800;background:linear-gradient(135deg,#0F172A,#3B82F6);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.nav-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:30px;font-size:12px;font-weight:700;font-family:var(--font);border:1px solid var(--border2);background:transparent;color:var(--text1);cursor:pointer;text-decoration:none;transition:all 0.15s;}
+.nav-btn:hover{background:var(--bg);}
+.nav-btn.accent{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-color:transparent;}
+.nav-btn.danger{background:linear-gradient(135deg,#ff5f5f,#ff3b3b);color:#fff;border-color:transparent;}
+.nav-btn.warn{background:linear-gradient(135deg,#F59E0B,#D97706);color:#fff;border-color:transparent;}
+
+/* BREADCRUMB */
+.breadcrumb{padding:16px 28px 0;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text3);font-weight:600;}
+.breadcrumb a{color:var(--accent);text-decoration:none;font-weight:700;}
+
+/* PAGE HEADER */
+.page-header{padding:20px 28px 0;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+.company-name{font-size:30px;font-weight:800;letter-spacing:-0.5px;color:var(--text1);}
+.company-meta{display:flex;flex-wrap:wrap;gap:14px;margin-top:8px;}
+.meta-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text3);font-weight:600;}
+.header-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;}
+
+/* CONTENT */
+.content{padding:20px 28px 60px;}
+
+/* MESSAGES */
+.messages{padding:0 28px 0;margin-top:12px;}
+.msg{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:var(--r8);font-size:13px;font-weight:600;margin-bottom:6px;}
+.msg.success{background:rgba(16,185,129,0.1);color:#065F46;border:1px solid rgba(16,185,129,0.25);}
+.msg.error{background:rgba(244,63,94,0.1);color:#9F1239;border:1px solid rgba(244,63,94,0.25);}
+
+/* DEVICE GRID */
+.section-title{font-size:15px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:var(--text2);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;}
+.device-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:28px;}
+
+.device-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r16);overflow:hidden;transition:box-shadow 0.2s,border-color 0.2s;}
+.device-card:hover{border-color:var(--accent);box-shadow:0 4px 16px rgba(37,99,235,0.1);}
+.dc-top{padding:16px 18px 12px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+.dc-unit{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;}
+.dc-name{font-size:15px;font-weight:800;color:var(--text1);letter-spacing:-0.2px;}
+.dc-location{font-size:11px;color:var(--text3);font-weight:600;margin-top:3px;}
+.dc-status{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:10px;font-weight:800;}
+.dc-status.online{background:rgba(16,185,129,0.12);color:#0E7C46;}
+.dc-status.offline{background:rgba(244,63,94,0.1);color:#BE123C;}
+.dc-status.stale{background:rgba(245,158,11,0.1);color:#B45309;}
+
+/* KPI mini */
+.dc-kpis{display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid var(--border);}
+.dc-kpi{padding:10px 16px;border-right:1px solid var(--border);}
+.dc-kpi:last-child,.dc-kpi:nth-child(2){border-right:none;}
+.dc-kpi:nth-child(3),.dc-kpi:nth-child(4){border-top:1px solid var(--border);}
+.dc-kpi-val{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--text1);}
+.dc-kpi-lbl{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.4px;margin-top:2px;}
+
+.dc-actions{display:flex;gap:6px;padding:10px 16px;border-top:1px solid var(--border);}
+.dc-btn{flex:1;padding:6px 0;border-radius:var(--r8);font-size:11px;font-weight:700;font-family:var(--font);border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;text-align:center;text-decoration:none;display:inline-block;transition:all 0.15s;}
+.dc-btn:hover{background:var(--bg);border-color:#aaa;}
+.dc-btn.primary{background:var(--accent);color:#fff;border-color:transparent;}
+.dc-btn.primary:hover{background:var(--accent2);}
+.dc-btn.red{color:var(--red);border-color:rgba(244,63,94,0.3);}
+
+/* ASSIGNED USERS */
+.user-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:30px;background:var(--bg);border:1px solid var(--border2);font-size:11px;font-weight:700;color:var(--text2);}
+
+/* EMPTY */
+.empty-box{background:var(--bg2);border:2px dashed var(--border2);border-radius:var(--r16);padding:40px;text-align:center;color:var(--text3);}
+.empty-box .ei{font-size:32px;margin-bottom:12px;}
+.empty-box .et{font-size:15px;font-weight:700;margin-bottom:6px;color:var(--text2);}
+.empty-box .es{font-size:13px;margin-bottom:18px;}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-brand">3rd Rock Energy System</div>
+  <nav style="display:flex;gap:8px;flex-wrap:wrap;">
+    <a href="{% url 'energy_dashboard' %}" class="nav-btn">📊 Dashboard</a>
+    <a href="{% url 'company_list' %}" class="nav-btn">🏢 Companies</a>
+    {% if user.is_admin_or_superadmin %}
+      <a href="{% url 'user_list' %}" class="nav-btn">👥 Users</a>
+    {% endif %}
+    <a href="{% url 'logout' %}" class="nav-btn danger">Logout</a>
+  </nav>
+</header>
+
+<div class="breadcrumb">
+  <a href="{% url 'energy_dashboard' %}">Dashboard</a> <span>›</span>
+  <a href="{% url 'company_list' %}">Device Management</a> <span>›</span>
+  <span>{{ company.name }}</span>
+</div>
+
+{% if messages %}
+<div class="messages" style="margin-top:12px;">
+  {% for message in messages %}
+    <div class="msg {{ message.tags }}">{{ message }}</div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="page-header">
+  <div>
+    <div class="company-name">🏢 {{ company.name }}</div>
+    <div class="company-meta">
+      {% if company.location %}<div class="meta-item">📍 {{ company.location }}</div>{% endif %}
+      {% if company.contact_email %}<div class="meta-item">✉ {{ company.contact_email }}</div>{% endif %}
+      {% if company.contact_phone %}<div class="meta-item">📞 {{ company.contact_phone }}</div>{% endif %}
+      <div class="meta-item">⚡ {{ device_data|length }} device{{ device_data|length|pluralize }}</div>
+    </div>
+    {% if company.description %}
+      <div style="margin-top:10px;font-size:13px;color:var(--text3);max-width:600px;">{{ company.description }}</div>
+    {% endif %}
+  </div>
+  <div class="header-actions">
+    <a href="{% url 'add_device' %}" class="nav-btn accent">+ Add Device</a>
+    <a href="{% url 'edit_company' company.pk %}" class="nav-btn warn">Edit Company</a>
+    <a href="{% url 'delete_company' company.pk %}" class="nav-btn danger">Delete</a>
+  </div>
+</div>
+
+<div class="content" style="margin-top:20px;">
+
+  <div class="section-title">
+    <span>⚡ Devices ({{ device_data|length }})</span>
+    <a href="{% url 'add_device' %}" class="nav-btn accent" style="font-size:11px;padding:5px 14px;">+ Add Device</a>
+  </div>
+
+  {% if device_data %}
+    <div class="device-grid" id="device-grid">
+      {% for item in device_data %}
+      {% with device=item.device latest=item.latest %}
+      <div class="device-card">
+        <div class="dc-top">
+          <div>
+            <div class="dc-unit">Unit ID: {{ device.unit_id }}</div>
+            <div class="dc-name">{{ device.get_display_name }}</div>
+            {% if device.location %}<div class="dc-location">📍 {{ device.location }}</div>{% endif %}
+          </div>
+          {% if latest %}
+            {% with age=latest.timestamp|floatformat:0 %}
+              <span class="dc-status online" id="status-{{ device.unit_id }}">🟢 Online</span>
+            {% endwith %}
+          {% else %}
+            <span class="dc-status offline">⚫ No Data</span>
+          {% endif %}
+        </div>
+
+        {% if latest %}
+        <div class="dc-kpis">
+          <div class="dc-kpi">
+            <div class="dc-kpi-val" id="kw-{{ device.unit_id }}">{{ latest.active_power_kw|floatformat:1 }}</div>
+            <div class="dc-kpi-lbl">kW</div>
+          </div>
+          <div class="dc-kpi">
+            <div class="dc-kpi-val" id="v-{{ device.unit_id }}">{{ latest.voltage|floatformat:1 }}</div>
+            <div class="dc-kpi-lbl">Volts</div>
+          </div>
+          <div class="dc-kpi">
+            <div class="dc-kpi-val" id="a-{{ device.unit_id }}">{{ latest.current|floatformat:1 }}</div>
+            <div class="dc-kpi-lbl">Amps</div>
+          </div>
+          <div class="dc-kpi">
+            <div class="dc-kpi-val" id="kwh-{{ device.unit_id }}">{{ latest.energy_today_kwh|floatformat:1 }}</div>
+            <div class="dc-kpi-lbl">kWh</div>
+          </div>
+        </div>
+        {% else %}
+        <div style="padding:14px 18px;font-size:12px;color:var(--text3);border-top:1px solid var(--border);">No readings yet for this device.</div>
+        {% endif %}
+
+        {% if device.assigned_users.all %}
+        <div style="padding:8px 16px;border-top:1px solid var(--border);display:flex;flex-wrap:wrap;gap:5px;">
+          {% for u in device.assigned_users.all %}
+            <span class="user-chip">👤 {{ u.username }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="dc-actions">
+          <a href="{% url 'device_detail' device.pk %}" class="dc-btn primary">View</a>
+          <a href="{% url 'edit_device' device.pk %}" class="dc-btn">Edit</a>
+          <a href="{% url 'delete_device' device.pk %}" class="dc-btn red">Remove</a>
+        </div>
+      </div>
+      {% endwith %}
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-box">
+      <div class="ei">⚡</div>
+      <div class="et">No devices assigned</div>
+      <div class="es">Add devices to this company to start monitoring energy data.</div>
+      <a href="{% url 'add_device' %}" class="nav-btn accent">+ Add First Device</a>
+    </div>
+  {% endif %}
+</div>
+
+<script>
+// Live polling for all devices on this page
+const unitIds = [{% for item in device_data %}{{ item.device.unit_id }}{% if not forloop.last %},{% endif %}{% endfor %}];
+const API_BASE = window.location.origin;
+
+async function pollDevice(unitId) {
+  try {
+    const res = await fetch(`${API_BASE}/api/readings/latest/?unit_id=${unitId}`);
+    if (!res.ok) return;
+    const d = await res.json();
+    if (d.status === 'online' || d.status === 'stale') {
+      const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+      set(`kw-${unitId}`, parseFloat(d.active_power_kw || 0).toFixed(1));
+      set(`v-${unitId}`, parseFloat(d.voltage || 0).toFixed(1));
+      set(`a-${unitId}`, parseFloat(d.current || 0).toFixed(1));
+      set(`kwh-${unitId}`, parseFloat(d.energy_today_kwh || 0).toFixed(1));
+      const badge = document.getElementById(`status-${unitId}`);
+      if (badge) {
+        badge.className = `dc-status ${d.status === 'stale' ? 'stale' : 'online'}`;
+        badge.textContent = d.status === 'stale' ? '🟡 Stale' : '🟢 Online';
+      }
+    }
+  } catch (e) {}
+}
+
+function pollAll() { unitIds.forEach(id => pollDevice(id)); }
+pollAll();
+setInterval(pollAll, 5000);
+</script>
+</body>
+</html>

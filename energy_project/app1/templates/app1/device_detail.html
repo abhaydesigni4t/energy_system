@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ device.get_display_name }} · 3rd Rock Energy</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#F8FAFC;--bg2:#fff;--border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.14);
+  --text1:#0F172A;--text2:#334155;--text3:#64748B;
+  --accent:#2563EB;--accent2:#1D4ED8;--green:#10B981;--red:#F43F5E;--amber:#F59E0B;
+  --r8:8px;--r12:12px;--r16:16px;--r20:20px;
+  --font:'Space Grotesk',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text1);font-size:14px;-webkit-font-smoothing:antialiased;}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.topbar-brand{font-size:18px;font-weight:800;background:linear-gradient(135deg,#0F172A,#3B82F6);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.nav-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:30px;font-size:12px;font-weight:700;font-family:var(--font);border:1px solid var(--border2);background:transparent;color:var(--text1);cursor:pointer;text-decoration:none;transition:all 0.15s;}
+.nav-btn:hover{background:var(--bg);}
+.nav-btn.accent{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-color:transparent;}
+.nav-btn.danger{background:linear-gradient(135deg,#ff5f5f,#ff3b3b);color:#fff;border-color:transparent;}
+.nav-btn.warn{background:linear-gradient(135deg,#F59E0B,#D97706);color:#fff;border-color:transparent;}
+.breadcrumb{padding:16px 28px 0;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text3);font-weight:600;}
+.breadcrumb a{color:var(--accent);text-decoration:none;font-weight:700;}
+.page-header{padding:20px 28px 0;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;}
+.device-title{font-size:28px;font-weight:800;letter-spacing:-0.5px;}
+.device-meta{display:flex;flex-wrap:wrap;gap:14px;margin-top:8px;}
+.meta-item{font-size:12px;color:var(--text3);font-weight:600;}
+.content{padding:20px 28px 60px;}
+
+/* KPI STRIP */
+.kpi-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px;}
+.kpi-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r12);padding:16px 18px;position:relative;overflow:hidden;}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--kpi-c,var(--accent));}
+.kpi-label{font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:8px;}
+.kpi-value{font-family:var(--mono);font-size:26px;font-weight:700;color:var(--text1);line-height:1.2;letter-spacing:-0.5px;}
+.kpi-unit{font-size:10px;color:var(--text3);font-weight:600;margin-top:4px;}
+.kpi-badge{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:800;padding:2px 8px;border-radius:4px;margin-top:6px;}
+.kpi-badge.ok{background:rgba(16,185,129,0.12);color:#0E7C46;}
+.kpi-badge.stale{background:rgba(245,158,11,0.12);color:#B45309;}
+.kpi-badge.offline{background:rgba(244,63,94,0.12);color:#BE123C;}
+
+/* CHART PANEL — dark */
+.chart-panel{background:#0C0F1A;border:1px solid rgba(255,255,255,0.07);border-radius:var(--r20);overflow:hidden;margin-bottom:20px;}
+.chart-header{padding:18px 22px 14px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+.chart-title{font-size:15px;font-weight:800;color:#F0F4FF;}
+.chart-tabs{display:flex;background:#111624;border-radius:10px;padding:3px;gap:3px;border:1px solid rgba(255,255,255,0.07);}
+.chart-tab{padding:5px 16px;border-radius:7px;font-size:11px;font-weight:700;font-family:var(--font);background:transparent;border:none;color:rgba(255,255,255,0.45);cursor:pointer;transition:all 0.15s;}
+.chart-tab.on{background:#2563EB;color:#fff;}
+.chart-wrap{padding:14px 22px 18px;height:260px;}
+.chart-wrap canvas{height:100%!important;width:100%!important;}
+
+/* DETAILS CARD */
+.info-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r16);padding:20px 22px;margin-bottom:20px;}
+.info-title{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);margin-bottom:14px;}
+.info-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;}
+.info-item .il{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.4px;color:var(--text3);margin-bottom:4px;}
+.info-item .iv{font-size:14px;font-weight:700;color:var(--text1);}
+.user-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:30px;background:var(--bg);border:1px solid var(--border2);font-size:12px;font-weight:700;color:var(--text2);margin:2px;}
+
+/* STATUS */
+.status-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:30px;font-size:12px;font-weight:800;}
+.status-pill.online{background:rgba(16,185,129,0.12);color:#0E7C46;}
+.status-pill.offline{background:rgba(244,63,94,0.1);color:#BE123C;}
+.status-pill.stale{background:rgba(245,158,11,0.1);color:#B45309;}
+
+@media(max-width:900px){.kpi-strip{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:600px){.kpi-strip{grid-template-columns:repeat(2,1fr);}.chart-wrap{height:200px;}}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-brand">3rd Rock Energy System</div>
+  <nav style="display:flex;gap:8px;flex-wrap:wrap;">
+    <a href="{% url 'energy_dashboard' %}" class="nav-btn">📊 Dashboard</a>
+    <a href="{% url 'company_list' %}" class="nav-btn">🏢 Companies</a>
+    {% if user.is_admin_or_superadmin %}<a href="{% url 'user_list' %}" class="nav-btn">👥 Users</a>{% endif %}
+    <a href="{% url 'logout' %}" class="nav-btn danger">Logout</a>
+  </nav>
+</header>
+
+<div class="breadcrumb">
+  <a href="{% url 'energy_dashboard' %}">Dashboard</a> <span>›</span>
+  <a href="{% url 'company_list' %}">Device Management</a> <span>›</span>
+  {% if device.company %}<a href="{% url 'company_detail' device.company.pk %}">{{ device.company.name }}</a> <span>›</span>{% endif %}
+  <span>{{ device.get_display_name }}</span>
+</div>
+
+<div class="page-header">
+  <div>
+    <div class="device-title">⚡ {{ device.get_display_name }}</div>
+    <div class="device-meta">
+      <span class="meta-item">Unit ID: <strong style="font-family:var(--mono);">{{ device.unit_id }}</strong></span>
+      {% if device.company %}<span class="meta-item">🏢 {{ device.company.name }}</span>{% endif %}
+      {% if device.location %}<span class="meta-item">📍 {{ device.location }}</span>{% endif %}
+      <span id="status-pill" class="status-pill {% if latest %}online{% else %}offline{% endif %}">
+        {% if latest %}🟢 Online{% else %}⚫ No Data{% endif %}
+      </span>
+    </div>
+  </div>
+  {% if user.is_admin_or_superadmin %}
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <a href="{% url 'edit_device' device.pk %}" class="nav-btn warn">Edit Device</a>
+    <a href="{% url 'delete_device' device.pk %}" class="nav-btn danger">Delete</a>
+  </div>
+  {% endif %}
+</div>
+
+<div class="content" style="margin-top:20px;">
+  <!-- KPI STRIP -->
+  <div class="kpi-strip">
+    <div class="kpi-card" style="--kpi-c:#10B981">
+      <div class="kpi-label">Energy</div>
+      <div class="kpi-value" id="v-kwh">{% if latest %}{{ latest.energy_today_kwh|floatformat:1 }}{% else %}--{% endif %}</div>
+      <div class="kpi-unit">kWh</div>
+      <div class="kpi-badge ok" id="b-kwh">LIVE</div>
+    </div>
+    <div class="kpi-card" style="--kpi-c:#F59E0B">
+      <div class="kpi-label">Active Power</div>
+      <div class="kpi-value" id="v-kw">{% if latest %}{{ latest.active_power_kw|floatformat:1 }}{% else %}--{% endif %}</div>
+      <div class="kpi-unit">kW</div>
+      <div class="kpi-badge ok" id="b-kw">LIVE</div>
+    </div>
+    <div class="kpi-card" style="--kpi-c:#8B5CF6">
+      <div class="kpi-label">Apparent Power</div>
+      <div class="kpi-value" id="v-ap">{% if latest %}{{ latest.apparent_power_kva|floatformat:1 }}{% else %}--{% endif %}</div>
+      <div class="kpi-unit">kVA</div>
+      <div class="kpi-badge ok" id="b-ap">LIVE</div>
+    </div>
+    <div class="kpi-card" style="--kpi-c:#06B6D4">
+      <div class="kpi-label">Current</div>
+      <div class="kpi-value" id="v-a">{% if latest %}{{ latest.current|floatformat:1 }}{% else %}--{% endif %}</div>
+      <div class="kpi-unit">A</div>
+      <div class="kpi-badge ok" id="b-a">LIVE</div>
+    </div>
+    <div class="kpi-card" style="--kpi-c:#6366F1">
+      <div class="kpi-label">Voltage</div>
+      <div class="kpi-value" id="v-v">{% if latest %}{{ latest.voltage|floatformat:1 }}{% else %}--{% endif %}</div>
+      <div class="kpi-unit">V</div>
+      <div class="kpi-badge ok" id="b-v">NORMAL</div>
+    </div>
+  </div>
+
+  <!-- CHART -->
+  <div class="chart-panel">
+    <div class="chart-header">
+      <div class="chart-title">Power Trend · Unit {{ device.unit_id }}</div>
+      <div class="chart-tabs">
+        <button class="chart-tab on" onclick="switchPeriod('today',this)">Today</button>
+        <button class="chart-tab" onclick="switchPeriod('week',this)">Week</button>
+        <button class="chart-tab" onclick="switchPeriod('month',this)">Month</button>
+      </div>
+    </div>
+    <div class="chart-wrap"><canvas id="deviceChart"></canvas></div>
+  </div>
+
+  <!-- DEVICE INFO -->
+  <div class="info-card">
+    <div class="info-title">Device Information</div>
+    <div class="info-grid">
+      <div class="info-item"><div class="il">Unit ID</div><div class="iv" style="font-family:var(--mono);">{{ device.unit_id }}</div></div>
+      <div class="info-item"><div class="il">Name</div><div class="iv">{{ device.name|default:"—" }}</div></div>
+      <div class="info-item"><div class="il">Company</div><div class="iv">{% if device.company %}<a href="{% url 'company_detail' device.company.pk %}" style="color:var(--accent);text-decoration:none;font-weight:700;">{{ device.company.name }}</a>{% else %}—{% endif %}</div></div>
+      <div class="info-item"><div class="il">Location</div><div class="iv">{{ device.location|default:"—" }}</div></div>
+      <div class="info-item"><div class="il">Status</div><div class="iv">{% if device.is_active %}🟢 Active{% else %}🔴 Inactive{% endif %}</div></div>
+      <div class="info-item"><div class="il">Added</div><div class="iv">{{ device.created_at|date:"N j, Y" }}</div></div>
+    </div>
+    {% if device.description %}
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
+      <div class="il" style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.4px;color:var(--text3);margin-bottom:6px;">Description</div>
+      <div style="font-size:13px;color:var(--text2);">{{ device.description }}</div>
+    </div>
+    {% endif %}
+    {% if device.assigned_users.all %}
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
+      <div class="il" style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.4px;color:var(--text3);margin-bottom:8px;">Assigned Users</div>
+      <div>
+        {% for u in device.assigned_users.all %}
+          <span class="user-chip">👤 {{ u.username }} <span style="color:var(--text3);font-weight:500;">({{ u.role }})</span></span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+const UNIT_ID = {{ device.unit_id }};
+const API_BASE = window.location.origin;
+let chart = null;
+
+async function fetchLive(){
+  try{
+    const res = await fetch(`${API_BASE}/api/readings/latest/?unit_id=${UNIT_ID}`);
+    if(!res.ok) return;
+    const d = await res.json();
+    if(d.status==='online'||d.status==='stale'){
+      const set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
+      set('v-kw', parseFloat(d.active_power_kw||0).toFixed(1));
+      set('v-kwh', parseFloat(d.energy_today_kwh||0).toFixed(1));
+      set('v-v', parseFloat(d.voltage||0).toFixed(1));
+      set('v-a', parseFloat(d.current||0).toFixed(1));
+      set('v-ap', parseFloat(d.apparent_power_kva||0).toFixed(1));
+      const stale = d.status==='stale';
+      ['b-kw','b-kwh','b-v','b-a','b-ap'].forEach(id=>{
+        const el=document.getElementById(id);
+        if(el){el.className='kpi-badge '+(stale?'stale':'ok');el.textContent=stale?'STALE':'LIVE';}
+      });
+      const pill=document.getElementById('status-pill');
+      if(pill){pill.className='status-pill '+(stale?'stale':'online');pill.textContent=stale?'🟡 Stale':'🟢 Online';}
+    }
+  }catch(e){}
+}
+
+async function fetchGraph(period){
+  try{
+    const res = await fetch(`${API_BASE}/api/readings/graph/?unit_id=${UNIT_ID}&period=${period}`);
+    if(!res.ok) return;
+    const data = await res.json();
+    const labels = data.labels||[], values = (data.values||[]).map(v=>Math.max(0,parseFloat(v)));
+    if(!chart){
+      const ctx = document.getElementById('deviceChart').getContext('2d');
+      chart = new Chart(ctx,{type:'line',data:{labels,datasets:[{label:'Active Power (kW)',data:values,borderColor:'#3B82F6',backgroundColor:'rgba(59,130,246,0.08)',borderWidth:2,pointRadius:labels.length>60?0:2,fill:true,tension:0.4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#aaa',font:{size:10},maxTicksLimit:10}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#aaa',callback:v=>v.toFixed(1)+' kW'},beginAtZero:true}}}});
+    } else {
+      chart.data.labels=labels;
+      chart.data.datasets[0].data=values;
+      chart.data.datasets[0].pointRadius=labels.length>60?0:2;
+      chart.update();
+    }
+  }catch(e){}
+}
+
+function switchPeriod(period,btn){
+  document.querySelectorAll('.chart-tab').forEach(t=>t.classList.remove('on'));
+  btn.classList.add('on');
+  fetchGraph(period);
+}
+
+fetchLive();
+fetchGraph('today');
+setInterval(fetchLive, 5000);
+setInterval(()=>fetchGraph('today'), 30000);
+</script>
+</body>
+</html>

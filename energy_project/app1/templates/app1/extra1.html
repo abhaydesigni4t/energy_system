@@ -1,0 +1,81 @@
+Act as an experienced Django + Modbus + Energy Meter backend developer.
+
+Read my backend calculation logic carefully before generating any response body.
+
+My Django backend calculates values from `block1_raw` and `block2_raw` using these exact formulas:
+
+Voltage:
+
+* v_a = block1_raw[0] / 10
+* v_b = block1_raw[1] / 10
+* v_c = block1_raw[2] / 10
+* voltage = average(v_a, v_b, v_c)
+
+Current:
+
+* i_a = block1_raw[8] / 10
+* i_b = block1_raw[9] / 10
+* i_c = block1_raw[10] / 10
+* current = average(i_a, i_b, i_c)
+
+Active Power:
+
+* active_power_kw = ((v_a*i_a)+(v_b*i_b)+(v_c*i_c))/1000
+
+Reactive Power:
+
+* reactive_power_kvar = block1_raw[21] / 10
+
+Apparent Power:
+
+* apparent_power_kva = block1_raw[22] / 10
+
+Energy Calculation:
+
+* low = block2_raw[0]
+* high = block2_raw[1]
+* raw_32 = (high << 16) | low
+* energy_today_kwh = raw_32 / 100
+
+VERY IMPORTANT:
+
+* Generate response bodies that produce realistic calculated dashboard values after backend processing.
+* Do NOT generate random numbers.
+* Ensure current, voltage, active power, apparent power, and energy values are mathematically correct according to backend formulas.
+* Use realistic industrial energy meter values.
+* Energy values should gradually increase throughout the day.
+* Early morning should show low current and low power consumption.
+* Afternoon and evening should show higher load.
+* Return ONLY valid JSON response bodies.
+* Do NOT explain calculations unless asked.
+* Use EST current day timestamps.
+* Generate multiple realistic readings for:
+
+  * 2 AM low consumption
+  * 8 AM morning peak
+  * 9 AM
+  * 10 AM
+  * 12 PM
+  * 2 PM peak
+  * 4 PM
+  * 6 PM highest peak
+
+Response format:
+
+{
+"unit_id": 100,
+"timestamp": 1777590600,
+"block1_start_reg": 40100,
+"block1_raw": [],
+"block2_start_reg": 40138,
+"block2_raw": []
+}
+
+Ensure:
+
+* block1_raw indexes match backend usage
+* block2_raw correctly generates cumulative energy
+* active power values are realistic after V×I calculation
+* apparent power is always slightly higher than active power
+* no invalid array indexes
+* JSON is ready for POST API testing directly.

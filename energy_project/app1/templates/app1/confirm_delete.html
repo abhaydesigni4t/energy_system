@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Delete User · 3rd Rock Energy</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne+Mono&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --font-text:'Space Grotesk',-apple-system,BlinkMacSystemFont,sans-serif;
+  --bg:#F8FAFC;--bg2:#FFFFFF;--surface:#F1F5F9;
+  --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.14);
+  --text1:#0F172A;--text2:#334155;--text3:#64748B;--error:#F43F5E;
+}
+body{font-family:var(--font-text);background:var(--bg);color:var(--text1);min-height:100vh;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased;}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 28px;height:64px;display:flex;align-items:center;gap:20px;}
+.back-btn{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:var(--text3);text-decoration:none;padding:6px 12px;border-radius:8px;border:1px solid var(--border2);}
+.back-btn:hover{background:var(--surface);}
+.topbar-title{font-size:18px;font-weight:800;background:linear-gradient(135deg,#0F172A,#F43F5E);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.content{flex:1;display:flex;align-items:center;justify-content:center;padding:28px;}
+.confirm-card{background:var(--bg2);border:1px solid rgba(244,63,94,0.2);border-radius:20px;padding:36px;max-width:440px;width:100%;text-align:center;box-shadow:0 4px 40px rgba(244,63,94,0.06);}
+.warn-icon{font-size:48px;margin-bottom:16px;}
+.heading{font-size:22px;font-weight:800;letter-spacing:-0.4px;margin-bottom:8px;color:#9F1239;}
+.sub{font-size:13px;color:var(--text2);margin-bottom:24px;line-height:1.6;}
+.username-chip{display:inline-block;font-family:'Syne Mono',monospace;background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.2);border-radius:8px;padding:4px 12px;font-size:14px;font-weight:700;color:#9F1239;margin-bottom:24px;}
+.actions{display:flex;gap:10px;justify-content:center;}
+.cancel-btn{padding:10px 22px;background:transparent;border:1px solid var(--border2);border-radius:10px;color:var(--text2);font-family:var(--font-text);font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;}
+.cancel-btn:hover{background:var(--surface);}
+.delete-btn{padding:10px 22px;background:linear-gradient(135deg,#F43F5E,#E11D48);border:none;border-radius:10px;color:#fff;font-family:var(--font-text);font-size:13px;font-weight:700;cursor:pointer;transition:opacity 0.15s;}
+.delete-btn:hover{opacity:0.88;}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <a href="{% url 'user_list' %}" class="back-btn">← Users</a>
+  <span class="topbar-title">Delete User</span>
+</header>
+<div class="content">
+  <div class="confirm-card">
+    <div class="warn-icon">⚠️</div>
+    <h2 class="heading">Delete this account?</h2>
+    <p class="sub">This action is permanent and cannot be undone. All data associated with this user will be removed.</p>
+    <div class="username-chip">@{{ target_user.username }}</div>
+    <div class="actions">
+      <a href="{% url 'user_list' %}" class="cancel-btn">Cancel</a>
+      <form method="post" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" class="delete-btn">🗑 Yes, Delete</button>
+      </form>
+    </div>
+  </div>
+</div>
+</body>
+</html>

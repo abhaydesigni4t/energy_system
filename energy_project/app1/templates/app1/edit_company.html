@@ -1,0 +1,71 @@
+<!-- ═══════════════ edit_company.html ═══════════════ -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Edit {{ company.name }} · 3rd Rock Energy</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{--bg:#F8FAFC;--bg2:#fff;--border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.14);--text1:#0F172A;--text2:#334155;--text3:#64748B;--accent:#2563EB;--accent2:#1D4ED8;--red:#F43F5E;--r8:8px;--r16:16px;--font:'Space Grotesk',sans-serif;}
+body{font-family:var(--font);background:var(--bg);color:var(--text1);font-size:14px;-webkit-font-smoothing:antialiased;}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.topbar-brand{font-size:18px;font-weight:800;background:linear-gradient(135deg,#0F172A,#3B82F6);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.nav-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:30px;font-size:12px;font-weight:700;font-family:var(--font);border:1px solid var(--border2);background:transparent;color:var(--text1);cursor:pointer;text-decoration:none;transition:all 0.15s;}
+.nav-btn:hover{background:var(--bg);}
+.nav-btn.accent{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-color:transparent;}
+.nav-btn.danger{background:linear-gradient(135deg,#ff5f5f,#ff3b3b);color:#fff;border-color:transparent;}
+.breadcrumb{padding:16px 28px 0;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text3);font-weight:600;}
+.breadcrumb a{color:var(--accent);text-decoration:none;font-weight:700;}
+.page-wrap{max-width:600px;margin:28px auto;padding:0 28px 60px;}
+.form-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r16);overflow:hidden;}
+.form-card-header{padding:22px 26px 18px;border-bottom:1px solid var(--border);}
+.form-card-title{font-size:20px;font-weight:800;}
+.form-body{padding:24px 26px;}
+.fg{margin-bottom:18px;}
+.flb{display:block;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:var(--text2);margin-bottom:7px;}
+.fi{width:100%;padding:10px 14px;border-radius:var(--r8);border:1px solid var(--border2);background:var(--bg);color:var(--text1);font-family:var(--font);font-size:13px;font-weight:500;outline:none;transition:border-color 0.15s;}
+.fi:focus{border-color:var(--accent);background:var(--bg2);}
+textarea.fi{resize:vertical;min-height:80px;}
+.form-acts{display:flex;gap:10px;justify-content:flex-end;padding-top:8px;}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-brand">3rd Rock Energy System</div>
+  <nav style="display:flex;gap:8px;">
+    <a href="{% url 'company_detail' company.pk %}" class="nav-btn">← Back</a>
+    <a href="{% url 'logout' %}" class="nav-btn danger">Logout</a>
+  </nav>
+</header>
+<div class="breadcrumb">
+  <a href="{% url 'energy_dashboard' %}">Dashboard</a> <span>›</span>
+  <a href="{% url 'company_list' %}">Device Management</a> <span>›</span>
+  <a href="{% url 'company_detail' company.pk %}">{{ company.name }}</a> <span>›</span>
+  <span>Edit</span>
+</div>
+<div class="page-wrap">
+  <div class="form-card">
+    <div class="form-card-header">
+      <div class="form-card-title">✏️ Edit: {{ company.name }}</div>
+    </div>
+    <div class="form-body">
+      <form method="post">
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="fg">
+          <label class="flb">{{ field.label }}</label>
+          {{ field }}
+          {% if field.errors %}<div style="font-size:11px;color:var(--red);margin-top:5px;font-weight:600;">{{ field.errors.0 }}</div>{% endif %}
+        </div>
+        {% endfor %}
+        <div class="form-acts">
+          <a href="{% url 'company_detail' company.pk %}" class="nav-btn">Cancel</a>
+          <button type="submit" class="nav-btn accent">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -10,15 +10,175 @@ from django.db.models import Avg, Max, Min, Sum
 from django.utils import timezone
 from datetime import datetime, timedelta
 import logging
+from .models import *
+from .forms import *
 
 from .models import SensorReading, HourlyAggregate
 from .serializers import SensorReadingSerializer, LatestReadingSerializer, SummaryStatsSerializer, GraphDataSerializer
 
 logger = logging.getLogger(__name__)
 
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth import login, logout, authenticate
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.http import HttpResponseForbidden
+from functools import wraps
+
+from .models import User
+from .forms import LoginForm, SignUpForm, AddUserForm, AssignUnitsForm
+
+
+# ── Decorators ──────────────────────────────────────────────────────────────
+
+def admin_required(view_func):
+    """Restrict view to admin / superadmin users."""
+    @wraps(view_func)
+    @login_required(login_url='login')
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_admin_or_superadmin():
+            return HttpResponseForbidden(
+                "<h2>403 – Forbidden</h2><p>Admin access required.</p>"
+            )
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+
+# ── Auth Views ───────────────────────────────────────────────────────────────
+
+def login_view(request):
+    """Sign In page"""
+    if request.user.is_authenticated:
+        return redirect('energy_dashboard')
+
+    form = LoginForm(request, data=request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        user = form.get_user()
+        login(request, user)
+        messages.success(request, f'Welcome back, {user.first_name or user.username}!')
+        next_url = request.GET.get('next', 'energy_dashboard')
+        return redirect(next_url)
+
+    return render(request, 'app1/login.html', {'form': form})
+
+
+def signup_view(request):
+    """Sign Up page – creates a normal user"""
+    if request.user.is_authenticated:
+        return redirect('energy_dashboard')
+
+    form = SignUpForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        user = form.save()
+        login(request, user)
+        messages.success(request, f'Account created! Welcome, {user.first_name or user.username}!')
+        return redirect('energy_dashboard')
+
+    return render(request, 'app1/signup.html', {'form': form})
+
+
+def logout_view(request):
+    logout(request)
+    messages.info(request, 'You have been signed out.')
+    return redirect('login')
+
+
+# ── Dashboard ────────────────────────────────────────────────────────────────
+
+@login_required(login_url='login')
 def energy_dashboard(request):
-    """Serve the energy dashboard HTML"""
-    return render(request, 'app1/energy_dashboard.html')
+    """Energy Dashboard — redirect target after login"""
+    # Determine which unit_ids the user can see
+    if request.user.is_admin_or_superadmin():
+        accessible_units = list(
+            User.objects.values_list('unit_ids', flat=True)
+        )
+        # Flatten all unit lists
+        all_units = set()
+        for units in accessible_units:
+            if units:
+                all_units.update(units)
+        # Default to 100 if none assigned
+        all_units.add(100)
+        unit_ids = sorted(all_units)
+    else:
+        unit_ids = request.user.get_unit_ids() or [100]
+
+    context = {
+        'user': request.user,
+        'unit_ids': unit_ids,
+        'primary_unit': unit_ids[0] if unit_ids else 100,
+    }
+    return render(request, 'app1/energy_dashboard.html', context)
+
+
+# ── User Management (Admin only) ─────────────────────────────────────────────
+
+@admin_required
+def user_list(request):
+    """List all users — Admin / Super Admin only"""
+    users = User.objects.all().order_by('-date_joined')
+    return render(request, 'app1/user_list.html', {'users': users})
+
+
+@admin_required
+def add_user(request):
+    """Add a new user — Admin / Super Admin only"""
+    form = AddUserForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        user = form.save()
+        messages.success(request, f'User "{user.username}" created successfully.')
+        return redirect('user_list')
+
+    return render(request, 'app1/add_user.html', {'form': form})
+
+
+@admin_required
+def user_detail(request, user_id):
+    """View a single user's details"""
+    target_user = get_object_or_404(User, pk=user_id)
+    return render(request, 'app1/user_detail.html', {'target_user': target_user})
+
+
+@admin_required
+def assign_units(request, user_id):
+    """Assign unit_ids to a user — Admin / Super Admin only"""
+    target_user = get_object_or_404(User, pk=user_id)
+
+    initial = {
+        'unit_ids_input': ', '.join(str(u) for u in target_user.get_unit_ids())
+    }
+    form = AssignUnitsForm(request.POST or None, initial=initial)
+
+    if request.method == 'POST' and form.is_valid():
+        target_user.unit_ids = form.cleaned_data['unit_ids_input']
+        target_user.save()
+        messages.success(request, f'Units updated for "{target_user.username}".')
+        return redirect('user_list')
+
+    return render(request, 'app1/assign_units.html', {
+        'form': form,
+        'target_user': target_user,
+    })
+
+
+@admin_required
+def delete_user(request, user_id):
+    """Delete a user — Admin / Super Admin only"""
+    target_user = get_object_or_404(User, pk=user_id)
+
+    # Prevent self-deletion
+    if target_user == request.user:
+        messages.error(request, "You cannot delete your own account.")
+        return redirect('user_list')
+
+    if request.method == 'POST':
+        username = target_user.username
+        target_user.delete()
+        messages.success(request, f'User "{username}" deleted.')
+        return redirect('user_list')
+
+    return render(request, 'app1/confirm_delete.html', {'target_user': target_user})
 
 class SensorReadingAPIView(APIView):
     """
@@ -344,3 +504,163 @@ class RecentReadingsView(APIView):
             })
         
         return Response(data)
+    
+    
+
+# ─────────────────────────────────────────────────────────────────────────────
+# COMPANY VIEWS
+# ─────────────────────────────────────────────────────────────────────────────
+
+@admin_required
+def company_list(request):
+    """List all companies — Device Management landing page"""
+    companies = Company.objects.prefetch_related('devices').all()
+    return render(request, 'app1/company_list.html', {'companies': companies})
+
+
+@admin_required
+def add_company(request):
+    """Create a new company"""
+    form = CompanyForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        company = form.save(commit=False)
+        company.created_by = request.user
+        company.save()
+        messages.success(request, f'Company "{company.name}" created successfully.')
+        return redirect('company_detail', company_id=company.pk)
+    return render(request, 'app1/add_company.html', {'form': form})
+
+
+@admin_required
+def edit_company(request, company_id):
+    """Edit an existing company"""
+    company = get_object_or_404(Company, pk=company_id)
+    form = CompanyForm(request.POST or None, instance=company)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, f'Company "{company.name}" updated.')
+        return redirect('company_detail', company_id=company.pk)
+    return render(request, 'app1/edit_company.html', {'form': form, 'company': company})
+
+
+@admin_required
+def delete_company(request, company_id):
+    """Delete a company"""
+    company = get_object_or_404(Company, pk=company_id)
+    if request.method == 'POST':
+        name = company.name
+        company.delete()
+        messages.success(request, f'Company "{name}" deleted.')
+        return redirect('company_list')
+    return render(request, 'app1/confirm_delete_company.html', {'company': company})
+
+
+@admin_required
+def company_detail(request, company_id):
+    """Company detail page — shows all assigned devices and their latest readings"""
+    company = get_object_or_404(Company, pk=company_id)
+    devices = company.devices.prefetch_related('assigned_users').all()
+
+    # Attach latest reading to each device
+    device_data = []
+    for device in devices:
+        try:
+            latest = SensorReading.objects.filter(unit_id=device.unit_id).latest('timestamp')
+            device_data.append({'device': device, 'latest': latest})
+        except SensorReading.DoesNotExist:
+            device_data.append({'device': device, 'latest': None})
+
+    return render(request, 'app1/company_detail.html', {
+        'company': company,
+        'device_data': device_data,
+    })
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DEVICE VIEWS
+# ─────────────────────────────────────────────────────────────────────────────
+
+@admin_required
+def device_list(request):
+    """List all devices across all companies"""
+    devices = Device.objects.select_related('company').prefetch_related('assigned_users').all()
+    return render(request, 'app1/device_list.html', {'devices': devices})
+
+
+@admin_required
+def add_device(request):
+    """Add a new device globally"""
+    form = DeviceForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        device = form.save()
+        messages.success(request, f'Device "{device}" created.')
+        return redirect('device_detail', device_id=device.pk)
+    return render(request, 'app1/add_device.html', {'form': form})
+
+
+@admin_required
+def edit_device(request, device_id):
+    """Edit device settings"""
+    device = get_object_or_404(Device, pk=device_id)
+    form = DeviceForm(request.POST or None, instance=device)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, f'Device "{device}" updated.')
+        return redirect('device_detail', device_id=device.pk)
+    return render(request, 'app1/edit_device.html', {'form': form, 'device': device})
+
+
+@admin_required
+def delete_device(request, device_id):
+    """Delete a device"""
+    device = get_object_or_404(Device, pk=device_id)
+    company_id = device.company_id
+    if request.method == 'POST':
+        name = str(device)
+        device.delete()
+        messages.success(request, f'Device "{name}" deleted.')
+        if company_id:
+            return redirect('company_detail', company_id=company_id)
+        return redirect('device_list')
+    return render(request, 'app1/confirm_delete_device.html', {'device': device})
+
+
+@login_required(login_url='login')
+def device_detail(request, device_id):
+    """Device detail / mini dashboard — accessible by assigned users too"""
+    device = get_object_or_404(Device, pk=device_id)
+
+    # Access control
+    if not request.user.is_admin_or_superadmin():
+        if not device.assigned_users.filter(pk=request.user.pk).exists():
+            return HttpResponseForbidden("<h2>403</h2><p>You don't have access to this device.</p>")
+
+    try:
+        latest = SensorReading.objects.filter(unit_id=device.unit_id).latest('timestamp')
+    except SensorReading.DoesNotExist:
+        latest = None
+
+    return render(request, 'app1/device_detail.html', {
+        'device': device,
+        'latest': latest,
+    })
+    
+@login_required(login_url='login')
+def energy_dashboard_v2(request):
+    if request.user.is_admin_or_superadmin():
+        accessible_units = list(User.objects.values_list('unit_ids', flat=True))
+        all_units = set()
+        for units in accessible_units:
+            if units:
+                all_units.update(units)
+        all_units.add(100)
+        unit_ids = sorted(all_units)
+    else:
+        unit_ids = request.user.get_unit_ids() or [100]
+
+    context = {
+        'user': request.user,
+        'unit_ids': unit_ids,
+        'primary_unit': unit_ids[0] if unit_ids else 100,
+    }
+    return render(request, 'app1/energy_dashboard_v2.html', context)

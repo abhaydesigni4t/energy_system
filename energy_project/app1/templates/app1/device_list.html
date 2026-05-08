@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>All Devices · 3rd Rock Energy</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#F8FAFC;--bg2:#fff;--border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.14);
+  --text1:#0F172A;--text2:#334155;--text3:#64748B;
+  --accent:#2563EB;--accent2:#1D4ED8;--green:#10B981;--red:#F43F5E;
+  --r8:8px;--r12:12px;--r16:16px;
+  --font:'Space Grotesk',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text1);font-size:14px;-webkit-font-smoothing:antialiased;}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.topbar-brand{font-size:18px;font-weight:800;background:linear-gradient(135deg,#0F172A,#3B82F6);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.nav-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:30px;font-size:12px;font-weight:700;font-family:var(--font);border:1px solid var(--border2);background:transparent;color:var(--text1);cursor:pointer;text-decoration:none;transition:all 0.15s;}
+.nav-btn:hover{background:var(--bg);}
+.nav-btn.accent{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-color:transparent;}
+.nav-btn.danger{background:linear-gradient(135deg,#ff5f5f,#ff3b3b);color:#fff;border-color:transparent;}
+.breadcrumb{padding:16px 28px 0;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text3);font-weight:600;}
+.breadcrumb a{color:var(--accent);text-decoration:none;font-weight:700;}
+.page-header{padding:20px 28px 0;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+.page-title{font-size:28px;font-weight:800;letter-spacing:-0.5px;}
+.content{padding:20px 28px 60px;}
+.search-row{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
+.search-input{flex:1;min-width:200px;padding:9px 14px;border-radius:var(--r8);border:1px solid var(--border2);background:var(--bg2);color:var(--text1);font-family:var(--font);font-size:13px;font-weight:500;outline:none;transition:border-color 0.15s;}
+.search-input:focus{border-color:var(--accent);}
+
+/* TABLE */
+.tbl-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r16);overflow:hidden;}
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+thead th{padding:11px 16px;text-align:left;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);border-bottom:1px solid var(--border);background:var(--bg);white-space:nowrap;}
+tbody tr{border-bottom:1px solid var(--border);transition:background 0.1s;}
+tbody tr:hover{background:rgba(37,99,235,0.03);}
+tbody tr:last-child{border-bottom:none;}
+td{padding:13px 16px;font-size:13px;color:var(--text1);font-weight:500;}
+.unit-badge{font-family:var(--mono);font-size:12px;font-weight:700;padding:3px 9px;border-radius:6px;background:var(--bg);border:1px solid var(--border2);color:var(--text2);}
+.company-link{color:var(--accent);text-decoration:none;font-weight:700;}
+.company-link:hover{text-decoration:underline;}
+.status-dot{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;}
+.status-dot.active{background:rgba(16,185,129,0.12);color:#0E7C46;}
+.status-dot.inactive{background:rgba(244,63,94,0.1);color:#BE123C;}
+.act-link{color:var(--accent);text-decoration:none;font-size:12px;font-weight:700;margin-right:10px;}
+.act-link:hover{text-decoration:underline;}
+.act-link.red{color:var(--red);}
+.user-chips{display:flex;flex-wrap:wrap;gap:4px;}
+.uc{display:inline-block;padding:2px 8px;border-radius:20px;background:var(--bg);border:1px solid var(--border2);font-size:10px;font-weight:700;color:var(--text3);}
+.empty-state{text-align:center;padding:60px 20px;}
+.empty-icon{font-size:48px;margin-bottom:16px;}
+.empty-title{font-size:20px;font-weight:800;margin-bottom:8px;}
+.empty-sub{font-size:14px;color:var(--text3);margin-bottom:24px;}
+.messages{padding:0 28px 0;margin-top:12px;}
+.msg{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:var(--r8);font-size:13px;font-weight:600;margin-bottom:6px;}
+.msg.success{background:rgba(16,185,129,0.1);color:#065F46;border:1px solid rgba(16,185,129,0.25);}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-brand">3rd Rock Energy System</div>
+  <nav style="display:flex;gap:8px;flex-wrap:wrap;">
+    <a href="{% url 'energy_dashboard' %}" class="nav-btn">📊 Dashboard</a>
+    <a href="{% url 'company_list' %}" class="nav-btn">🏢 Companies</a>
+    {% if user.is_admin_or_superadmin %}<a href="{% url 'user_list' %}" class="nav-btn">👥 Users</a>{% endif %}
+    <a href="{% url 'logout' %}" class="nav-btn danger">Logout</a>
+  </nav>
+</header>
+<div class="breadcrumb">
+  <a href="{% url 'energy_dashboard' %}">Dashboard</a> <span>›</span>
+  <a href="{% url 'company_list' %}">Device Management</a> <span>›</span>
+  <span>All Devices</span>
+</div>
+{% if messages %}
+<div class="messages" style="margin-top:12px;">
+  {% for message in messages %}<div class="msg {{ message.tags }}">{{ message }}</div>{% endfor %}
+</div>
+{% endif %}
+<div class="page-header">
+  <div class="page-title">⚡ All Devices</div>
+  <a href="{% url 'add_device' %}" class="nav-btn accent">+ Add Device</a>
+</div>
+
+<div class="content">
+  <div class="search-row">
+    <input type="text" class="search-input" id="search-input" placeholder="🔍  Search by unit ID, name, company…" oninput="filterRows()">
+  </div>
+
+  {% if devices %}
+  <div class="tbl-card">
+    <div class="tbl-wrap">
+      <table id="devices-table">
+        <thead>
+          <tr>
+            <th>Unit ID</th>
+            <th>Name / Description</th>
+            <th>Company</th>
+            <th>Location</th>
+            <th>Assigned Users</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for device in devices %}
+          <tr data-search="{{ device.unit_id }} {{ device.name|lower }} {% if device.company %}{{ device.company.name|lower }}{% endif %}">
+            <td><span class="unit-badge">{{ device.unit_id }}</span></td>
+            <td>
+              <div style="font-weight:700;">{{ device.get_display_name }}</div>
+              {% if device.description %}<div style="font-size:11px;color:var(--text3);margin-top:2px;">{{ device.description|truncatechars:60 }}</div>{% endif %}
+            </td>
+            <td>
+              {% if device.company %}
+                <a href="{% url 'company_detail' device.company.pk %}" class="company-link">{{ device.company.name }}</a>
+              {% else %}
+                <span style="color:var(--text3);font-style:italic;">Unassigned</span>
+              {% endif %}
+            </td>
+            <td style="font-size:12px;color:var(--text3);">{{ device.location|default:"—" }}</td>
+            <td>
+              <div class="user-chips">
+                {% for u in device.assigned_users.all %}
+                  <span class="uc">{{ u.username }}</span>
+                {% empty %}
+                  <span style="font-size:11px;color:var(--text3);">None</span>
+                {% endfor %}
+              </div>
+            </td>
+            <td>
+              <span class="status-dot {% if device.is_active %}active{% else %}inactive{% endif %}">
+                {% if device.is_active %}● Active{% else %}○ Inactive{% endif %}
+              </span>
+            </td>
+            <td>
+              {% if device.pk %}
+                <a href="{% url 'device_detail' device.pk %}" class="act-link">View</a>
+                <a href="{% url 'edit_device' device.pk %}" class="act-link">Edit</a>
+                <a href="{% url 'delete_device' device.pk %}" class="act-link red">Delete</a>
+              {% else %}
+                <span style="font-size:11px;color:var(--text3);">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">⚡</div>
+    <div class="empty-title">No devices yet</div>
+    <div class="empty-sub">Add your first device to start tracking energy data.</div>
+    <a href="{% url 'add_device' %}" class="nav-btn accent">+ Add First Device</a>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+function filterRows(){
+  const q = document.getElementById('search-input').value.toLowerCase();
+  document.querySelectorAll('#devices-table tbody tr').forEach(tr => {
+    tr.style.display = tr.dataset.search.includes(q) ? '' : 'none';
+  });
+}
+</script>
+</body>
+</html>

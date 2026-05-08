@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Users · 3rd Rock Energy</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne+Mono&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --font-text:'Space Grotesk',-apple-system,BlinkMacSystemFont,sans-serif;
+  --font-mono:'Syne Mono',monospace;
+  --bg:#F8FAFC;--bg2:#FFFFFF;--surface:#F1F5F9;--surface2:#E2E8F0;
+  --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.14);
+  --text1:#0F172A;--text2:#334155;--text3:#64748B;
+  --accent:#3B82F6;--accent2:#2563EB;--success:#10B981;--error:#F43F5E;
+  --warn:#F59E0B;
+}
+body{font-family:var(--font-text);background:var(--bg);color:var(--text1);font-size:13px;-webkit-font-smoothing:antialiased;}
+
+/* Topbar */
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.topbar-left{display:flex;align-items:center;gap:20px;}
+.topbar-title{font-size:18px;font-weight:800;background:linear-gradient(135deg,#0F172A,#3B82F6);-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:-0.3px;}
+.back-btn{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:var(--text3);text-decoration:none;padding:6px 12px;border-radius:8px;border:1px solid var(--border2);transition:all 0.15s;}
+.back-btn:hover{background:var(--surface);color:var(--text1);}
+.add-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:10px;color:#fff;font-family:var(--font-text);font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;transition:opacity 0.15s;}
+.add-btn:hover{opacity:0.88;}
+
+/* Content */
+.content{padding:28px;max-width:1100px;margin:0 auto;}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;}
+.page-heading{font-size:22px;font-weight:800;letter-spacing:-0.4px;}
+.page-sub{font-size:12px;color:var(--text3);margin-top:3px;font-weight:500;}
+
+/* Stats */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px 18px;}
+.stat-label{font-size:10px;font-weight:800;letter-spacing:0.8px;text-transform:uppercase;color:var(--text3);margin-bottom:8px;}
+.stat-val{font-family:var(--font-mono);font-size:26px;font-weight:700;color:var(--text1);}
+
+/* Table */
+.tbl-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;overflow:hidden;}
+.tbl-toolbar{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);}
+.tbl-title{font-size:12px;font-weight:800;letter-spacing:0.6px;text-transform:uppercase;color:var(--text2);}
+.search-input{padding:7px 14px;background:var(--surface);border:1px solid var(--border2);border-radius:8px;font-family:var(--font-text);font-size:12px;font-weight:600;color:var(--text1);outline:none;width:220px;transition:border-color 0.15s;}
+.search-input:focus{border-color:var(--accent);}
+.search-input::placeholder{color:var(--text3);}
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+thead th{padding:10px 16px;text-align:left;font-size:10px;font-weight:800;letter-spacing:0.6px;text-transform:uppercase;color:var(--text3);background:var(--surface);border-bottom:1px solid var(--border);}
+tbody tr{border-bottom:1px solid var(--border);transition:background 0.12s;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:rgba(59,130,246,0.03);}
+td{padding:12px 16px;font-size:12px;font-weight:600;color:var(--text1);}
+.user-cell{display:flex;align-items:center;gap:10px;}
+.avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;}
+.user-name{font-weight:700;font-size:13px;}
+.user-email{font-size:11px;color:var(--text3);margin-top:1px;}
+
+/* Badges */
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:800;padding:3px 9px;border-radius:6px;letter-spacing:0.3px;}
+.badge.superadmin{background:rgba(139,92,246,0.12);color:#7C3AED;}
+.badge.admin{background:rgba(59,130,246,0.12);color:#2563EB;}
+.badge.user{background:rgba(100,116,139,0.12);color:#475569;}
+
+/* Unit pills */
+.unit-pills{display:flex;flex-wrap:wrap;gap:4px;}
+.unit-pill{font-family:var(--font-mono);font-size:10px;font-weight:700;padding:2px 7px;background:var(--surface);border:1px solid var(--border2);border-radius:4px;color:var(--text2);}
+.unit-none{font-size:11px;color:var(--text3);font-style:italic;}
+
+/* Actions */
+.actions{display:flex;gap:6px;align-items:center;}
+.act-btn{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid;text-decoration:none;transition:all 0.12s;white-space:nowrap;}
+.act-btn.view{border-color:var(--border2);color:var(--text2);background:transparent;}
+.act-btn.view:hover{background:var(--surface);color:var(--text1);}
+.act-btn.assign{border-color:rgba(59,130,246,0.3);color:var(--accent);background:rgba(59,130,246,0.06);}
+.act-btn.assign:hover{background:rgba(59,130,246,0.12);}
+.act-btn.del{border-color:rgba(244,63,94,0.25);color:var(--error);background:rgba(244,63,94,0.05);}
+.act-btn.del:hover{background:rgba(244,63,94,0.1);}
+
+/* Empty state */
+.empty{text-align:center;padding:48px;color:var(--text3);}
+.empty-icon{font-size:32px;margin-bottom:12px;}
+.empty-msg{font-size:14px;font-weight:600;}
+
+/* Messages */
+.messages{margin-bottom:20px;}
+.msg{padding:10px 16px;border-radius:10px;font-size:12px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:8px;}
+.msg.success{background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);color:#065F46;}
+.msg.error{background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.2);color:#9F1239;}
+.msg.info{background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);color:#1E40AF;}
+
+@media(max-width:800px){.stats-row{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:500px){.stats-row{grid-template-columns:1fr 1fr;} .search-input{width:100%;}}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-left">
+    <a href="{% url 'energy_dashboard' %}" class="back-btn">← Dashboard</a>
+    <span class="topbar-title">User Management</span>
+  </div>
+  <a href="{% url 'add_user' %}" class="add-btn">+ Add User</a>
+</header>
+
+<div class="content">
+
+  {% if messages %}
+    <div class="messages">
+      {% for message in messages %}
+        <div class="msg {{ message.tags }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="page-header">
+    <div>
+      <div class="page-heading">All Users</div>
+      <div class="page-sub">Manage access, roles, and unit assignments</div>
+    </div>
+  </div>
+
+  <!-- Stats row -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Total Users</div>
+      <div class="stat-val">{{ users.count }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Super Admins</div>
+      <div class="stat-val">{{ users|length }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Admins</div>
+      <div class="stat-val">{% with count=0 %}{% for u in users %}{% if u.role == 'admin' %}{% with count=count|add:1 %}{% endwith %}{% endif %}{% endfor %}{{ users|dictsort:"role"|length }}{% endwith %}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Regular Users</div>
+      <div class="stat-val">{{ users|length }}</div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="tbl-card">
+    <div class="tbl-toolbar">
+      <div class="tbl-title">User Directory</div>
+      <input type="text" class="search-input" placeholder="🔍 Search users…" id="search-input" oninput="filterTable(this.value)">
+    </div>
+    <div class="tbl-wrap">
+      <table id="users-table">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Role</th>
+            <th>Unit IDs</th>
+            <th>Joined</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="tBody">
+          {% for u in users %}
+          <tr data-search="{{ u.username|lower }} {{ u.email|lower }} {{ u.get_full_name|lower }}">
+            <td>
+              <div class="user-cell">
+                <div class="avatar" style="background:{{ u.role|yesno:'rgba(59,130,246,0.15),rgba(100,116,139,0.12)' }};color:{{ u.role|yesno:'#2563EB,#64748B' }}">
+                  {{ u.username|slice:":1"|upper }}
+                </div>
+                <div>
+                  <div class="user-name">{{ u.get_full_name|default:u.username }}</div>
+                  <div class="user-email">{{ u.email|default:"—" }}</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="badge {{ u.role }}">
+                {% if u.role == 'superadmin' %}👑 Super Admin
+                {% elif u.role == 'admin' %}🔧 Admin
+                {% else %}👤 User{% endif %}
+              </span>
+            </td>
+            <td>
+              {% if u.unit_ids %}
+                <div class="unit-pills">
+                  {% for uid in u.unit_ids %}
+                    <span class="unit-pill">{{ uid }}</span>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <span class="unit-none">None assigned</span>
+              {% endif %}
+            </td>
+            <td>{{ u.date_joined|date:"M d, Y" }}</td>
+            <td>
+              <div class="actions">
+                <a href="{% url 'user_detail' u.pk %}" class="act-btn view">View</a>
+                <a href="{% url 'assign_units' u.pk %}" class="act-btn assign">⚡ Units</a>
+                {% if u != request.user %}
+                  <a href="{% url 'delete_user' u.pk %}" class="act-btn del">Delete</a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5"><div class="empty"><div class="empty-icon">👥</div><div class="empty-msg">No users yet. Add the first one.</div></div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+function filterTable(q) {
+  q = q.toLowerCase().trim();
+  document.querySelectorAll('#tBody tr[data-search]').forEach(row => {
+    row.style.display = !q || row.dataset.search.includes(q) ? '' : 'none';
+  });
+}
+</script>
+</body>
+</html>
