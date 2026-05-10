@@ -1,28 +1,985 @@
-first read complete code and act as experince developer 
-in energy_dashboard.html is wanted to show only Grid Power toggle button and line in graph 
-remove Solar Generation
-Battery Power
-EV Charging
-Building Load
-HVAC
-Genset toggles and realted lines in graph 
-don't change any other functionality i want exactly same 
+Check the uploaded image of the Power Streams graph.
+Currently, Live Metrics are fetched and stored every 3 seconds, but I now want to store and fetch data every 1 minute to improve performance and reduce unnecessary data density.
 
-this is energy_dashboard.html file code 
-"<!DOCTYPE html>
+The current graph looks very messy because too many points are rendered. I want to upgrade the graph functionality to behave more like a professional analytics dashboard.
+
+Required Improvements
+1-Minute Data Interval
+Modify the backend/frontend logic so graph data is stored and rendered at 1-minute intervals instead of every 3 seconds.
+Existing functionality must remain unchanged.
+Smooth Zooming
+When the user zooms into the graph, it should zoom smoothly and clearly display individual data points.
+Zoomed points should not overlap or appear cluttered.
+The graph should remain readable even with large datasets.
+Horizontal Scrolling / Panning
+The graph canvas width should NOT remain fixed.
+I want the graph to support:
+horizontal scrolling
+left/right panning
+viewing previous and current data easily
+The graph width should dynamically adjust based on dataset size.
+Dynamic Canvas Sizing
+Adjust canvas/chart width according to the amount of data.
+If more data exists (Today / Week / Month), the graph should expand naturally instead of compressing all points into a fixed width.
+Future Scalability
+In the future, this graph will contain large datasets for:
+Today
+Weekly
+Monthly analytics
+So implement the solution in a scalable and optimized way.
+Code Response Requirement
+Act as an experienced frontend/data-visualization developer.
+Only provide the modified code sections required for implementation.
+Do NOT provide the complete file.
+Explain where each modification should be added.
+Do NOT break or remove any existing functionality.
+Keep all current features working exactly as they are.
+
+this is models.py 
+"from django.db import models
+from django.utils import timezone
+from datetime import datetime
+from django.contrib.auth.models import AbstractUser
+from django.db import models
+
+
+from django.contrib.auth.models import UserManager as BaseUserManager
+
+class CustomUserManager(BaseUserManager):
+    def create_superuser(self, username, email=None, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('role', 'superadmin')  # Set role to superadmin
+        
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError('Superuser must have is_staff=True.')
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError('Superuser must have is_superuser=True.')
+        
+        return self._create_user(username, email, password, **extra_fields)
+
+class User(AbstractUser):
+    """
+    Extended User model with role and unit_id support.
+    Roles: 'admin', 'superadmin', 'user'
+    unit_ids: list of unit IDs this user can access
+    """
+    ROLE_CHOICES = [
+        ('superadmin', 'Super Admin'),
+        ('admin', 'Admin'),
+        ('user', 'User'),
+    ]
+
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='user')
+    unit_ids = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of unit IDs this user has access to"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    # ── Fix reverse accessor clashes with auth.User ──────────────────────────
+    groups = models.ManyToManyField(
+        'auth.Group',
+        verbose_name='groups',
+        blank=True,
+        related_name='app1_user_set',
+        related_query_name='app1_user',
+    )
+    user_permissions = models.ManyToManyField(
+        'auth.Permission',
+        verbose_name='user permissions',
+        blank=True,
+        related_name='app1_user_set',
+        related_query_name='app1_user',
+    )
+    
+
+    class Meta:
+        verbose_name = 'User'
+        verbose_name_plural = 'Users'
+
+    def is_admin_or_superadmin(self):
+        return self.role in ('admin', 'superadmin')
+
+    def get_unit_ids(self):
+        return self.unit_ids if self.unit_ids else []
+
+    def can_access_unit(self, unit_id):
+        if self.is_admin_or_superadmin():
+            return True
+        return int(unit_id) in [int(uid) for uid in self.get_unit_ids()]
+    
+    def save(self, *args, **kwargs):
+        # Auto-set role for superusers
+        if self.is_superuser and self.role == 'user':
+            self.role = 'superadmin'
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.username} ({self.role})"
+    
+    
+class SensorReading(models.Model):
+    """
+    Stores each Modbus reading as a separate record for historical data
+    """
+    unit_id = models.PositiveIntegerField(db_index=True)
+    timestamp = models.FloatField(help_text="Unix timestamp")
+    block1_start_reg = models.PositiveIntegerField(default=40100)
+    block1_raw = models.JSONField(help_text="Raw registers from block 1")
+    block2_start_reg = models.PositiveIntegerField(default=40138)
+    block2_raw = models.JSONField(help_text="Raw registers from block 2")
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    # Cached/decoded values for faster queries
+    voltage = models.FloatField(null=True, blank=True)
+    current = models.FloatField(null=True, blank=True)
+    active_power_kw = models.FloatField(null=True, blank=True)
+    reactive_power_kvar = models.FloatField(null=True, blank=True)
+    apparent_power_kva = models.FloatField(null=True, blank=True)
+    energy_today_kwh = models.FloatField(null=True, blank=True)
+    
+    class Meta:
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['unit_id', 'timestamp']),
+            models.Index(fields=['-timestamp']),
+        ]
+    
+    def save(self, *args, **kwargs):
+        if self.block1_raw and len(self.block1_raw) > 0:
+            # Voltages
+            v_a = self.block1_raw[0] / 10
+            v_b = self.block1_raw[1] / 10
+            v_c = self.block1_raw[2] / 10
+            self.voltage = round((v_a + v_b + v_c) / 3, 1)
+            
+            # Currents
+            i_a = self.block1_raw[8] / 10
+            i_b = self.block1_raw[9] / 10
+            i_c = self.block1_raw[10] / 10
+            self.current = round((i_a + i_b + i_c) / 3, 1)
+            
+            # Active Power (from V×I calculation)
+            total_watts = (v_a * i_a) + (v_b * i_b) + (v_c * i_c)
+            self.active_power_kw = round(total_watts / 1000, 1)
+            
+            # Reactive Power
+            self.reactive_power_kvar = self.block1_raw[21] / 10 if len(self.block1_raw) > 21 else 0
+            
+            # Apparent Power
+            self.apparent_power_kva = self.block1_raw[22] / 10 if len(self.block1_raw) > 22 else 0
+        
+        if self.block2_raw and len(self.block2_raw) > 1:
+            # Combine two 16‑bit registers (low word first, high word second)
+            low = self.block2_raw[0]
+            high = self.block2_raw[1]
+            raw_32 = (high << 16) | low          # same as high*65536 + low
+            
+            # ─────────────────────────────────────────────────────────────
+            # ADJUST THIS SCALE FACTOR TO MATCH YOUR METER'S DOCUMENTATION
+            # Common values: 100 (0.01 kWh units), 1000 (0.001 kWh), etc.
+            # Start with 100, then change until displayed total matches the meter.
+            SCALE = 100
+            # ─────────────────────────────────────────────────────────────
+            
+            # Store the TOTAL cumulative energy (never resets) with full precision
+            self.energy_today_kwh = raw_32 / SCALE   # no rounding here
+            
+        super().save(*args, **kwargs)
+    
+    def __str__(self):
+        return f"Unit {self.unit_id} @ {datetime.fromtimestamp(self.timestamp)}"
+
+class HourlyAggregate(models.Model):
+    """
+    Pre-calculated hourly averages for graph performance
+    """
+    unit_id = models.PositiveIntegerField(db_index=True)
+    hour = models.DateTimeField(db_index=True)
+    avg_active_power_kw = models.FloatField(default=0)
+    min_active_power_kw = models.FloatField(default=0)
+    max_active_power_kw = models.FloatField(default=0)
+    total_energy_kwh = models.FloatField(default=0)
+    reading_count = models.PositiveIntegerField(default=0)
+    
+    class Meta:
+        unique_together = [['unit_id', 'hour']]
+        ordering = ['-hour']
+        
+        
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.core.cache import cache
+
+@receiver(post_save, sender=SensorReading)
+def clear_graph_cache(sender, instance, **kwargs):
+    """Clear cached graph data when new reading is added"""
+    # Clear cache for different time periods
+    cache_keys = [
+        f'graph_data_unit_{instance.unit_id}_today',
+        f'graph_data_unit_{instance.unit_id}_week',
+        f'graph_data_unit_{instance.unit_id}_month',
+    ]
+    for key in cache_keys:
+        cache.delete(key)
+        
+        
+
+class Company(models.Model):
+    """
+    Represents a client company that owns devices/units.
+    """
+    name = models.CharField(max_length=200)
+    location = models.CharField(max_length=300, blank=True)
+    description = models.TextField(blank=True)
+    contact_email = models.EmailField(blank=True)
+    contact_phone = models.CharField(max_length=50, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(
+        'User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_companies',
+    )
+
+    class Meta:
+        verbose_name = 'Company'
+        verbose_name_plural = 'Companies'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+    def get_device_count(self):
+        return self.devices.count()
+
+
+class Device(models.Model):
+    """
+    Represents a physical Modbus unit (energy meter / sensor).
+    unit_id must match what the SBC sends in readings.
+    """
+    unit_id = models.PositiveIntegerField(unique=True, db_index=True)
+    name = models.CharField(max_length=200, default='', blank=True)
+    description = models.TextField(blank=True)
+    location = models.CharField(max_length=300, blank=True)
+
+    company = models.ForeignKey(
+        Company,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='devices',
+    )
+    # Which users can access this device
+    assigned_users = models.ManyToManyField(
+        'User',
+        blank=True,
+        related_name='assigned_devices',
+    )
+
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['unit_id']
+
+    def __str__(self):
+        return f"Unit {self.unit_id}" + (f" – {self.name}" if self.name else "")
+
+    def get_display_name(self):
+        return self.name if self.name else f"Unit {self.unit_id}""
+
+this is views.py 
+"from django.shortcuts import render
+
+# Create your views here.
+
+from django.shortcuts import render
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from django.db.models import Avg, Max, Min, Sum
+from django.utils import timezone
+from datetime import datetime, timedelta
+import logging
+from .models import *
+from .forms import *
+
+from .models import SensorReading, HourlyAggregate
+from .serializers import SensorReadingSerializer, LatestReadingSerializer, SummaryStatsSerializer, GraphDataSerializer
+
+logger = logging.getLogger(__name__)
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth import login, logout, authenticate
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.http import HttpResponseForbidden
+from functools import wraps
+
+from .models import User
+from .forms import LoginForm, SignUpForm, AddUserForm, AssignUnitsForm
+
+
+# ── Decorators ──────────────────────────────────────────────────────────────
+
+def admin_required(view_func):
+    """Restrict view to admin / superadmin users."""
+    @wraps(view_func)
+    @login_required(login_url='login')
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_admin_or_superadmin():
+            return HttpResponseForbidden(
+                "<h2>403 – Forbidden</h2><p>Admin access required.</p>"
+            )
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+
+# ── Auth Views ───────────────────────────────────────────────────────────────
+
+def login_view(request):
+    """Sign In page"""
+    if request.user.is_authenticated:
+        return redirect('energy_dashboard')
+
+    form = LoginForm(request, data=request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        user = form.get_user()
+        login(request, user)
+        messages.success(request, f'Welcome back, {user.first_name or user.username}!')
+        next_url = request.GET.get('next', 'energy_dashboard')
+        return redirect(next_url)
+
+    return render(request, 'app1/login.html', {'form': form})
+
+
+def signup_view(request):
+    """Sign Up page – creates a normal user"""
+    if request.user.is_authenticated:
+        return redirect('energy_dashboard')
+
+    form = SignUpForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        user = form.save()
+        login(request, user)
+        messages.success(request, f'Account created! Welcome, {user.first_name or user.username}!')
+        return redirect('energy_dashboard')
+
+    return render(request, 'app1/signup.html', {'form': form})
+
+
+def logout_view(request):
+    logout(request)
+    messages.info(request, 'You have been signed out.')
+    return redirect('login')
+
+
+# ── Dashboard ────────────────────────────────────────────────────────────────
+
+@login_required(login_url='login')
+def energy_dashboard(request):
+    """Energy Dashboard — redirect target after login"""
+    # Determine which unit_ids the user can see
+    if request.user.is_admin_or_superadmin():
+        accessible_units = list(
+            User.objects.values_list('unit_ids', flat=True)
+        )
+        # Flatten all unit lists
+        all_units = set()
+        for units in accessible_units:
+            if units:
+                all_units.update(units)
+        # Default to 100 if none assigned
+        all_units.add(100)
+        unit_ids = sorted(all_units)
+    else:
+        unit_ids = request.user.get_unit_ids() or [100]
+
+    context = {
+        'user': request.user,
+        'unit_ids': unit_ids,
+        'primary_unit': unit_ids[0] if unit_ids else 100,
+    }
+    return render(request, 'app1/energy_dashboard.html', context)
+
+
+# ── User Management (Admin only) ─────────────────────────────────────────────
+
+@admin_required
+def user_list(request):
+    """List all users — Admin / Super Admin only"""
+    users = User.objects.all().order_by('-date_joined')
+    return render(request, 'app1/user_list.html', {'users': users})
+
+
+@admin_required
+def add_user(request):
+    """Add a new user — Admin / Super Admin only"""
+    form = AddUserForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        user = form.save()
+        messages.success(request, f'User "{user.username}" created successfully.')
+        return redirect('user_list')
+
+    return render(request, 'app1/add_user.html', {'form': form})
+
+
+@admin_required
+def user_detail(request, user_id):
+    """View a single user's details"""
+    target_user = get_object_or_404(User, pk=user_id)
+    return render(request, 'app1/user_detail.html', {'target_user': target_user})
+
+
+@admin_required
+def assign_units(request, user_id):
+    """Assign unit_ids to a user — Admin / Super Admin only"""
+    target_user = get_object_or_404(User, pk=user_id)
+
+    initial = {
+        'unit_ids_input': ', '.join(str(u) for u in target_user.get_unit_ids())
+    }
+    form = AssignUnitsForm(request.POST or None, initial=initial)
+
+    if request.method == 'POST' and form.is_valid():
+        target_user.unit_ids = form.cleaned_data['unit_ids_input']
+        target_user.save()
+        messages.success(request, f'Units updated for "{target_user.username}".')
+        return redirect('user_list')
+
+    return render(request, 'app1/assign_units.html', {
+        'form': form,
+        'target_user': target_user,
+    })
+
+
+@admin_required
+def delete_user(request, user_id):
+    """Delete a user — Admin / Super Admin only"""
+    target_user = get_object_or_404(User, pk=user_id)
+
+    # Prevent self-deletion
+    if target_user == request.user:
+        messages.error(request, "You cannot delete your own account.")
+        return redirect('user_list')
+
+    if request.method == 'POST':
+        username = target_user.username
+        target_user.delete()
+        messages.success(request, f'User "{username}" deleted.')
+        return redirect('user_list')
+
+    return render(request, 'app1/confirm_delete.html', {'target_user': target_user})
+
+class SensorReadingAPIView(APIView):
+    """
+    POST: Receive and store Modbus readings
+    GET: Retrieve readings (with optional filtering)
+    """
+    
+    def post(self, request):
+        """Store a new reading from the SBC"""
+        try:
+            # Validate required fields
+            required_fields = ['unit_id', 'timestamp', 'block1_raw', 'block2_raw']
+            for field in required_fields:
+                if field not in request.data:
+                    return Response(
+                        {"error": f"Missing required field: {field}"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            
+            # Prepare data for serializer
+            data = {
+                'unit_id': request.data.get('unit_id'),
+                'timestamp': request.data.get('timestamp'),
+                'block1_start_reg': request.data.get('block1_start_reg', 40100),
+                'block1_raw': request.data.get('block1_raw'),
+                'block2_start_reg': request.data.get('block2_start_reg', 40138),
+                'block2_raw': request.data.get('block2_raw'),
+            }
+            
+            serializer = SensorReadingSerializer(data=data)
+            if serializer.is_valid():
+                reading = serializer.save()
+                
+                # Trigger hourly aggregation update
+                self.update_hourly_aggregate(reading)
+                
+                return Response({
+                    "status": "success",
+                    "message": "Reading stored successfully",
+                    "id": reading.id
+                }, status=status.HTTP_201_CREATED)
+            
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+        except Exception as e:
+            logger.error(f"Error storing reading: {str(e)}")
+            return Response(
+                {"error": f"Internal server error: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    def update_hourly_aggregate(self, reading):
+        """Update or create hourly aggregate for this reading's hour"""
+        try:
+            # Convert unix timestamp to datetime
+            reading_time = datetime.fromtimestamp(reading.timestamp)
+            hour_start = reading_time.replace(minute=0, second=0, microsecond=0)
+            
+            # Get all readings in this hour
+            hour_end = hour_start + timedelta(hours=1)
+            hour_readings = SensorReading.objects.filter(
+                unit_id=reading.unit_id,
+                timestamp__gte=hour_start.timestamp(),
+                timestamp__lt=hour_end.timestamp()
+            )
+            
+            if hour_readings.exists():
+                # Calculate aggregates
+                avg_power = hour_readings.aggregate(Avg('active_power_kw'))['active_power_kw__avg'] or 0
+                min_power = hour_readings.aggregate(Min('active_power_kw'))['active_power_kw__min'] or 0
+                max_power = hour_readings.aggregate(Max('active_power_kw'))['active_power_kw__max'] or 0
+                count = hour_readings.count()
+                
+                # Energy (kWh) = average power (kW) * 1 hour
+                total_energy = avg_power * 1.0
+                
+                # Update or create aggregate
+                HourlyAggregate.objects.update_or_create(
+                    unit_id=reading.unit_id,
+                    hour=hour_start,
+                    defaults={
+                        'avg_active_power_kw': avg_power,
+                        'min_active_power_kw': min_power,
+                        'max_active_power_kw': max_power,
+                        'total_energy_kwh': total_energy,
+                        'reading_count': count,
+                    }
+                )
+        except Exception as e:
+            logger.error(f"Error updating hourly aggregate: {str(e)}")
+    
+    def get(self, request):
+        """Retrieve readings (for debugging)"""
+        unit_id = request.query_params.get('unit_id')
+        limit = int(request.query_params.get('limit', 100))
+        
+        queryset = SensorReading.objects.all()
+        if unit_id:
+            queryset = queryset.filter(unit_id=unit_id)
+        
+        queryset = queryset[:limit]
+        serializer = SensorReadingSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+class LatestReadingView(APIView):
+    """Get the latest reading for live dashboard updates"""
+    
+    def get(self, request):
+        unit_id = request.query_params.get('unit_id', 100)
+        
+        try:
+            # Get the most recent reading
+            latest = SensorReading.objects.filter(unit_id=unit_id).latest('timestamp')
+            
+            # Check if data is stale (older than 30 seconds)
+            current_time = timezone.now().timestamp()
+            is_stale = (current_time - latest.timestamp) > 30
+            
+            data = {
+                'voltage': round(latest.voltage, 1),
+                'current': round(latest.current, 1),
+                'active_power_kw': round(latest.active_power_kw, 1),
+                'reactive_power_kvar': round(latest.reactive_power_kvar, 1),
+                'apparent_power_kva': round(latest.apparent_power_kva, 1),
+                'energy_today_kwh': round(latest.energy_today_kwh, 1),
+                'timestamp': datetime.fromtimestamp(latest.timestamp).isoformat(),
+                'status': 'stale' if is_stale else 'online'
+            }
+            
+            serializer = LatestReadingSerializer(data)
+            return Response(serializer.data)
+            
+        except SensorReading.DoesNotExist:
+            return Response({
+                'status': 'offline',
+                'message': 'No readings available'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+class SummaryStatsView(APIView):
+    """Get summary statistics for today, week, and month"""
+    
+    def get(self, request):
+        unit_id = request.query_params.get('unit_id', 100)
+        now = timezone.now()
+        
+        # Get the latest reading to know current energy value
+        try:
+            latest = SensorReading.objects.filter(unit_id=unit_id).latest('timestamp')
+            current_energy = latest.energy_today_kwh
+        except SensorReading.DoesNotExist:
+            current_energy = 0
+        
+        def get_energy_at_time(target_time):
+            """Get energy reading closest to a specific time"""
+            # Convert target_time to timestamp
+            target_ts = target_time.timestamp()
+            
+            # Find reading just before or at target time
+            reading = SensorReading.objects.filter(
+                unit_id=unit_id,
+                timestamp__lte=target_ts
+            ).order_by('-timestamp').first()
+            
+            return reading.energy_today_kwh if reading else current_energy
+        
+        # Calculate start times
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        week_start = today_start - timedelta(days=7)
+        month_start = today_start - timedelta(days=30)
+        
+        # Get energy at start of each period
+        energy_today_start = get_energy_at_time(today_start)
+        energy_week_start = get_energy_at_time(week_start)
+        energy_month_start = get_energy_at_time(month_start)
+        
+        # Calculate consumption
+        today_kwh = max(0, current_energy - energy_today_start)
+        week_kwh = max(0, current_energy - energy_week_start)
+        month_kwh = max(0, current_energy - energy_month_start)
+        
+        # Get peak demand for today
+        peak_demand = SensorReading.objects.filter(
+            unit_id=unit_id,
+            timestamp__gte=today_start.timestamp()
+        ).aggregate(Max('active_power_kw'))['active_power_kw__max'] or 0
+        
+        data = {
+            'today_kwh': round(today_kwh, 1),
+            'week_kwh': round(week_kwh, 1),
+            'month_kwh': round(month_kwh, 1),
+            'peak_demand_kw': round(peak_demand, 1)
+        }
+        
+        serializer = SummaryStatsSerializer(data)
+        return Response(serializer.data)
+
+class GraphDataView(APIView):
+    """Get data for consumption trend graph - NOW WITH RAW DATA OPTION"""
+    
+    def get(self, request):
+        unit_id = request.query_params.get('unit_id', 100)
+        period = request.query_params.get('period', 'today')
+        from_date = request.query_params.get('from')
+        to_date = request.query_params.get('to')
+        
+        now = timezone.now()
+        
+        # Determine date range
+        if from_date and to_date:
+            try:
+                start = datetime.fromisoformat(from_date)
+                end = datetime.fromisoformat(to_date)
+                # Add one day to include the end date
+                end = end + timedelta(days=1)
+            except ValueError:
+                return Response({"error": "Invalid date format"}, status=400)
+        elif period == 'today':
+            start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            end = now
+        elif period == 'week':
+            start = now - timedelta(days=7)
+            end = now
+        else:  # month
+            start = now - timedelta(days=30)
+            end = now
+        
+        start_ts = start.timestamp()
+        end_ts = end.timestamp()
+        
+        # FIX: ALWAYS get raw readings first for today/week view
+        # Only use aggregates for month view or large datasets
+        readings = SensorReading.objects.filter(
+            unit_id=unit_id,
+            timestamp__gte=start_ts,
+            timestamp__lte=end_ts
+        ).order_by('timestamp')
+        
+        if readings.exists():
+            # For better visibility, show individual readings for small datasets
+            if period == 'today' or readings.count() <= 48:  # Show individual readings for today or small datasets
+                labels = []
+                values = []
+                
+                for reading in readings:
+                    dt = datetime.fromtimestamp(reading.timestamp)
+                    # Format: HH:MM for today, MM-DD HH:MM for others
+                    if period == 'today':
+                        labels.append(dt.strftime('%H:%M'))
+                    else:
+                        labels.append(dt.strftime('%m-%d %H:%M'))
+                    
+                    # Get the power value
+                    power_value = reading.active_power_kw if reading.active_power_kw else 0
+                    values.append(round(power_value, 2))
+                
+                data = {
+                    'labels': labels,
+                    'values': values,
+                    'unit': 'kW',
+                    'type': 'raw_readings',
+                    'count': len(labels)
+                }
+            else:
+                # For large datasets, use hourly aggregation
+                hourly_data = {}
+                for reading in readings:
+                    hour_key = datetime.fromtimestamp(reading.timestamp).replace(minute=0, second=0, microsecond=0)
+                    if hour_key not in hourly_data:
+                        hourly_data[hour_key] = {'total': 0, 'count': 0}
+                    if reading.active_power_kw:
+                        hourly_data[hour_key]['total'] += reading.active_power_kw
+                        hourly_data[hour_key]['count'] += 1
+                
+                labels = []
+                values = []
+                for hour_key in sorted(hourly_data.keys()):
+                    if period == 'today':
+                        labels.append(hour_key.strftime('%H:00'))
+                    else:
+                        labels.append(hour_key.strftime('%m-%d %H:00'))
+                    avg_value = hourly_data[hour_key]['total'] / hourly_data[hour_key]['count']
+                    values.append(round(avg_value, 2))
+                
+                data = {
+                    'labels': labels,
+                    'values': values,
+                    'unit': 'kW',
+                    'type': 'hourly_aggregated',
+                    'count': len(labels)
+                }
+        else:
+            data = {
+                'labels': [],
+                'values': [],
+                'unit': 'kW',
+                'type': 'no_data',
+                'count': 0
+            }
+        
+        return Response(data)
+
+class RecentReadingsView(APIView):
+    """Get recent readings for the table"""
+    
+    def get(self, request):
+        unit_id = request.query_params.get('unit_id', 100)
+        limit = int(request.query_params.get('limit', 20))
+        
+        readings = SensorReading.objects.filter(unit_id=unit_id)[:limit]
+        
+        data = []
+        for reading in readings:
+            dt = datetime.fromtimestamp(reading.timestamp)
+            data.append({
+                'time': dt.strftime('%H:%M:%S'),
+                'date': dt.strftime('%Y-%m-%d'),
+                'kw': round(reading.active_power_kw, 2) if reading.active_power_kw else 0,
+                'voltage': round(reading.voltage, 1) if reading.voltage else 0,
+                'current': round(reading.current, 1) if reading.current else 0,
+                'energy': round(reading.energy_today_kwh, 1) if reading.energy_today_kwh else 0,
+                'pf': round(reading.active_power_kw / reading.apparent_power_kva, 2) if reading.apparent_power_kva and reading.apparent_power_kva > 0 else 0,
+                'status': 'ok'
+            })
+        
+        return Response(data)
+    
+    
+
+# ─────────────────────────────────────────────────────────────────────────────
+# COMPANY VIEWS
+# ─────────────────────────────────────────────────────────────────────────────
+
+@admin_required
+def company_list(request):
+    """List all companies — Device Management landing page"""
+    companies = Company.objects.prefetch_related('devices').all()
+    return render(request, 'app1/company_list.html', {'companies': companies})
+
+
+@admin_required
+def add_company(request):
+    """Create a new company"""
+    form = CompanyForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        company = form.save(commit=False)
+        company.created_by = request.user
+        company.save()
+        messages.success(request, f'Company "{company.name}" created successfully.')
+        return redirect('company_detail', company_id=company.pk)
+    return render(request, 'app1/add_company.html', {'form': form})
+
+
+@admin_required
+def edit_company(request, company_id):
+    """Edit an existing company"""
+    company = get_object_or_404(Company, pk=company_id)
+    form = CompanyForm(request.POST or None, instance=company)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, f'Company "{company.name}" updated.')
+        return redirect('company_detail', company_id=company.pk)
+    return render(request, 'app1/edit_company.html', {'form': form, 'company': company})
+
+
+@admin_required
+def delete_company(request, company_id):
+    """Delete a company"""
+    company = get_object_or_404(Company, pk=company_id)
+    if request.method == 'POST':
+        name = company.name
+        company.delete()
+        messages.success(request, f'Company "{name}" deleted.')
+        return redirect('company_list')
+    return render(request, 'app1/confirm_delete_company.html', {'company': company})
+
+
+@admin_required
+def company_detail(request, company_id):
+    """Company detail page — shows all assigned devices and their latest readings"""
+    company = get_object_or_404(Company, pk=company_id)
+    devices = company.devices.prefetch_related('assigned_users').all()
+
+    # Attach latest reading to each device
+    device_data = []
+    for device in devices:
+        try:
+            latest = SensorReading.objects.filter(unit_id=device.unit_id).latest('timestamp')
+            device_data.append({'device': device, 'latest': latest})
+        except SensorReading.DoesNotExist:
+            device_data.append({'device': device, 'latest': None})
+
+    return render(request, 'app1/company_detail.html', {
+        'company': company,
+        'device_data': device_data,
+    })
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DEVICE VIEWS
+# ─────────────────────────────────────────────────────────────────────────────
+
+@admin_required
+def device_list(request):
+    """List all devices across all companies"""
+    devices = Device.objects.select_related('company').prefetch_related('assigned_users').all()
+    return render(request, 'app1/device_list.html', {'devices': devices})
+
+
+@admin_required
+def add_device(request):
+    """Add a new device globally"""
+    form = DeviceForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        device = form.save()
+        messages.success(request, f'Device "{device}" created.')
+        return redirect('device_detail', device_id=device.pk)
+    return render(request, 'app1/add_device.html', {'form': form})
+
+
+@admin_required
+def edit_device(request, device_id):
+    """Edit device settings"""
+    device = get_object_or_404(Device, pk=device_id)
+    form = DeviceForm(request.POST or None, instance=device)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, f'Device "{device}" updated.')
+        return redirect('device_detail', device_id=device.pk)
+    return render(request, 'app1/edit_device.html', {'form': form, 'device': device})
+
+
+@admin_required
+def delete_device(request, device_id):
+    """Delete a device"""
+    device = get_object_or_404(Device, pk=device_id)
+    company_id = device.company_id
+    if request.method == 'POST':
+        name = str(device)
+        device.delete()
+        messages.success(request, f'Device "{name}" deleted.')
+        if company_id:
+            return redirect('company_detail', company_id=company_id)
+        return redirect('device_list')
+    return render(request, 'app1/confirm_delete_device.html', {'device': device})
+
+
+@login_required(login_url='login')
+def device_detail(request, device_id):
+    """Device detail / mini dashboard — accessible by assigned users too"""
+    device = get_object_or_404(Device, pk=device_id)
+
+    # Access control
+    if not request.user.is_admin_or_superadmin():
+        if not device.assigned_users.filter(pk=request.user.pk).exists():
+            return HttpResponseForbidden("<h2>403</h2><p>You don't have access to this device.</p>")
+
+    try:
+        latest = SensorReading.objects.filter(unit_id=device.unit_id).latest('timestamp')
+    except SensorReading.DoesNotExist:
+        latest = None
+
+    return render(request, 'app1/device_detail.html', {
+        'device': device,
+        'latest': latest,
+    })
+    
+@login_required(login_url='login')
+def energy_dashboard_v2(request):
+    if request.user.is_admin_or_superadmin():
+        accessible_units = list(User.objects.values_list('unit_ids', flat=True))
+        all_units = set()
+        for units in accessible_units:
+            if units:
+                all_units.update(units)
+        all_units.add(100)
+        unit_ids = sorted(all_units)
+    else:
+        unit_ids = request.user.get_unit_ids() or [100]
+
+    context = {
+        'user': request.user,
+        'unit_ids': unit_ids,
+        'primary_unit': unit_ids[0] if unit_ids else 100,
+    }
+    return render(request, 'app1/energy_dashboard_v2.html', context)"
+
+this is energy_dashboard_v2.html 
+"{% load static %}
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="csrf-token" content="{{ csrf_token }}">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-<title>3rd Rock Energy · Microgrid</title>
+<title>3rd Rock Energy · Microgrid 2.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne+Mono&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 :root{
-  --font-number:'JetBrains Mono','SF Mono','Fira Code','Cascadia Code','Roboto Mono',monospace;
-  --font-text:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',sans-serif;
+  --font-number:'Consolas','Arial','Roboto Mono',monospace;
+  --font-text:'Calibri','Segoe UI','Arial',sans-serif;
   --bg:#F8FAFC;--bg2:#FFFFFF;--bg3:#FFFFFF;--bg4:#F1F5F9;
   --surface:#F8FAFC;--surface2:#E2E8F0;
   --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.12);
@@ -31,28 +988,22 @@ this is energy_dashboard.html file code
   --r6:6px;--r8:8px;--r12:12px;--r16:16px;--r20:20px;
 }
 body{font-family:var(--font-text);background:var(--bg);color:var(--text1);font-size:13px;font-weight:500;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
-
-/* NUMBER FONTS */
 .kpi-value,#clock-display,.dt-val,td,.stbadge{font-family:var(--font-number);font-weight:600;letter-spacing:0.3px;font-feature-settings:"tnum" on,"lnum" on;}
 .kpi-value{font-size:28px;font-weight:700;line-height:1.2;letter-spacing:-0.5px;}
 #clock-display{font-size:12px;font-weight:600;letter-spacing:1px;}
 td{font-family:var(--font-number);font-size:11px;font-weight:500;}
-
-/* TEXT CLASSES */
 .kpi-label,.panel-title,.tbl-title,.modal-title,.legend-item,.chart-title,.chart-meta,.chart-tab,.dt-label,.dt-name,.topbar-title,.topbar-sub,.tbtn,.stbadge{font-family:var(--font-text);font-weight:600;letter-spacing:0.2px;}
-.kpi-label,.panel-title,.tbl-title{letter-spacing:0.5px;text-transform:uppercase;font-size:10px;font-weight:700;}
+.kpi-label,.panel-title,.tbl-title{letter-spacing:0.5px;text-transform:uppercase;font-size:14px;font-weight:700;}
 thead th{font-family:var(--font-text);font-size:10px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;}
-
-/* MAIN LAYOUT — NO SIDEBAR */
 .main-area{margin-left:0;flex:1;display:flex;flex-direction:column;min-height:100vh;}
 
 /* TOPBAR */
 .topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
 .topbar-left{display:flex;flex-direction:column;gap:4px;}
-.topbar-title{font-family:var(--font-text);font-size:20px;font-weight:800;color:#000;letter-spacing:-0.3px;background:linear-gradient(135deg,#0F172A,#3B82F6);-webkit-background-clip:text;background-clip:text;color:transparent;}
-.topbar-sub{font-size:12px;color:#000;font-weight:600;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.topbar-title{font-family:var(--font-text);font-size:24px;font-weight:800;color:#000;letter-spacing:-0.3px;background:linear-gradient(135deg,#0F172A,#3B82F6);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.topbar-sub{font-size:14px;color:#000;font-weight:600;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
 .topbar-right{display:flex;align-items:center;gap:10px;}
-.tbtn{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:30px;font-size:11px;font-weight:700;font-family:var(--font-text);border:1px solid var(--border2);background:transparent;color:#000;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.tbtn{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:30px;font-size:14px;font-weight:700;font-family:var(--font-text);border:1px solid var(--border2);background:transparent;color:#000;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
 .tbtn:hover{background:var(--surface);}
 .tbtn.primary{background:linear-gradient(135deg,#3B82F6,#2563EB);border-color:transparent;color:#fff;}
 .tbtn.primary:hover{opacity:0.9;}
@@ -63,7 +1014,7 @@ thead th{font-family:var(--font-text);font-size:10px;font-weight:700;letter-spac
     color: #fff;
     border-radius: 25px;
     text-decoration: none;
-    font-weight: 500;
+    font-weight: 600;
     display: inline-block;
     transition: all 0.3s ease;
     box-shadow: 0 4px 10px rgba(255, 59, 59, 0.3);
@@ -82,6 +1033,7 @@ thead th{font-family:var(--font-text);font-size:10px;font-weight:700;letter-spac
     border-radius: 25px;
     text-decoration: none;
     font-weight: 500;
+    font-size:15px;
     display: inline-block;
     transition: all 0.3s ease;
     box-shadow: 0 4px 10px rgba(53, 122, 189, 0.3);
@@ -93,51 +1045,82 @@ thead th{font-family:var(--font-text);font-size:10px;font-weight:700;letter-spac
     transform: translateY(-1px);
 }
 
-
-#clock-display{font-family:var(--font-number);font-size:12px;color:#000;padding:5px 12px;background:var(--surface);border-radius:30px;border:1px solid var(--border);font-weight:700;}
-
-/* STATUS ROW (Online/Offline/Reconnect besides EST time) */
+#clock-display{font-size:12px;color:#000;padding:5px 12px;background:var(--surface);border-radius:30px;border:1px solid var(--border);font-weight:700;}
 .status-row{display:inline-flex;align-items:center;gap:10px;margin-left:8px;}
 .online-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(16,185,129,0.12);padding:4px 12px;border-radius:30px;font-size:11px;font-weight:800;color:#0E7C46;}
 .offline-badge{background:rgba(244,63,94,0.12);color:#BE123C;}
 .reconnect-btn{background:none;border:1px solid var(--border2);border-radius:20px;padding:3px 12px;font-size:10px;font-weight:700;cursor:pointer;margin-left:4px;}
 
+/* NAV BAR */
+.nav-bar{background:#0C0F1A;border-bottom:1px solid rgba(255,255,255,0.07);padding:0 24px;position:sticky;top:64px;z-index:90;}
+.nav-list{display:flex;align-items:stretch;gap:0;list-style:none;margin:0;padding:0;}
+.nav-item{position:relative;}
+.nav-link{display:flex;align-items:center;gap:6px;padding:0 18px;height:44px;color:rgb(255, 252, 252);font-size:15px;font-weight:700;font-family:var(--font-text);text-decoration:none;white-space:nowrap;cursor:pointer;transition:color 0.15s,background 0.15s;letter-spacing:0.3px;border-bottom:2px solid transparent;}
+.nav-link:hover,.nav-item:hover .nav-link{color:#fff;background:rgba(255,255,255,0.06);border-bottom-color:#3B82F6;}
+.nav-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.nav-link .chevron{font-size:10px;opacity:0.5;margin-left:2px;transition:transform 0.15s;}
+.nav-item:hover .nav-link .chevron{transform:rotate(180deg);}
+.nav-dropdown{position:absolute;top:100%;left:0;background:#161B2E;border:1px solid rgba(255,255,255,0.10);border-radius:0 0 12px 12px;min-width:200px;padding:6px 0;opacity:0;visibility:hidden;transform:translateY(-6px);transition:all 0.18s ease;z-index:200;box-shadow:0 16px 40px rgba(0,0,0,0.5);}
+.nav-item:hover .nav-dropdown{opacity:1;visibility:visible;transform:translateY(0);}
+.nav-dropdown-item{display:flex;align-items:center;gap:10px;padding:9px 16px;color:rgba(255, 255, 255, 0.99);font-size:13px;font-weight:600;font-family:var(--font-text);text-decoration:none;cursor:pointer;transition:all 0.12s;letter-spacing:0.2px;}
+.nav-dropdown-item:hover{color:#fff;background:rgba(59,130,246,0.15);padding-left:20px;}
+.nav-dropdown-item .dd-icon{font-size:13px;width:20px;text-align:center;}
+
 /* CONTENT */
 .content{padding:20px 24px;flex:1;display:flex;flex-direction:column;gap:18px;}
+.banner{display:none;padding:8px 24px;font-size:12px;font-weight:700;align-items:center;gap:10px;border-bottom:1px solid transparent;}
+.banner.show{display:flex;}
+.banner.offline{background:rgba(244,63,94,0.08);color:#BE123C;border-color:rgba(244,63,94,0.2);}
+.banner.reconnect{background:rgba(245,158,11,0.08);color:#B45309;border-color:rgba(245,158,11,0.2);}
+.banner.restored{background:rgba(16,185,129,0.08);color:#0E7C46;border-color:rgba(16,185,129,0.2);}
+.banner-x{margin-left:auto;background:none;border:none;cursor:pointer;color:inherit;font-size:14px;font-weight:800;}
+.offline-bar{display:none;background:rgba(244,63,94,0.07);border:1px solid rgba(244,63,94,0.2);border-radius:var(--r8);padding:10px 16px;font-size:12px;color:#BE123C;align-items:center;gap:10px;font-weight:700;margin-bottom:8px;}
+.offline-bar.show{display:flex;}
+.rbtn{background:rgba(244,63,94,0.12);border:1px solid rgba(244,63,94,0.25);border-radius:20px;padding:3px 12px;color:#BE123C;font-size:10px;cursor:pointer;font-weight:800;margin-left:auto;}
+
+/* SAVINGS */
+.savings-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.savings-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r12);padding:16px 18px;position:relative;overflow:hidden;transition:border-color 0.2s,box-shadow 0.2s;}
+.savings-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--sc,#3B82F6);}
+.savings-card:hover{border-color:var(--border2);box-shadow:0 4px 16px rgba(0,0,0,0.06);}
+.savings-label{font-size:20px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--text1);margin-bottom:12px;}
+.savings-dollar{font-family:var(--font-number);font-size:22px;font-weight:700;color:var(--text1);line-height:1.1;letter-spacing:-0.5px;}
+.savings-kwh{font-family:var(--font-number);font-size:14px;font-weight:600;color:var(--text1);margin-top:4px;}
+.savings-tag{display:inline-flex;align-items:center;gap:4px;margin-top:8px;font-size:12px;font-weight:800;padding:2px 8px;border-radius:4px;background:rgba(16,185,129,0.1);color:#0E7C46;}
 
 /* KPI */
 .kpi-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
 .kpi-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r12);padding:14px 16px;position:relative;overflow:hidden;transition:border-color 0.2s;}
 .kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--kpi-c,#3B82F6);}
 .kpi-card:hover{border-color:var(--border2);}
-.kpi-label{font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#000;margin-bottom:10px;}
+.kpi-label{font-size:20px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#000;margin-bottom:10px;}
 .kpi-value{font-family:var(--font-number);font-size:28px;font-weight:700;color:#000;line-height:1.2;margin-bottom:6px;letter-spacing:-0.5px;}
-.kpi-unit{font-size:10px;color:#000;font-weight:600;}
+.kpi-unit{font-size:15px;color:#000;font-weight:600;}
 .kpi-badge{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:800;padding:2px 8px;border-radius:4px;margin-top:6px;}
 .kpi-badge.ok{background:rgba(16,185,129,0.12);color:#0E7C46;}
 .kpi-badge.stale{background:rgba(245,158,11,0.12);color:#B45309;}
 .kpi-badge.offline{background:rgba(244,63,94,0.12);color:#BE123C;}
 
-/* CHART PANEL — DARK */
+/* CHART */
 .chart-panel{background:#0C0F1A;border:1px solid rgba(255,255,255,0.07);border-radius:var(--r20);overflow:hidden;}
 .chart-panel .chart-header{padding:18px 22px 14px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;}
-.chart-panel .chart-title{font-family:var(--font-text);font-size:15px;font-weight:800;color:#F0F4FF;letter-spacing:-0.2px;display:flex;align-items:center;gap:8px;}
-.chart-panel .chart-meta{font-family:var(--font-number);font-size:10px;color:rgb(255, 255, 255);margin-top:4px;font-weight:500;}
+.chart-panel .chart-title{font-family:var(--font-text);font-size:16px;font-weight:800;color:#F0F4FF;letter-spacing:-0.2px;display:flex;align-items:center;gap:8px;}
+.chart-panel .chart-meta{font-family:var(--font-number);font-size:16px;color:rgb(255, 255, 255);margin-top:4px;font-weight:500;}
 .chart-panel .chart-tabs{display:flex;background:#111624;border-radius:10px;padding:3px;gap:3px;border:1px solid rgba(255,255,255,0.07);}
-.chart-panel .chart-tab{padding:5px 16px;border-radius:7px;font-size:11px;font-weight:700;font-family:var(--font-text);background:transparent;border:none;color:rgba(255,255,255,0.45);cursor:pointer;transition:all 0.15s;}
+.chart-panel .chart-tab{padding:5px 16px;border-radius:7px;font-size:14px;font-weight:700;font-family:var(--font-text);background:transparent;border:none;color:rgba(255,255,255,0.45);cursor:pointer;transition:all 0.15s;}
 .chart-panel .chart-tab:hover{color:rgb(255, 255, 255);}
 .chart-panel .chart-tab.on{background:#2563EB;color:#fff;font-weight:800;}
 .chart-panel .date-inputs{display:flex;align-items:center;gap:6px;margin-top:8px;}
-.chart-panel .date-in{background:#111624;border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:5px 10px;font-size:10px;color:#fff;font-family:var(--font-number);outline:none;font-weight:600;}
+.chart-panel .date-in{background:#111624;border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:5px 10px;font-size:14px;color:#fff;font-family:var(--font-number);outline:none;font-weight:600;}
 .chart-panel .date-in:focus{border-color:#3B82F6;}
 .chart-panel .date-in::-webkit-calendar-picker-indicator{filter:invert(0.7);cursor:pointer;width:12px;}
-.chart-panel .date-sep{font-size:10px;color:rgba(255,255,255,0.4);font-weight:600;}
-.chart-panel .apply-btn{padding:5px 12px;border-radius:8px;background:#2563EB;border:none;color:#fff;font-size:10px;font-weight:800;font-family:var(--font-text);cursor:pointer;}
+.chart-panel .date-sep{font-size:14px;color:rgba(255,255,255,0.4);font-weight:600;}
+.chart-panel .apply-btn{padding:5px 12px;border-radius:8px;background:#2563EB;border:none;color:#fff;font-size:14px;font-weight:800;font-family:var(--font-text);cursor:pointer;}
 .chart-panel .apply-btn:hover{background:#1D4ED8;}
 
 /* LEGEND */
 .chart-panel .legend-row{padding:10px 22px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;gap:14px;flex-wrap:wrap;align-items:center;}
-.chart-panel .legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,0.7);cursor:pointer;padding:3px 8px;border-radius:6px;transition:background 0.15s;font-weight:600;font-family:var(--font-text);}
+.chart-panel .legend-item{display:flex;align-items:center;gap:6px;font-size:14px;color:rgba(255,255,255,0.7);cursor:pointer;padding:3px 8px;border-radius:6px;transition:background 0.15s;font-weight:600;font-family:var(--font-text);}
 .chart-panel .legend-item:hover{background:rgba(255,255,255,0.08);}
 .chart-panel .legend-item.hidden{opacity:0.3;}
 .chart-panel .legend-dot{width:10px;height:3px;border-radius:2px;flex-shrink:0;}
@@ -149,7 +1132,7 @@ thead th{font-family:var(--font-text);font-size:10px;font-weight:700;letter-spac
 .chart-panel .chart-empty.show{display:flex;}
 .chart-panel .chart-empty .ce-icon{font-size:28px;opacity:0.4;}
 .chart-panel .chart-empty .ce-msg{font-size:12px;color:rgba(255,255,255,0.4);font-weight:600;}
-.chart-panel .zoom-hint{font-size:9px;color:rgb(255, 255, 255);display:flex;align-items:center;gap:8px;padding:6px 22px 8px;font-weight:500;}
+.chart-panel .zoom-hint{font-size:12px;color:rgb(255, 255, 255);display:flex;align-items:center;gap:8px;padding:6px 22px 8px;font-weight:500;}
 
 /* CROSSHAIR */
 .crosshair-v{position:absolute;top:0;bottom:0;width:1px;background:rgba(96,165,250,0.5);pointer-events:none;display:none;z-index:10;}
@@ -170,15 +1153,15 @@ thead th{font-family:var(--font-text);font-size:10px;font-weight:700;letter-spac
 .spin{display:inline-block;width:8px;height:8px;border:1.5px solid rgba(96,165,250,0.4);border-top-color:#60A5FA;border-radius:50%;animation:spin 0.6s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
 
-/* FULL DATA TABLE (complete readings) */
+/* TABLE */
 .tbl-panel{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r16);overflow:hidden;}
 .tbl-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);}
-.tbl-title{font-size:11px;font-weight:800;letter-spacing:0.8px;text-transform:uppercase;color:#000;}
-.export-btn{font-size:10px;font-weight:800;padding:5px 12px;border-radius:20px;border:1px solid var(--border2);background:transparent;color:#000;cursor:pointer;}
+.tbl-title{font-size:16px;font-weight:800;letter-spacing:0.8px;text-transform:uppercase;color:#000;}
+.export-btn{font-size:14px;font-weight:800;padding:5px 12px;border-radius:20px;border:1px solid var(--border2);background:transparent;color:#000;cursor:pointer;}
 .tbl-wrap{overflow-x:auto;max-height:420px;overflow-y:auto;}
 table{width:100%;border-collapse:collapse;font-size:11px;min-width:600px;}
-thead th{padding:10px 12px;text-align:left;color:#000;font-size:9px;font-weight:800;text-transform:uppercase;border-bottom:1px solid var(--border);background:var(--surface);}
-tbody td{padding:10px 12px;border-bottom:1px solid var(--border);color:#000;font-weight:600;}
+thead th{padding:10px 12px;text-align:left;color:#000;font-size:14px;font-weight:800;text-transform:uppercase;border-bottom:1px solid var(--border);background:var(--surface);}
+tbody td{padding:10px 12px;border-bottom:1px solid var(--border);font-size:14px;color:#000;font-weight:600;}
 .stbadge{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:800;padding:2px 8px;border-radius:4px;}
 .stbadge.ok{background:rgba(16,185,129,0.12);color:#0E7C46;}
 .stbadge.warn{background:rgba(245,158,11,0.12);color:#B45309;}
@@ -193,163 +1176,625 @@ tbody td{padding:10px 12px;border-bottom:1px solid var(--border);color:#000;font
 .flb{font-size:10px;font-weight:800;color:#000;text-transform:uppercase;display:block;margin-bottom:6px;}
 .fi{width:100%;padding:9px 12px;border-radius:var(--r8);border:1px solid var(--border2);background:var(--surface);color:#000;font-family:var(--font-text);font-size:12px;outline:none;font-weight:600;}
 .modal-acts{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;}
-.banner{display:none;padding:8px 24px;font-size:12px;font-weight:700;align-items:center;gap:10px;border-bottom:1px solid transparent;}
-.banner.show{display:flex;}
-.banner.offline{background:rgba(244,63,94,0.08);color:#BE123C;border-color:rgba(244,63,94,0.2);}
-.banner.reconnect{background:rgba(245,158,11,0.08);color:#B45309;border-color:rgba(245,158,11,0.2);}
-.banner.restored{background:rgba(16,185,129,0.08);color:#0E7C46;border-color:rgba(16,185,129,0.2);}
-.banner-x{margin-left:auto;background:none;border:none;cursor:pointer;color:inherit;font-size:14px;font-weight:800;}
-.offline-bar{display:none;background:rgba(244,63,94,0.07);border:1px solid rgba(244,63,94,0.2);border-radius:var(--r8);padding:10px 16px;font-size:12px;color:#BE123C;align-items:center;gap:10px;font-weight:700;margin-bottom:8px;}
-.offline-bar.show{display:flex;}
-.rbtn{background:rgba(244,63,94,0.12);border:1px solid rgba(244,63,94,0.25);border-radius:20px;padding:3px 12px;color:#BE123C;font-size:10px;cursor:pointer;font-weight:800;margin-left:auto;}
-.drill-tooltip{position:fixed;background:#1A2035;border:1px solid rgba(255,255,255,0.12);border-radius:var(--r12);padding:12px 16px;min-width:180px;pointer-events:none;z-index:999;opacity:0;transition:opacity 0.15s;box-shadow:0 8px 32px rgba(0,0,0,0.5);}
-.drill-tooltip.show{opacity:1;}
-.dt-label{font-family:var(--font-text);font-size:10px;color:rgba(255,255,255,0.5);margin-bottom:8px;font-weight:700;}
-.dt-row{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:4px;}
-.dt-name{display:flex;align-items:center;gap:6px;font-family:var(--font-text);font-size:11px;color:rgba(255,255,255,0.7);font-weight:700;}
-.dt-dot{width:8px;height:8px;border-radius:50%;}
-.dt-val{font-family:var(--font-number);font-size:12px;color:#F0F4FF;font-weight:700;}
 .sys-item{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);}
 .sys-item-left{display:flex;align-items:center;gap:10px;}
 .sys-icon{width:28px;height:28px;border-radius:8px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:12px;}
-.sys-name{font-family:var(--font-text);font-size:12px;font-weight:800;color:#000;}
+.sys-name{font-size:12px;font-weight:800;color:#000;}
 .sys-sub{font-size:10px;color:#000;font-weight:600;}
-@media(max-width:1100px){.kpi-strip{grid-template-columns:repeat(3,1fr);}}
-@media(max-width:900px){.kpi-strip{grid-template-columns:repeat(2,1fr);}}
-@media(max-width:600px){.kpi-strip{grid-template-columns:1fr 1fr;}.chart-panel .chart-wrap{height:220px;}}
+.drill-tooltip{position:fixed;background:#1A2035;border:1px solid rgba(255,255,255,0.12);border-radius:var(--r12);padding:12px 16px;min-width:180px;pointer-events:none;z-index:999;opacity:0;transition:opacity 0.15s;box-shadow:0 8px 32px rgba(0,0,0,0.5);}
+.drill-tooltip.show{opacity:1;}
+.section-divider{display:flex;align-items:center;gap:12px;margin:4px 0 2px;}
+.section-divider span{font-size:18px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--text1);white-space:nowrap;}
+.section-divider::before,.section-divider::after{content:'';flex:1;height:1px;background:var(--border);}
+
+@media(max-width:1100px){.kpi-strip{grid-template-columns:repeat(3,1fr);}.savings-strip{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:900px){.kpi-strip{grid-template-columns:repeat(2,1fr);}.savings-strip{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:700px){.nav-list{overflow-x:auto;}.nav-link{padding:0 12px;font-size:11px;}}
+@media(max-width:600px){.kpi-strip{grid-template-columns:1fr 1fr;}.savings-strip{grid-template-columns:1fr 1fr;}.chart-panel .chart-wrap{height:220px;}}
 </style>
 </head>
 <body>
 <div class="layout">
 <div class="main-area">
+
   <header class="topbar">
     <div class="topbar-left">
       <div class="topbar-title">3rd Rock Energy System</div>
       <div class="topbar-sub">
-        <span>Real-time · Unit 100</span>
+        <span>Real-time · Unit 100 · v2.0</span>
         <div class="status-row">
           <span id="online-status-badge" class="online-badge">🟢 Online</span>
           <span id="clock-display">--:--:-- EST</span>
-          <button class="reconnect-btn" id="quick-reconnect" onclick="reconnect()">⟳ Reconnect</button>
+          <button class="reconnect-btn" onclick="reconnect()">⟳ Reconnect</button>
         </div>
       </div>
     </div>
     <div class="topbar-right">
       {% if user.is_admin_or_superadmin %}
-          <a href="{% url 'user_list' %}" class="btn-users">User Management</a>
-          <a href="{% url 'company_list' %}" class="btn-users" style="background:linear-gradient(135deg,#7C3AED,#6D28D9);box-shadow:0 4px 10px rgba(124,58,237,0.3);">Device Management</a>
+        <a href="{% url 'user_list' %}" class="btn-users">User Management</a>
+        <a href="{% url 'company_list' %}" class="btn-users" style="background:linear-gradient(135deg,#7C3AED,#6D28D9);box-shadow:0 4px 10px rgba(124,58,237,0.3);">Device Management</a>
       {% endif %}
-      <a href="{% url 'energy_dashboard_v2' %}" class="tbtn" style="background:linear-gradient(135deg,#0F172A,#3B82F6);color:#fff;border-color:transparent;font-weight:800;letter-spacing:0.5px;">✦ v2.0</a>
+      <a href="{% url 'energy_dashboard' %}" class="tbtn" style="background:linear-gradient(135deg,#0F172A,#3B82F6);color:#fff;border-color:transparent;font-weight:800;letter-spacing:0.5px;">✦ v1.0</a>
       <button class="tbtn" onclick="openModal('system-status-modal')">📡 Status</button>
       <button class="tbtn primary" onclick="openModal('settings-modal')">⚙ Settings</button>
       <a href="{% url 'logout' %}" class="btn-logout">Logout</a>
     </div>
   </header>
 
+  <nav class="nav-bar">
+    <ul class="nav-list">
+      <li class="nav-item">
+        <a class="nav-link"><div class="nav-dot" style="background:#94A3B8"></div>Grid Power<span class="chevron">▼</span></a>
+        <div class="nav-dropdown">
+          <a class="nav-dropdown-item"><span class="dd-icon">🌐</span>Grid Power 1</a>
+          <a class="nav-dropdown-item"><span class="dd-icon">🏭</span>Grid Power 2</a>
+        </div>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link"><div class="nav-dot" style="background:#F59E0B"></div>Solar Generation<span class="chevron">▼</span></a>
+        <div class="nav-dropdown">
+          <a class="nav-dropdown-item"><span class="dd-icon">☀️</span>Solar Generation 1</a>
+          <a class="nav-dropdown-item"><span class="dd-icon">🔆</span>Solar Generation 2</a>
+        </div>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link"><div class="nav-dot" style="background:#10B981"></div>Battery Power<span class="chevron">▼</span></a>
+        <div class="nav-dropdown">
+          <a class="nav-dropdown-item"><span class="dd-icon">🔋</span>Battery Power 1</a>
+          <a class="nav-dropdown-item"><span class="dd-icon">⚡</span>Battery Power 2</a>
+        </div>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link"><div class="nav-dot" style="background:#6366F1"></div>EV Charging<span class="chevron">▼</span></a>
+        <div class="nav-dropdown">
+          <a class="nav-dropdown-item"><span class="dd-icon">🚗</span>EV Charging 1</a>
+          <a class="nav-dropdown-item"><span class="dd-icon">🔌</span>EV Charging 2</a>
+        </div>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link"><div class="nav-dot" style="background:#F43F5E"></div>Building Load<span class="chevron">▼</span></a>
+        <div class="nav-dropdown">
+          <a class="nav-dropdown-item"><span class="dd-icon">🏢</span>Building Load 1</a>
+          <a class="nav-dropdown-item"><span class="dd-icon">📊</span>Building Load 2</a>
+        </div>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link"><div class="nav-dot" style="background:#06B6D4"></div>HVAC<span class="chevron">▼</span></a>
+        <div class="nav-dropdown">
+          <a class="nav-dropdown-item"><span class="dd-icon">❄️</span>HVAC 1</a>
+          <a class="nav-dropdown-item"><span class="dd-icon">🌡️</span>HVAC 2</a>
+        </div>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link"><div class="nav-dot" style="background:#8B5CF6"></div>Genset<span class="chevron">▼</span></a>
+        <div class="nav-dropdown">
+          <a class="nav-dropdown-item"><span class="dd-icon">🔧</span>Genset 1</a>
+          <a class="nav-dropdown-item"><span class="dd-icon">⚙️</span>Genset 2</a>
+        </div>
+      </li>
+      
+    </ul>
+  </nav>
+
   <div class="banner" id="banner"><span id="banner-msg">—</span><button class="banner-x" onclick="closeBanner()">✕</button></div>
 
   <div class="content">
-    <div class="offline-bar" id="offline-bar">⚠ Offline — showing cached data.</div>
+    <div class="offline-bar" id="offline-bar">⚠ Offline — showing cached data. <button class="rbtn" onclick="reconnect()">↺ Reconnect</button></div>
 
-    <!-- KPI Strip (unchanged backend) -->
-    <div class="kpi-strip">
-      <div class="kpi-card" style="--kpi-c:#10B981"><div class="kpi-label">Energy Today</div><div class="kpi-value" id="v-kwh">--</div><div class="kpi-unit">kWh consumed</div><div class="kpi-badge ok" id="b-kwh">LIVE</div></div>
-      <div class="kpi-card" style="--kpi-c:#F59E0B"><div class="kpi-label">Active Power</div><div class="kpi-value" id="v-kw">--</div><div class="kpi-unit">kilowatts</div><div class="kpi-badge ok" id="b-kw">LIVE</div></div>
-      <div class="kpi-card" style="--kpi-c:#8B5CF6"><div class="kpi-label">Apparent Power</div><div class="kpi-value" id="v-ap">--</div><div class="kpi-unit">kVA</div><div class="kpi-badge ok" id="b-ap">LIVE</div></div>
-      <div class="kpi-card" style="--kpi-c:#06B6D4"><div class="kpi-label">Current</div><div class="kpi-value" id="v-a">--</div><div class="kpi-unit">amperes</div><div class="kpi-badge ok" id="b-a">LIVE</div></div>
-      <div class="kpi-card" style="--kpi-c:#6366F1"><div class="kpi-label">Voltage</div><div class="kpi-value" id="v-v">--</div><div class="kpi-unit">volts</div><div class="kpi-badge ok" id="b-v">NORMAL</div></div>
+    <!-- SAVINGS SUMMARY -->
+    <div class="section-divider"><span>Savings Summary</span></div>
+    <div class="savings-strip">
+      <div class="savings-card" style="--sc:#10B981">
+        <div class="savings-label">Savings Today</div>
+        <div class="savings-dollar">$15.50</div>
+        <div class="savings-kwh">6,274.5 kWh</div>
+        <div class="savings-tag">↑ Today</div>
+      </div>
+      <div class="savings-card" style="--sc:#3B82F6">
+        <div class="savings-label">Savings This Month</div>
+        <div class="savings-dollar">$181.02</div>
+        <div class="savings-kwh">7,024.45 kWh</div>
+        <div class="savings-tag">↑ Month</div>
+      </div>
+      <div class="savings-card" style="--sc:#F59E0B">
+        <div class="savings-label">Savings This Year</div>
+        <div class="savings-dollar">$1,585.62</div>
+        <div class="savings-kwh">13,604.84 kWh</div>
+        <div class="savings-tag">↑ Year</div>
+      </div>
+      <div class="savings-card" style="--sc:#8B5CF6">
+        <div class="savings-label">Savings Lifetime</div>
+        <div class="savings-dollar">$21,736.03</div>
+        <div class="savings-kwh">109,288.25 kWh</div>
+        <div class="savings-tag">↑ All Time</div>
+      </div>
     </div>
 
-    <!-- Chart Panel (fully preserved backend) -->
+
+    <!-- POWER STREAMS GRAPH -->
     <div class="chart-panel">
       <div class="chart-header">
-        <div><div class="chart-title">Power Streams<span class="graph-status-pill loading" id="gpill"><span class="spin"></span> Loading</span></div><div class="chart-meta" id="chart-meta">Multi-stream energy visualization · EST</div></div>
+        <div>
+          <div class="chart-title">Power Streams<span class="graph-status-pill loading" id="gpill"><span class="spin"></span> Loading</span></div>
+        </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
-          <div class="chart-tabs"><button class="chart-tab on" onclick="switchChart('today')">Today</button><button class="chart-tab" onclick="switchChart('week')">Week</button><button class="chart-tab" onclick="switchChart('month')">Month</button></div>
-          <div class="date-inputs"><input type="date" class="date-in" id="date-from"><span class="date-sep">–</span><input type="date" class="date-in" id="date-to"><button class="apply-btn" onclick="applyCustomRange()">Apply</button></div>
+          <div class="chart-tabs">
+            <button class="chart-tab on" onclick="switchChart('today')">Today</button>
+            <button class="chart-tab" onclick="switchChart('week')">Week</button>
+            <button class="chart-tab" onclick="switchChart('month')">Month</button>
+          </div>
+          <div class="date-inputs">
+            <input type="date" class="date-in" id="date-from">
+            <span class="date-sep">–</span>
+            <input type="date" class="date-in" id="date-to">
+            <button class="apply-btn" onclick="applyCustomRange()">Apply</button>
+          </div>
         </div>
       </div>
       <div class="legend-row" id="legend-row"></div>
-      <div class="zoom-hint">🖥️ Scroll to zoom · Drag to pan · Hover for crosshair <span style="opacity:0.4;">|</span> 📱 Pinch to zoom · Swipe to pan · Tap for values</div>
       <div class="chart-wrap" id="chartWrap">
         <canvas id="lineChart" role="img" aria-label="Multi-stream microgrid power chart"></canvas>
-        <div class="crosshair-v" id="crosshairV"></div><div class="crosshair-h" id="crosshairH"></div>
-        <div class="floating-tooltip" id="floatingTooltip"></div><div class="pinch-indicator" id="pinchIndicator"></div>
-        <div class="chart-empty" id="chart-empty"><div class="ce-icon">📊</div><div class="ce-msg">No data for this period</div></div>
+        <div class="crosshair-v" id="crosshairV"></div>
+        <div class="crosshair-h" id="crosshairH"></div>
+        <div class="floating-tooltip" id="floatingTooltip"></div>
+        <div class="chart-empty" id="chart-empty">
+          <div class="ce-icon">📊</div>
+          <div class="ce-msg">No data for this period</div>
+        </div>
       </div>
     </div>
 
-    <!-- COMPLETE READINGS (full dataset - replaces Recent Readings) -->
-    <div class="tbl-panel">
-      <div class="tbl-header"><div class="tbl-title">Complete Readings · Full Dataset</div><button class="export-btn" onclick="exportCSV()">Export CSV ↓</button></div>
-      <div class="tbl-wrap">
-        <table id="readings-table"><thead><tr><th>Time (EST)</th><th>kW</th><th>Voltage</th><th>Current</th><th>kWh</th><th>PF</th><th>Status</th></tr></thead><tbody id="tBody"><tr><td colspan="7" style="text-align:center;padding:20px;">Loading full dataset…</td></tr></tbody></table>
+    <!-- LIVE METRICS — SET 1 (above graph) -->
+    <div class="section-divider"><span>Live Metrics</span></div>
+    <div class="kpi-strip">
+      <div class="kpi-card" style="--kpi-c:#10B981">
+        <div class="kpi-label">Energy Today</div>
+        <div class="kpi-value" id="v-kwh">--</div>
+        <div class="kpi-unit">kWh consumed</div>
+        <div class="kpi-badge ok" id="b-kwh">LIVE</div>
+      </div>
+      <div class="kpi-card" style="--kpi-c:#F59E0B">
+        <div class="kpi-label">Active Power</div>
+        <div class="kpi-value" id="v-kw">--</div>
+        <div class="kpi-unit">kilowatts</div>
+        <div class="kpi-badge ok" id="b-kw">LIVE</div>
+      </div>
+      <div class="kpi-card" style="--kpi-c:#8B5CF6">
+        <div class="kpi-label">Apparent Power</div>
+        <div class="kpi-value" id="v-ap">--</div>
+        <div class="kpi-unit">kVA</div>
+        <div class="kpi-badge ok" id="b-ap">LIVE</div>
+      </div>
+      <div class="kpi-card" style="--kpi-c:#06B6D4">
+        <div class="kpi-label">Current</div>
+        <div class="kpi-value" id="v-a">--</div>
+        <div class="kpi-unit">amperes</div>
+        <div class="kpi-badge ok" id="b-a">LIVE</div>
+      </div>
+      <div class="kpi-card" style="--kpi-c:#6366F1">
+        <div class="kpi-label">Voltage</div>
+        <div class="kpi-value" id="v-v">--</div>
+        <div class="kpi-unit">volts</div>
+        <div class="kpi-badge ok" id="b-v">NORMAL</div>
       </div>
     </div>
+
+    <!-- COMPLETE READINGS TABLE -->
+    <div class="tbl-panel">
+      <div class="tbl-header">
+        <div class="tbl-title">Complete Readings · Full Dataset</div>
+        <button class="export-btn" onclick="exportCSV()">Export CSV ↓</button>
+      </div>
+      <div class="tbl-wrap">
+        <table id="readings-table">
+          <thead><tr><th>Time (EST)</th><th>kW</th><th>Voltage</th><th>Current</th><th>kWh</th><th>PF</th><th>Status</th></tr></thead>
+          <tbody id="tBody"><tr><td colspan="7" style="text-align:center;padding:20px;">Loading full dataset…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
   </div>
 </div>
 </div>
 
 <div class="drill-tooltip" id="drill-tooltip"></div>
-<div class="overlay" id="settings-modal" onclick="if(event.target===this)closeModal('settings-modal')"><div class="modal"><div class="modal-title">Preferences</div><div class="fg"><label class="flb">Refresh Interval (sec)</label><input type="number" class="fi" id="refresh-interval" value="3" min="2" max="60"></div><div class="fg"><label class="flb">Currency</label><select class="fi" id="currency-select"><option value="$">USD ($)</option><option value="€">EUR (€)</option><option value="£">GBP (£)</option><option value="₹" selected>INR (₹)</option></select></div><div class="fg"><label class="flb">Rate per kWh</label><input type="number" class="fi" id="unit-rate" value="0.14" step="0.01"></div><div class="modal-acts"><button class="tbtn" onclick="closeModal('settings-modal')">Cancel</button><button class="tbtn primary" onclick="saveSettings()">Save Settings</button></div></div></div>
-<div class="overlay" id="system-status-modal" onclick="if(event.target===this)closeModal('system-status-modal')"><div class="modal" style="max-width:460px;"><div class="modal-title">System Status</div><div id="sys-grid"><div class="sys-item"><div class="sys-item-left"><div class="sys-icon">🌐</div><div><div class="sys-name">Gateway</div><div class="sys-sub">Modbus TCP connection</div></div></div><span class="stbadge" id="s-gateway">--</span></div><div class="sys-item"><div class="sys-item-left"><div class="sys-icon">📡</div><div><div class="sys-name">API Server</div><div class="sys-sub">Django backend</div></div></div><span class="stbadge" id="s-api">--</span></div><div class="sys-item"><div class="sys-item-left"><div class="sys-icon">💾</div><div><div class="sys-name">Database</div><div class="sys-sub">Data persistence</div></div></div><span class="stbadge" id="s-db">--</span></div><div class="sys-item"><div class="sys-item-left"><div class="sys-icon">⚡</div><div><div class="sys-name">Last Reading</div><div class="sys-sub" id="s-last-sub">—</div></div></div><span class="stbadge" id="s-last">--</span></div></div><div class="modal-acts"><button class="tbtn primary" onclick="closeModal('system-status-modal')">Close</button></div></div></div>
+
+<div class="overlay" id="settings-modal" onclick="if(event.target===this)closeModal('settings-modal')">
+  <div class="modal">
+    <div class="modal-title">Preferences</div>
+    <div class="fg"><label class="flb">Refresh Interval (sec)</label><input type="number" class="fi" id="refresh-interval" value="3" min="2" max="60"></div>
+    <div class="fg"><label class="flb">Currency</label><select class="fi" id="currency-select"><option value="$">USD ($)</option><option value="€">EUR (€)</option><option value="£">GBP (£)</option><option value="₹" selected>INR (₹)</option></select></div>
+    <div class="fg"><label class="flb">Rate per kWh</label><input type="number" class="fi" id="unit-rate" value="0.14" step="0.01"></div>
+    <div class="modal-acts"><button class="tbtn" onclick="closeModal('settings-modal')">Cancel</button><button class="tbtn primary" onclick="saveSettings()">Save Settings</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="system-status-modal" onclick="if(event.target===this)closeModal('system-status-modal')">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-title">System Status</div>
+    <div id="sys-grid">
+      <div class="sys-item"><div class="sys-item-left"><div class="sys-icon">🌐</div><div><div class="sys-name">Gateway</div><div class="sys-sub">Modbus TCP connection</div></div></div><span class="stbadge" id="s-gateway">--</span></div>
+      <div class="sys-item"><div class="sys-item-left"><div class="sys-icon">📡</div><div><div class="sys-name">API Server</div><div class="sys-sub">Django backend</div></div></div><span class="stbadge" id="s-api">--</span></div>
+      <div class="sys-item"><div class="sys-item-left"><div class="sys-icon">💾</div><div><div class="sys-name">Database</div><div class="sys-sub">Data persistence</div></div></div><span class="stbadge" id="s-db">--</span></div>
+      <div class="sys-item"><div class="sys-item-left"><div class="sys-icon">⚡</div><div><div class="sys-name">Last Reading</div><div class="sys-sub" id="s-last-sub">—</div></div></div><span class="stbadge" id="s-last">--</span></div>
+    </div>
+    <div class="modal-acts"><button class="tbtn primary" onclick="closeModal('system-status-modal')">Close</button></div>
+  </div>
+</div>
 
 <script>
-// ── CONFIG (original backend logic fully preserved) ──
 const API_BASE = window.location.origin;
 const EST_MS = -5 * 60 * 60 * 1000;
-let mainChart = null, currentPeriod = 'today', refreshTimer = null, pollTimer = null, graphTimer = null, lastTS = null;
-let refreshInterval = 5000, interactionsAttached = false, viewStart = 0, viewWindow = 1.0, allLabels = [], allData = {};
+let mainChart = null, currentPeriod = 'today', refreshTimer = null, graphTimer = null, lastTS = null;
+let refreshInterval = 3000, interactionsAttached = false, viewStart = 0, viewWindow = 1.0, allLabels = [], allData = {};
 let state = { currency:'₹', unitRate:0.14 };
-const STREAMS = [
-  { id:'solar', label:'Solar Generation', color:'#F59E0B', simFn:(t)=>Math.max(0,8*Math.sin((t%86400)/86400*Math.PI)+Math.random()*0.5) },
-  { id:'battery', label:'Battery Power', color:'#10B981', simFn:(t)=>(Math.sin(t/3600)*3+Math.random()*0.3) },
-  { id:'ev', label:'EV Charging', color:'#6366F1', simFn:(t)=>Math.max(0,3.5+Math.sin(t/1800)*1.2+Math.random()*0.4) },
-  { id:'load', label:'Building Load', color:'#F43F5E', simFn:(t)=>Math.max(0,12+Math.sin(t/7200)*4+Math.random()*0.8) },
-  { id:'hvac', label:'HVAC', color:'#06B6D4', simFn:(t)=>Math.max(0,4+Math.sin(t/5400)*2+Math.random()*0.3) },
-  { id:'genset', label:'Genset', color:'#8B5CF6', simFn:()=>0 }, { id:'grid', label:'Grid Power', color:'#94A3B8', simFn:(t)=>Math.max(0,5+Math.sin(t/10800)*3+Math.random()*0.5) }
-];
-let streamVisible = {}; STREAMS.forEach(s => { streamVisible[s.id] = true; });
 
-function fmtClock() { return new Date().toLocaleTimeString('en-US',{timeZone:'America/New_York',hour:'numeric',minute:'2-digit',second:'2-digit',hour12:true}); }
-function fmtDateEST(d) { return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`; }
-function convertLabels(labels) { return labels; }
-function buildLegend() { const row = document.getElementById('legend-row'); row.innerHTML = ''; STREAMS.forEach(s => { const item = document.createElement('div'); item.className = 'legend-item'; item.id = `leg-${s.id}`; item.innerHTML = `<div class="legend-dot" style="background:${s.color}"></div>${s.label}`; item.onclick = () => toggleStream(s.id); row.appendChild(item); }); }
-function toggleStream(id) { streamVisible[id] = !streamVisible[id]; document.getElementById(`leg-${id}`)?.classList.toggle('hidden', !streamVisible[id]); if(mainChart){ const i=STREAMS.findIndex(s=>s.id===id); mainChart.getDatasetMeta(i).hidden = !streamVisible[id]; mainChart.update(); } }
-function getViewSlice() { const total=allLabels.length; if(!total) return {labels:[],startIdx:0,endIdx:0}; const visCount=Math.max(5,Math.round(total*viewWindow)); const startIdx=Math.max(0,Math.min(total-visCount,Math.round(viewStart*(total-visCount)))); return {labels:allLabels.slice(startIdx,startIdx+visCount),startIdx,endIdx:startIdx+visCount}; }
-function applyView() { if(!mainChart) return; const {labels,startIdx,endIdx}=getViewSlice(); mainChart.data.labels=labels; STREAMS.forEach((s,i)=>{ mainChart.data.datasets[i].data=(allData[s.id]||[]).slice(startIdx,endIdx); mainChart.data.datasets[i].pointRadius=labels.length>80?0:2; }); mainChart.update('none'); }
-function attachChartInteractions() { if(interactionsAttached) return; interactionsAttached=true; const wrap=document.getElementById('chartWrap'); if(!wrap) return; let dragging=false, dragX=0, dragSV=0, dragVW=0; wrap.addEventListener('wheel',e=>{ e.preventDefault(); const factor=e.deltaY<0?0.7:(1/0.7); const rect=wrap.getBoundingClientRect(); const relX=(e.clientX-rect.left)/rect.width; const oldWindow=viewWindow; viewWindow=Math.max(0.05,Math.min(1.0,viewWindow*factor)); viewStart=Math.max(0,Math.min(1-viewWindow,viewStart+(oldWindow-viewWindow)*relX)); applyView();},{passive:false}); wrap.addEventListener('mousedown',e=>{dragging=true;dragX=e.clientX;dragSV=viewStart;dragVW=viewWindow;wrap.classList.add('panning');}); window.addEventListener('mousemove',e=>{if(!dragging)return; const moved=(e.clientX-dragX)/wrap.clientWidth; let newStart=dragSV-moved; if(newStart<0){viewWindow=Math.min(1.0,dragVW+(-newStart)*0.8);newStart=0;}else if(newStart+viewWindow>1){viewWindow=Math.min(1.0,dragVW+(newStart+viewWindow-1)*0.8);newStart=Math.max(0,1-viewWindow);} viewStart=newStart; applyView();}); window.addEventListener('mouseup',()=>{if(dragging){dragging=false;wrap.classList.remove('panning');if(viewWindow>=0.95){viewWindow=1.0;viewStart=0;applyView();}}}); wrap.addEventListener('mousemove',e=>{if(dragging||!mainChart)return; const rect=wrap.getBoundingClientRect(); const x=e.clientX-rect.left, y=e.clientY-rect.top; const pts=mainChart.getElementsAtEventForMode(e,'index',{intersect:false},true); updateCrosshair(x,y,pts.length?pts[0].index:-1);}); wrap.addEventListener('mouseleave',()=>updateCrosshair(null,null,-1)); }
-function updateCrosshair(x,y,dataIndex){ const cv=document.getElementById('crosshairV'), ch=document.getElementById('crosshairH'), ft=document.getElementById('floatingTooltip'); if(x===null){cv.style.display='none';ch.style.display='none';ft.classList.remove('show');return;} const wrap=document.getElementById('chartWrap'); const padL=22; cv.style.display='block';cv.style.left=x+'px';cv.style.top='14px';cv.style.height=(wrap.clientHeight-32)+'px'; ch.style.display='block';ch.style.top=y+'px';ch.style.left=padL+'px';ch.style.width=(wrap.clientWidth-padL-22)+'px'; if(mainChart&&dataIndex>=0&&mainChart.data.labels[dataIndex]){ let rows=`<div class="ftt-time">${mainChart.data.labels[dataIndex]}</div>`; STREAMS.forEach((s,i)=>{ if(!streamVisible[s.id])return; const val=mainChart.data.datasets[i]?.data?.[dataIndex]; if(val!=null) rows+=`<div class="ftt-row"><div class="ftt-name"><div class="ftt-dot" style="background:${s.color}"></div>${s.label}</div><div class="ftt-val">${parseFloat(val).toFixed(2)} kW</div></div>`; }); ft.innerHTML=rows; ft.classList.add('show'); ft.style.left=Math.max(4,x+16)+'px'; ft.style.top=Math.max(4,y-60)+'px'; } }
-async function fetchGraphData(period='today',fromDate=null,toDate=null){ setGPill('loading','Loading…'); showChartEmpty(false); try{ let url=`${API_BASE}/api/readings/graph/?unit_id=100&period=${period}`; if(fromDate&&toDate) url=`${API_BASE}/api/readings/graph/?unit_id=100&from=${fromDate}&to=${toDate}`; const res=await fetch(url); if(!res.ok)throw new Error(); const data=await res.json(); const rawLabels=data.labels||[], rawValues=data.values||[]; if(!rawLabels.length||!rawValues.some(v=>v>0)){ showChartEmpty(true); setGPill('nodata','No data'); if(mainChart){mainChart.data.labels=[];mainChart.data.datasets.forEach(d=>d.data=[]);mainChart.update();} return; } const estLabels=convertLabels(rawLabels); const primaryVals=rawValues.map(v=>Math.max(0,parseFloat((+v).toFixed(3)))); const multiData={}; multiData.load=primaryVals; STREAMS.forEach(s=>{ if(s.id!=='load') multiData[s.id]=primaryVals.map((pri,i)=>{ const t=Date.now()/1000-(rawLabels.length-i)*60; let val=s.simFn(t); return Math.max(0,parseFloat((val*(0.7+0.3*(pri/(Math.max(...primaryVals,1))))).toFixed(3))); }); }); allLabels=estLabels; allData=multiData; viewStart=0; if(!mainChart){ createChart(estLabels,multiData); attachChartInteractions(); } applyView(); const peak=Math.max(...primaryVals).toFixed(1); document.getElementById('chart-meta').textContent=`${rawLabels.length} readings · Peak ${peak} kW · EST`; setGPill('live',`${rawLabels.length} pts`); }catch(e){ showChartEmpty(true); setGPill('nodata','Error'); } }
-function createChart(labels,multiData){ const canvas=document.getElementById('lineChart'); if(mainChart)mainChart.destroy(); const ctx=canvas.getContext('2d'); mainChart=new Chart(ctx,{type:'line',data:{labels,datasets:STREAMS.map(s=>({label:s.label,data:multiData[s.id]||[],borderColor:s.color,backgroundColor:ctx.createLinearGradient(0,0,0,280),borderWidth:2,pointRadius:labels.length>60?0:2,pointHoverRadius:5,pointBackgroundColor:s.color,fill:false,tension:0.4,hidden:!streamVisible[s.id]}))},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{enabled:false}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#fff',font:{size:10}}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#fff',callback:v=>v.toFixed(1)+' kW'},beginAtZero:true}}}}); }
-async function fetchLiveData(){ try{ const res=await fetch(`${API_BASE}/api/readings/latest/?unit_id=100`); if(!res.ok)throw new Error(); const d=await res.json(); if(d.status==='online'||d.status==='stale'){ document.getElementById('v-kw').textContent=(d.active_power_kw??0).toFixed(1); document.getElementById('v-kwh').textContent=(d.energy_today_kwh??0).toFixed(1); document.getElementById('v-v').textContent=(d.voltage??0).toFixed(1); document.getElementById('v-a').textContent=(d.current??0).toFixed(1); document.getElementById('v-ap').textContent=(d.apparent_power_kva??0).toFixed(1); setOnlineStatus('online'); const stale=d.status==='stale'; ['b-kw','b-kwh','b-v','b-a','b-ap'].forEach(id=>{ const el=document.getElementById(id); if(el){el.className='kpi-badge '+(stale?'stale':'ok'); el.textContent=stale?'STALE':'LIVE';}}); document.getElementById('offline-bar').classList.remove('show'); if(d.timestamp){ const ts=new Date(d.timestamp); lastTS=ts.getTime(); } }else{ setOnlineStatus('offline'); document.getElementById('offline-bar').classList.add('show'); } }catch(e){ setOnlineStatus('offline'); document.getElementById('offline-bar').classList.add('show'); } }
-async function fetchRecent(){ try{ const res=await fetch(`${API_BASE}/api/readings/recent/?unit_id=100&limit=200`); if(!res.ok)throw new Error(); const rows=await res.json(); const tb=document.getElementById('tBody'); if(!rows||!rows.length){ tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:16px">No complete data</td></tr>'; return; } tb.innerHTML=rows.map(r=>{ const kw=+(r.kw||0), v=+(r.voltage||0), a=+(r.current||0), e=+(r.energy||0), pf=+(r.pf||0); return `<tr><td>${r.time||'—'}</td><td>${kw.toFixed(2)}</td><td>${v.toFixed(1)}</td><td>${a.toFixed(1)}</td><td>${e.toFixed(1)}</td><td>${pf.toFixed(2)}</td><td><span class="stbadge ${r.status==='ok'?'ok':'warn'}">${r.status==='ok'?'Online':'⚠ '+r.status}</span></td></tr>`; }).join(''); }catch(e){ document.getElementById('tBody').innerHTML='<tr><td colspan="7" style="text-align:center;padding:16px">Failed to load full dataset</td></tr>'; } }
-function setOnlineStatus(s){ const badge=document.getElementById('online-status-badge'); if(s==='online'){ badge.innerHTML='🟢 Online'; badge.className='online-badge'; }else{ badge.innerHTML='🔴 Offline'; badge.className='online-badge offline-badge'; } }
-function setGPill(type,label){ const el=document.getElementById('gpill'); el.className='graph-status-pill '+type; el.innerHTML=type==='loading'?`<span class="spin"></span> ${label}`:label; }
+const STREAMS = [
+  { id:'grid',    label:'Grid Power',       color:'#94A3B8', simFn:(t)=>Math.max(0,5+Math.sin(t/10800)*3+Math.random()*0.5) },
+  { id:'solar',   label:'Solar Generation', color:'#F59E0B', simFn:(t)=>Math.max(0,8*Math.sin((t%86400)/86400*Math.PI)+Math.random()*0.5) },
+  { id:'battery', label:'Battery Power',    color:'#10B981', simFn:(t)=>(Math.sin(t/3600)*3+Math.random()*0.3) },
+  { id:'ev',      label:'EV Charging',      color:'#6366F1', simFn:(t)=>Math.max(0,3.5+Math.sin(t/1800)*1.2+Math.random()*0.4) },
+  { id:'load',    label:'Building Load',    color:'#F43F5E', simFn:(t)=>Math.max(0,12+Math.sin(t/7200)*4+Math.random()*0.8) },
+  { id:'hvac',    label:'HVAC',             color:'#06B6D4', simFn:(t)=>Math.max(0,4+Math.sin(t/5400)*2+Math.random()*0.3) },
+  { id:'genset',  label:'Genset',           color:'#8B5CF6', simFn:()=>0 }
+  
+];
+let streamVisible = {};
+STREAMS.forEach(s => { streamVisible[s.id] = true; });
+
+// ── helper: safely set textContent — never throws ──
+function setText(id, val){ const el=document.getElementById(id); if(el) el.textContent=val; }
+function setClass(id, cls, txt){ const el=document.getElementById(id); if(el){ el.className=cls; if(txt!==undefined) el.textContent=txt; } }
+
+function fmtClock(){ return new Date().toLocaleTimeString('en-US',{timeZone:'America/New_York',hour:'numeric',minute:'2-digit',second:'2-digit',hour12:true}); }
+function fmtDateEST(d){ return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`; }
+
+function buildLegend(){
+  const row = document.getElementById('legend-row');
+  row.innerHTML = '';
+  STREAMS.forEach(s => {
+    const item = document.createElement('div');
+    item.className = 'legend-item';
+    item.id = `leg-${s.id}`;
+    item.innerHTML = `<div class="legend-dot" style="background:${s.color}"></div>${s.label}`;
+    item.onclick = () => toggleStream(s.id);
+    row.appendChild(item);
+  });
+}
+
+function toggleStream(id){
+  streamVisible[id] = !streamVisible[id];
+  document.getElementById(`leg-${id}`)?.classList.toggle('hidden', !streamVisible[id]);
+  if(mainChart){ const i=STREAMS.findIndex(s=>s.id===id); mainChart.getDatasetMeta(i).hidden=!streamVisible[id]; mainChart.update(); }
+}
+
+function getViewSlice(){
+  const total=allLabels.length;
+  if(!total) return {labels:[],startIdx:0,endIdx:0};
+  const visCount=Math.max(5,Math.round(total*viewWindow));
+  const startIdx=Math.max(0,Math.min(total-visCount,Math.round(viewStart*(total-visCount))));
+  return {labels:allLabels.slice(startIdx,startIdx+visCount),startIdx,endIdx:startIdx+visCount};
+}
+
+function applyView(){
+  if(!mainChart) return;
+  const {labels,startIdx,endIdx}=getViewSlice();
+  mainChart.data.labels=labels;
+  STREAMS.forEach((s,i)=>{
+    mainChart.data.datasets[i].data=(allData[s.id]||[]).slice(startIdx,endIdx);
+    mainChart.data.datasets[i].pointRadius=labels.length>80?0:2;
+  });
+  mainChart.update('none');
+}
+
+function attachChartInteractions(){
+  if(interactionsAttached) return;
+  interactionsAttached=true;
+  const wrap=document.getElementById('chartWrap');
+  if(!wrap) return;
+  let dragging=false,dragX=0,dragSV=0,dragVW=0;
+  wrap.addEventListener('wheel',e=>{
+    e.preventDefault();
+    const factor=e.deltaY<0?0.7:(1/0.7);
+    const rect=wrap.getBoundingClientRect();
+    const relX=(e.clientX-rect.left)/rect.width;
+    const oldWindow=viewWindow;
+    viewWindow=Math.max(0.05,Math.min(1.0,viewWindow*factor));
+    viewStart=Math.max(0,Math.min(1-viewWindow,viewStart+(oldWindow-viewWindow)*relX));
+    applyView();
+  },{passive:false});
+  wrap.addEventListener('mousedown',e=>{dragging=true;dragX=e.clientX;dragSV=viewStart;dragVW=viewWindow;wrap.classList.add('panning');});
+  window.addEventListener('mousemove',e=>{
+    if(!dragging) return;
+    const moved=(e.clientX-dragX)/wrap.clientWidth;
+    let newStart=dragSV-moved;
+    if(newStart<0){viewWindow=Math.min(1.0,dragVW+(-newStart)*0.8);newStart=0;}
+    else if(newStart+viewWindow>1){viewWindow=Math.min(1.0,dragVW+(newStart+viewWindow-1)*0.8);newStart=Math.max(0,1-viewWindow);}
+    viewStart=newStart; applyView();
+  });
+  window.addEventListener('mouseup',()=>{
+    if(dragging){dragging=false;wrap.classList.remove('panning');if(viewWindow>=0.95){viewWindow=1.0;viewStart=0;applyView();}}
+  });
+  wrap.addEventListener('mousemove',e=>{
+    if(dragging||!mainChart) return;
+    const rect=wrap.getBoundingClientRect();
+    const x=e.clientX-rect.left,y=e.clientY-rect.top;
+    const pts=mainChart.getElementsAtEventForMode(e,'index',{intersect:false},true);
+    updateCrosshair(x,y,pts.length?pts[0].index:-1);
+  });
+  wrap.addEventListener('mouseleave',()=>updateCrosshair(null,null,-1));
+}
+
+function updateCrosshair(x,y,dataIndex){
+  const cv=document.getElementById('crosshairV'),ch=document.getElementById('crosshairH'),ft=document.getElementById('floatingTooltip');
+  if(x===null){cv.style.display='none';ch.style.display='none';ft.classList.remove('show');return;}
+  const wrap=document.getElementById('chartWrap');
+  const padL=22;
+  cv.style.display='block';cv.style.left=x+'px';cv.style.top='14px';cv.style.height=(wrap.clientHeight-32)+'px';
+  ch.style.display='block';ch.style.top=y+'px';ch.style.left=padL+'px';ch.style.width=(wrap.clientWidth-padL-22)+'px';
+  if(mainChart&&dataIndex>=0&&mainChart.data.labels[dataIndex]){
+    let rows=`<div class="ftt-time">${mainChart.data.labels[dataIndex]}</div>`;
+    STREAMS.forEach((s,i)=>{
+      if(!streamVisible[s.id]) return;
+      const val=mainChart.data.datasets[i]?.data?.[dataIndex];
+      if(val!=null) rows+=`<div class="ftt-row"><div class="ftt-name"><div class="ftt-dot" style="background:${s.color}"></div>${s.label}</div><div class="ftt-val">${parseFloat(val).toFixed(2)} kW</div></div>`;
+    });
+    ft.innerHTML=rows; ft.classList.add('show');
+    ft.style.left=Math.max(4,x+16)+'px'; ft.style.top=Math.max(4,y-60)+'px';
+  }
+}
+
+async function fetchGraphData(period='today',fromDate=null,toDate=null){
+  setGPill('loading','Loading…'); showChartEmpty(false);
+  try{
+    let url=`${API_BASE}/api/readings/graph/?unit_id=100&period=${period}`;
+    if(fromDate&&toDate) url=`${API_BASE}/api/readings/graph/?unit_id=100&from=${fromDate}&to=${toDate}`;
+    const res=await fetch(url);
+    if(!res.ok) throw new Error('Graph fetch failed: '+res.status);
+    const data=await res.json();
+    const rawLabels=data.labels||[],rawValues=data.values||[];
+    if(!rawLabels.length||!rawValues.some(v=>v>0)){
+      showChartEmpty(true); setGPill('nodata','No data');
+      if(mainChart){mainChart.data.labels=[];mainChart.data.datasets.forEach(d=>d.data=[]); mainChart.update();}
+      return;
+    }
+    const primaryVals=rawValues.map(v=>Math.max(0,parseFloat((+v).toFixed(3))));
+    const multiData={};
+    multiData.load=primaryVals;
+    STREAMS.forEach(s=>{
+      if(s.id!=='load') multiData[s.id]=primaryVals.map((pri,i)=>{
+        const t=Date.now()/1000-(rawLabels.length-i)*60;
+        const val=s.simFn(t);
+        return Math.max(0,parseFloat((val*(0.7+0.3*(pri/(Math.max(...primaryVals,1))))).toFixed(3)));
+      });
+    });
+    allLabels=rawLabels; allData=multiData; viewStart=0;
+    if(!mainChart){ createChart(rawLabels,multiData); attachChartInteractions(); }
+    applyView();
+    const peak=Math.max(...primaryVals).toFixed(1);
+    setText('chart-meta',`${rawLabels.length} readings · Peak ${peak} kW · EST`);
+    setGPill('live',`${rawLabels.length} pts`);
+  }catch(e){ console.error('Graph error:',e); showChartEmpty(true); setGPill('nodata','Error'); }
+}
+
+function createChart(labels,multiData){
+  const canvas=document.getElementById('lineChart');
+  if(mainChart) mainChart.destroy();
+  const ctx=canvas.getContext('2d');
+  mainChart=new Chart(ctx,{
+    type:'line',
+    data:{
+      labels,
+      datasets:STREAMS.map(s=>({
+        label:s.label,
+        data:multiData[s.id]||[],
+        borderColor:s.color,
+        backgroundColor:'transparent',
+        borderWidth:2,
+        pointRadius:labels.length>60?0:2,
+        pointHoverRadius:5,
+        pointBackgroundColor:s.color,
+        fill:false,
+        tension:0.4,
+        hidden:!streamVisible[s.id]
+      }))
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},tooltip:{enabled:false}},
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#fff',font:{size:10}}},
+        y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#fff',callback:v=>v.toFixed(1)+' kW'},beginAtZero:true}
+      }
+    }
+  });
+}
+
+// ── KEY FIX: safe DOM updates — no null references that could crash into catch ──
+async function fetchLiveData(){
+  try{
+    const res=await fetch(`${API_BASE}/api/readings/latest/?unit_id=100`);
+    if(!res.ok) throw new Error('API error: '+res.status);
+    const d=await res.json();
+
+    if(d.status==='online'||d.status==='stale'){
+      const kw=(d.active_power_kw??0).toFixed(1);
+      const kwh=(d.energy_today_kwh??0).toFixed(1);
+      const v=(d.voltage??0).toFixed(1);
+      const a=(d.current??0).toFixed(1);
+      const ap=(d.apparent_power_kva??0).toFixed(1);
+
+      // Set 1 (above graph)
+      setText('v-kw',  kw);
+      setText('v-kwh', kwh);
+      setText('v-v',   v);
+      setText('v-a',   a);
+      setText('v-ap',  ap);
+
+      // Set 2 (below graph)
+      setText('v-kw2',  kw);
+      setText('v-kwh2', kwh);
+      setText('v-v2',   v);
+      setText('v-a2',   a);
+      setText('v-ap2',  ap);
+
+      setOnlineStatus('online');
+      const badgeCls = 'kpi-badge '+(d.status==='stale'?'stale':'ok');
+      const badgeTxt = d.status==='stale'?'STALE':'LIVE';
+      ['b-kw','b-kwh','b-v','b-a','b-ap','b-kw2','b-kwh2','b-v2','b-a2','b-ap2'].forEach(id=>{
+        setClass(id, badgeCls, badgeTxt);
+      });
+      setClass('b-v',  badgeCls, d.status==='stale'?'STALE':'NORMAL');
+      setClass('b-v2', badgeCls, d.status==='stale'?'STALE':'NORMAL');
+
+      document.getElementById('offline-bar').classList.remove('show');
+      if(d.timestamp) lastTS=new Date(d.timestamp).getTime();
+
+    }else{
+      setOnlineStatus('offline');
+      document.getElementById('offline-bar').classList.add('show');
+    }
+  }catch(e){
+    console.error('fetchLiveData error:', e);
+    setOnlineStatus('offline');
+    document.getElementById('offline-bar').classList.add('show');
+  }
+}
+
+async function fetchRecent(){
+  try{
+    const res=await fetch(`${API_BASE}/api/readings/recent/?unit_id=100&limit=200`);
+    if(!res.ok) throw new Error('Recent fetch error: '+res.status);
+    const rows=await res.json();
+    const tb=document.getElementById('tBody');
+    if(!rows||!rows.length){
+      tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:16px">No complete data</td></tr>';
+      return;
+    }
+    tb.innerHTML=rows.map(r=>{
+      const kw=+(r.kw||0),v=+(r.voltage||0),a=+(r.current||0),e=+(r.energy||0),pf=+(r.pf||0);
+      return `<tr><td>${r.time||'—'}</td><td>${kw.toFixed(2)}</td><td>${v.toFixed(1)}</td><td>${a.toFixed(1)}</td><td>${e.toFixed(1)}</td><td>${pf.toFixed(2)}</td><td><span class="stbadge ${r.status==='ok'?'ok':'warn'}">${r.status==='ok'?'Online':'⚠ '+r.status}</span></td></tr>`;
+    }).join('');
+  }catch(e){
+    console.error('fetchRecent error:',e);
+    document.getElementById('tBody').innerHTML='<tr><td colspan="7" style="text-align:center;padding:16px">Failed to load full dataset</td></tr>';
+  }
+}
+
+function setOnlineStatus(s){
+  const badge=document.getElementById('online-status-badge');
+  if(s==='online'){badge.innerHTML='🟢 Online';badge.className='online-badge';}
+  else{badge.innerHTML='🔴 Offline';badge.className='online-badge offline-badge';}
+}
+function setGPill(type,label){
+  const el=document.getElementById('gpill');
+  el.className='graph-status-pill '+type;
+  el.innerHTML=type==='loading'?`<span class="spin"></span> ${label}`:label;
+}
 function showChartEmpty(show){ document.getElementById('chart-empty').classList.toggle('show',show); }
-function showBanner(cls,msg){ const b=document.getElementById('banner'); b.className='banner show '+cls; document.getElementById('banner-msg').textContent=msg; setTimeout(()=>{ if(b.classList.contains('show')) closeBanner();},4000); }
+function showBanner(cls,msg){
+  const b=document.getElementById('banner');
+  b.className='banner show '+cls;
+  document.getElementById('banner-msg').textContent=msg;
+  setTimeout(()=>{if(b.classList.contains('show')) closeBanner();},4000);
+}
 function closeBanner(){ document.getElementById('banner').className='banner'; }
 function forceRefresh(){ fetchLiveData(); fetchRecent(); fetchGraphData(currentPeriod); showBanner('restored','Manual refresh done'); }
-function reconnect(){ setOnlineStatus('online'); fetchLiveData().then(()=>document.getElementById('offline-bar').classList.remove('show')); fetchRecent(); fetchGraphData(currentPeriod); showBanner('restored','Reconnected'); }
-function switchChart(period){ currentPeriod=period; document.querySelectorAll('.chart-tab').forEach(t=>t.classList.toggle('on',t.textContent.toLowerCase()===period)); viewWindow=1.0; viewStart=0; fetchGraphData(period); }
-function applyCustomRange(){ const f=document.getElementById('date-from').value, t=document.getElementById('date-to').value; if(!f||!t){showBanner('reconnect','Select both dates');return;} if(f>t){showBanner('reconnect','Start must be before end');return;} document.querySelectorAll('.chart-tab').forEach(t=>t.classList.remove('on')); currentPeriod='custom'; fetchGraphData('custom',f,t); }
-function exportCSV(){ const rows=document.querySelectorAll('#readings-table tbody tr'); const csv=[['Time (EST)','kW','Voltage (V)','Current (A)','Energy (kWh)','PF','Status'].join(',')]; rows.forEach(row=>{ const cells=row.querySelectorAll('td'); if(cells.length>1) csv.push(Array.from(cells).map(c=>{ let t=c.textContent.trim(); return t.includes(',')?`"${t}"`:t; }).join(',')); }); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv.join('\n')],{type:'text/csv'})); a.download=`microgrid_full_${new Date().toISOString().split('T')[0]}.csv`; a.click(); URL.revokeObjectURL(a.href); }
-function saveSettings(){ const iv=parseInt(document.getElementById('refresh-interval').value)||5; state.currency=document.getElementById('currency-select').value; state.unitRate=parseFloat(document.getElementById('unit-rate').value)||0.14; refreshInterval=Math.max(2,Math.min(60,iv))*1000; if(refreshTimer)clearInterval(refreshTimer); refreshTimer=setInterval(()=>{fetchLiveData();fetchRecent();},refreshInterval); localStorage.setItem('mgSettings',JSON.stringify({refreshInterval,currency:state.currency,unitRate:state.unitRate})); closeModal('settings-modal'); showBanner('restored','Settings saved'); }
-function loadSettings(){ try{ const s=JSON.parse(localStorage.getItem('mgSettings')||'{}'); if(s.refreshInterval)refreshInterval=s.refreshInterval; if(s.currency)state.currency=s.currency; if(s.unitRate)state.unitRate=s.unitRate; document.getElementById('refresh-interval').value=refreshInterval/1000; document.getElementById('currency-select').value=state.currency; document.getElementById('unit-rate').value=state.unitRate; }catch(e){} }
+function reconnect(){
+  setOnlineStatus('online');
+  fetchLiveData().then(()=>document.getElementById('offline-bar').classList.remove('show'));
+  fetchRecent();
+  fetchGraphData(currentPeriod);
+  showBanner('restored','Reconnected');
+}
+function switchChart(period){
+  currentPeriod=period;
+  document.querySelectorAll('.chart-tab').forEach(t=>t.classList.toggle('on',t.textContent.toLowerCase()===period));
+  viewWindow=1.0; viewStart=0;
+  fetchGraphData(period);
+}
+function applyCustomRange(){
+  const f=document.getElementById('date-from').value,t=document.getElementById('date-to').value;
+  if(!f||!t){showBanner('reconnect','Select both dates');return;}
+  if(f>t){showBanner('reconnect','Start must be before end');return;}
+  document.querySelectorAll('.chart-tab').forEach(t=>t.classList.remove('on'));
+  currentPeriod='custom';
+  fetchGraphData('custom',f,t);
+}
+function exportCSV(){
+  const rows=document.querySelectorAll('#readings-table tbody tr');
+  const csv=[['Time (EST)','kW','Voltage (V)','Current (A)','Energy (kWh)','PF','Status'].join(',')];
+  rows.forEach(row=>{
+    const cells=row.querySelectorAll('td');
+    if(cells.length>1) csv.push(Array.from(cells).map(c=>{let t=c.textContent.trim();return t.includes(',')?`"${t}"`:t;}).join(','));
+  });
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv.join('\n')],{type:'text/csv'}));
+  a.download=`microgrid_full_${new Date().toISOString().split('T')[0]}.csv`;
+  a.click(); URL.revokeObjectURL(a.href);
+}
+function saveSettings(){
+  const iv=parseInt(document.getElementById('refresh-interval').value)||5;
+  state.currency=document.getElementById('currency-select').value;
+  state.unitRate=parseFloat(document.getElementById('unit-rate').value)||0.14;
+  refreshInterval=Math.max(2,Math.min(60,iv))*1000;
+  if(refreshTimer) clearInterval(refreshTimer);
+  refreshTimer=setInterval(()=>{fetchLiveData();fetchRecent();},refreshInterval);
+  localStorage.setItem('mgSettings',JSON.stringify({refreshInterval,currency:state.currency,unitRate:state.unitRate}));
+  closeModal('settings-modal'); showBanner('restored','Settings saved');
+}
+function loadSettings(){
+  try{
+    const s=JSON.parse(localStorage.getItem('mgSettings')||'{}');
+    if(s.refreshInterval) refreshInterval=s.refreshInterval;
+    if(s.currency) state.currency=s.currency;
+    if(s.unitRate) state.unitRate=s.unitRate;
+    document.getElementById('refresh-interval').value=refreshInterval/1000;
+    document.getElementById('currency-select').value=state.currency;
+    document.getElementById('unit-rate').value=state.unitRate;
+  }catch(e){}
+}
 function openModal(id){ document.getElementById(id).classList.add('open'); if(id==='system-status-modal') updateSysStatus(); }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
-async function updateSysStatus(){ const set=(id,txt,cls)=>{const el=document.getElementById(id);if(el){el.textContent=txt;el.className='stbadge '+cls;}}; try{ const res=await fetch(`${API_BASE}/api/readings/latest/?unit_id=100`); if(!res.ok)throw new Error(); set('s-gateway','Connected','ok'); set('s-api','Online','ok'); set('s-db','Active','ok'); const d=await res.json(); if(d.timestamp){ const age=Math.floor((Date.now()-new Date(d.timestamp).getTime())/1000); set('s-last',age+'s ago',age<10?'ok':age<30?'warn':'err'); document.getElementById('s-last-sub').textContent=new Date(d.timestamp).toLocaleTimeString('en-US',{timeZone:'America/New_York'}); } }catch(e){ set('s-gateway','Disconnected','err'); set('s-api','Offline','err'); set('s-db','Unknown','warn'); set('s-last','No data','err'); } }
-function init(){ const now=new Date(); document.getElementById('date-to').value=fmtDateEST(new Date(Date.now()+EST_MS)); document.getElementById('date-from').value=fmtDateEST(new Date(Date.now()+EST_MS-7*86400000)); loadSettings(); buildLegend(); createChart([],{}); attachChartInteractions(); fetchLiveData(); fetchRecent(); fetchGraphData('today'); refreshTimer=setInterval(()=>{fetchLiveData();fetchRecent();},refreshInterval); graphTimer=setInterval(()=>fetchGraphData(currentPeriod),30000); setInterval(()=>{ document.getElementById('clock-display').textContent=fmtClock()+' EST'; },1000); window.addEventListener('online',()=>reconnect()); window.addEventListener('offline',()=>{showBanner('offline','Network lost');document.getElementById('offline-bar').classList.add('show');}); document.addEventListener('click',e=>{ if(!e.target.closest('#lineChart')) document.getElementById('drill-tooltip').classList.remove('show'); }); }
+async function updateSysStatus(){
+  const set=(id,txt,cls)=>{const el=document.getElementById(id);if(el){el.textContent=txt;el.className='stbadge '+cls;}};
+  try{
+    const res=await fetch(`${API_BASE}/api/readings/latest/?unit_id=100`);
+    if(!res.ok) throw new Error();
+    set('s-gateway','Connected','ok'); set('s-api','Online','ok'); set('s-db','Active','ok');
+    const d=await res.json();
+    if(d.timestamp){
+      const age=Math.floor((Date.now()-new Date(d.timestamp).getTime())/1000);
+      set('s-last',age+'s ago',age<10?'ok':age<30?'warn':'err');
+      setText('s-last-sub',new Date(d.timestamp).toLocaleTimeString('en-US',{timeZone:'America/New_York'}));
+    }
+  }catch(e){ set('s-gateway','Disconnected','err'); set('s-api','Offline','err'); set('s-db','Unknown','warn'); set('s-last','No data','err'); }
+}
+
+function init(){
+  document.getElementById('date-to').value=fmtDateEST(new Date(Date.now()+EST_MS));
+  document.getElementById('date-from').value=fmtDateEST(new Date(Date.now()+EST_MS-7*86400000));
+  loadSettings();
+  buildLegend();
+  createChart([],{});
+  attachChartInteractions();
+  fetchLiveData();
+  fetchRecent();
+  fetchGraphData('today');
+  refreshTimer=setInterval(()=>{fetchLiveData();fetchRecent();},refreshInterval);
+  graphTimer=setInterval(()=>fetchGraphData(currentPeriod),3000);
+  setInterval(()=>{ setText('clock-display', fmtClock()+' EST'); },1000);
+  window.addEventListener('online',()=>reconnect());
+  window.addEventListener('offline',()=>{showBanner('offline','Network lost');document.getElementById('offline-bar').classList.add('show');});
+  document.addEventListener('click',e=>{if(!e.target.closest('#lineChart')) document.getElementById('drill-tooltip').classList.remove('show');});
+}
+
 document.addEventListener('DOMContentLoaded', init);
-window.switchChart=switchChart; window.applyCustomRange=applyCustomRange; window.exportCSV=exportCSV; window.saveSettings=saveSettings; window.openModal=openModal; window.closeModal=closeModal; window.forceRefresh=forceRefresh; window.reconnect=reconnect; window.closeBanner=closeBanner;
+window.switchChart=switchChart; window.applyCustomRange=applyCustomRange; window.exportCSV=exportCSV;
+window.saveSettings=saveSettings; window.openModal=openModal; window.closeModal=closeModal;
+window.forceRefresh=forceRefresh; window.reconnect=reconnect; window.closeBanner=closeBanner;
 </script>
 </body>
-</html>
-
-
-
-
-
-
-
-"
+</html>"

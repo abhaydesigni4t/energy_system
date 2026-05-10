@@ -11,8 +11,8 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 :root{
-  --font-number:'JetBrains Mono','SF Mono','Fira Code','Cascadia Code','Roboto Mono',monospace;
-  --font-text:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',sans-serif;
+  --font-number:'Consolas','Arial','Roboto Mono',monospace;
+  --font-text:'Calibri','Segoe UI','Arial',sans-serif;
   --bg:#F8FAFC;--bg2:#FFFFFF;--bg3:#FFFFFF;--bg4:#F1F5F9;
   --surface:#F8FAFC;--surface2:#E2E8F0;
   --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.12);
@@ -26,24 +26,58 @@ body{font-family:var(--font-text);background:var(--bg);color:var(--text1);font-s
 #clock-display{font-size:12px;font-weight:600;letter-spacing:1px;}
 td{font-family:var(--font-number);font-size:11px;font-weight:500;}
 .kpi-label,.panel-title,.tbl-title,.modal-title,.legend-item,.chart-title,.chart-meta,.chart-tab,.dt-label,.dt-name,.topbar-title,.topbar-sub,.tbtn,.stbadge{font-family:var(--font-text);font-weight:600;letter-spacing:0.2px;}
-.kpi-label,.panel-title,.tbl-title{letter-spacing:0.5px;text-transform:uppercase;font-size:10px;font-weight:700;}
+.kpi-label,.panel-title,.tbl-title{letter-spacing:0.5px;text-transform:uppercase;font-size:14px;font-weight:700;}
 thead th{font-family:var(--font-text);font-size:10px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;}
 .main-area{margin-left:0;flex:1;display:flex;flex-direction:column;min-height:100vh;}
 
 /* TOPBAR */
-.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
 .topbar-left{display:flex;flex-direction:column;gap:4px;}
-.topbar-title{font-size:20px;font-weight:800;letter-spacing:-0.3px;background:linear-gradient(135deg,#0F172A,#3B82F6);-webkit-background-clip:text;background-clip:text;color:transparent;}
-.topbar-sub{font-size:12px;color:#000;font-weight:600;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.topbar-title{font-family:var(--font-text);font-size:24px;font-weight:800;color:#000;letter-spacing:-0.3px;background:linear-gradient(135deg,#0F172A,#3B82F6);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.topbar-sub{font-size:14px;color:#000;font-weight:600;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
 .topbar-right{display:flex;align-items:center;gap:10px;}
-.tbtn{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:30px;font-size:11px;font-weight:700;font-family:var(--font-text);border:1px solid var(--border2);background:transparent;color:#000;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.tbtn{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:30px;font-size:14px;font-weight:700;font-family:var(--font-text);border:1px solid var(--border2);background:transparent;color:#000;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
 .tbtn:hover{background:var(--surface);}
 .tbtn.primary{background:linear-gradient(135deg,#3B82F6,#2563EB);border-color:transparent;color:#fff;}
 .tbtn.primary:hover{opacity:0.9;}
-.btn-logout{padding:10px 22px;background:linear-gradient(135deg,#ff5f5f,#ff3b3b);color:#fff;border-radius:25px;text-decoration:none;font-weight:500;display:inline-block;transition:all 0.3s ease;box-shadow:0 4px 10px rgba(255,59,59,0.3);}
-.btn-logout:hover{background:linear-gradient(135deg,#ff3b3b,#e60000);box-shadow:0 6px 14px rgba(255,59,59,0.4);transform:translateY(-1px);}
-.btn-users{padding:10px 22px;background:linear-gradient(135deg,#4a90e2,#357abd);color:#fff;border-radius:25px;text-decoration:none;font-weight:500;display:inline-block;transition:all 0.3s ease;box-shadow:0 4px 10px rgba(53,122,189,0.3);}
-.btn-users:hover{background:linear-gradient(135deg,#357abd,#2c5fa3);box-shadow:0 6px 14px rgba(53,122,189,0.4);transform:translateY(-1px);}
+
+.btn-logout {
+    padding: 10px 22px;
+    background: linear-gradient(135deg, #ff5f5f, #ff3b3b);
+    color: #fff;
+    border-radius: 25px;
+    text-decoration: none;
+    font-weight: 600;
+    display: inline-block;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 10px rgba(255, 59, 59, 0.3);
+}
+
+.btn-logout:hover {
+    background: linear-gradient(135deg, #ff3b3b, #e60000);
+    box-shadow: 0 6px 14px rgba(255, 59, 59, 0.4);
+    transform: translateY(-1px);
+}
+
+.btn-users {
+    padding: 10px 22px;
+    background: linear-gradient(135deg, #4a90e2, #357abd);
+    color: #fff;
+    border-radius: 25px;
+    text-decoration: none;
+    font-weight: 500;
+    font-size:15px;
+    display: inline-block;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 10px rgba(53, 122, 189, 0.3);
+}
+
+.btn-users:hover {
+    background: linear-gradient(135deg, #357abd, #2c5fa3);
+    box-shadow: 0 6px 14px rgba(53, 122, 189, 0.4);
+    transform: translateY(-1px);
+}
+
 #clock-display{font-size:12px;color:#000;padding:5px 12px;background:var(--surface);border-radius:30px;border:1px solid var(--border);font-weight:700;}
 .status-row{display:inline-flex;align-items:center;gap:10px;margin-left:8px;}
 .online-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(16,185,129,0.12);padding:4px 12px;border-radius:30px;font-size:11px;font-weight:800;color:#0E7C46;}
@@ -54,14 +88,14 @@ thead th{font-family:var(--font-text);font-size:10px;font-weight:700;letter-spac
 .nav-bar{background:#0C0F1A;border-bottom:1px solid rgba(255,255,255,0.07);padding:0 24px;position:sticky;top:64px;z-index:90;}
 .nav-list{display:flex;align-items:stretch;gap:0;list-style:none;margin:0;padding:0;}
 .nav-item{position:relative;}
-.nav-link{display:flex;align-items:center;gap:6px;padding:0 18px;height:44px;color:rgba(255,255,255,0.72);font-size:12px;font-weight:700;font-family:var(--font-text);text-decoration:none;white-space:nowrap;cursor:pointer;transition:color 0.15s,background 0.15s;letter-spacing:0.3px;border-bottom:2px solid transparent;}
+.nav-link{display:flex;align-items:center;gap:6px;padding:0 18px;height:44px;color:rgb(255, 252, 252);font-size:15px;font-weight:700;font-family:var(--font-text);text-decoration:none;white-space:nowrap;cursor:pointer;transition:color 0.15s,background 0.15s;letter-spacing:0.3px;border-bottom:2px solid transparent;}
 .nav-link:hover,.nav-item:hover .nav-link{color:#fff;background:rgba(255,255,255,0.06);border-bottom-color:#3B82F6;}
 .nav-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
-.nav-link .chevron{font-size:8px;opacity:0.5;margin-left:2px;transition:transform 0.15s;}
+.nav-link .chevron{font-size:10px;opacity:0.5;margin-left:2px;transition:transform 0.15s;}
 .nav-item:hover .nav-link .chevron{transform:rotate(180deg);}
 .nav-dropdown{position:absolute;top:100%;left:0;background:#161B2E;border:1px solid rgba(255,255,255,0.10);border-radius:0 0 12px 12px;min-width:200px;padding:6px 0;opacity:0;visibility:hidden;transform:translateY(-6px);transition:all 0.18s ease;z-index:200;box-shadow:0 16px 40px rgba(0,0,0,0.5);}
 .nav-item:hover .nav-dropdown{opacity:1;visibility:visible;transform:translateY(0);}
-.nav-dropdown-item{display:flex;align-items:center;gap:10px;padding:9px 16px;color:rgba(255,255,255,0.65);font-size:11px;font-weight:600;font-family:var(--font-text);text-decoration:none;cursor:pointer;transition:all 0.12s;letter-spacing:0.2px;}
+.nav-dropdown-item{display:flex;align-items:center;gap:10px;padding:9px 16px;color:rgba(255, 255, 255, 0.99);font-size:13px;font-weight:600;font-family:var(--font-text);text-decoration:none;cursor:pointer;transition:all 0.12s;letter-spacing:0.2px;}
 .nav-dropdown-item:hover{color:#fff;background:rgba(59,130,246,0.15);padding-left:20px;}
 .nav-dropdown-item .dd-icon{font-size:13px;width:20px;text-align:center;}
 
@@ -82,19 +116,19 @@ thead th{font-family:var(--font-text);font-size:10px;font-weight:700;letter-spac
 .savings-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r12);padding:16px 18px;position:relative;overflow:hidden;transition:border-color 0.2s,box-shadow 0.2s;}
 .savings-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--sc,#3B82F6);}
 .savings-card:hover{border-color:var(--border2);box-shadow:0 4px 16px rgba(0,0,0,0.06);}
-.savings-label{font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:12px;}
+.savings-label{font-size:20px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--text1);margin-bottom:12px;}
 .savings-dollar{font-family:var(--font-number);font-size:22px;font-weight:700;color:var(--text1);line-height:1.1;letter-spacing:-0.5px;}
-.savings-kwh{font-family:var(--font-number);font-size:12px;font-weight:600;color:var(--text3);margin-top:4px;}
-.savings-tag{display:inline-flex;align-items:center;gap:4px;margin-top:8px;font-size:9px;font-weight:800;padding:2px 8px;border-radius:4px;background:rgba(16,185,129,0.1);color:#0E7C46;}
+.savings-kwh{font-family:var(--font-number);font-size:14px;font-weight:600;color:var(--text1);margin-top:4px;}
+.savings-tag{display:inline-flex;align-items:center;gap:4px;margin-top:8px;font-size:12px;font-weight:800;padding:2px 8px;border-radius:4px;background:rgba(16,185,129,0.1);color:#0E7C46;}
 
 /* KPI */
 .kpi-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
 .kpi-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r12);padding:14px 16px;position:relative;overflow:hidden;transition:border-color 0.2s;}
 .kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--kpi-c,#3B82F6);}
 .kpi-card:hover{border-color:var(--border2);}
-.kpi-label{font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#000;margin-bottom:10px;}
+.kpi-label{font-size:20px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#000;margin-bottom:10px;}
 .kpi-value{font-family:var(--font-number);font-size:28px;font-weight:700;color:#000;line-height:1.2;margin-bottom:6px;letter-spacing:-0.5px;}
-.kpi-unit{font-size:10px;color:#000;font-weight:600;}
+.kpi-unit{font-size:15px;color:#000;font-weight:600;}
 .kpi-badge{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:800;padding:2px 8px;border-radius:4px;margin-top:6px;}
 .kpi-badge.ok{background:rgba(16,185,129,0.12);color:#0E7C46;}
 .kpi-badge.stale{background:rgba(245,158,11,0.12);color:#B45309;}
@@ -103,31 +137,69 @@ thead th{font-family:var(--font-text);font-size:10px;font-weight:700;letter-spac
 /* CHART */
 .chart-panel{background:#0C0F1A;border:1px solid rgba(255,255,255,0.07);border-radius:var(--r20);overflow:hidden;}
 .chart-panel .chart-header{padding:18px 22px 14px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;}
-.chart-panel .chart-title{font-size:15px;font-weight:800;color:#F0F4FF;letter-spacing:-0.2px;display:flex;align-items:center;gap:8px;}
-.chart-panel .chart-meta{font-family:var(--font-number);font-size:10px;color:rgba(255,255,255,0.7);margin-top:4px;font-weight:500;}
+.chart-panel .chart-title{font-family:var(--font-text);font-size:16px;font-weight:800;color:#F0F4FF;letter-spacing:-0.2px;display:flex;align-items:center;gap:8px;}
+.chart-panel .chart-meta{font-family:var(--font-number);font-size:16px;color:rgb(255, 255, 255);margin-top:4px;font-weight:500;}
 .chart-panel .chart-tabs{display:flex;background:#111624;border-radius:10px;padding:3px;gap:3px;border:1px solid rgba(255,255,255,0.07);}
-.chart-panel .chart-tab{padding:5px 16px;border-radius:7px;font-size:11px;font-weight:700;font-family:var(--font-text);background:transparent;border:none;color:rgba(255,255,255,0.45);cursor:pointer;transition:all 0.15s;}
-.chart-panel .chart-tab:hover{color:#fff;}
+.chart-panel .chart-tab{padding:5px 16px;border-radius:7px;font-size:14px;font-weight:700;font-family:var(--font-text);background:transparent;border:none;color:rgba(255,255,255,0.45);cursor:pointer;transition:all 0.15s;}
+.chart-panel .chart-tab:hover{color:rgb(255, 255, 255);}
 .chart-panel .chart-tab.on{background:#2563EB;color:#fff;font-weight:800;}
 .chart-panel .date-inputs{display:flex;align-items:center;gap:6px;margin-top:8px;}
-.chart-panel .date-in{background:#111624;border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:5px 10px;font-size:10px;color:#fff;font-family:var(--font-number);outline:none;font-weight:600;}
+.chart-panel .date-in{background:#111624;border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:5px 10px;font-size:14px;color:#fff;font-family:var(--font-number);outline:none;font-weight:600;}
 .chart-panel .date-in:focus{border-color:#3B82F6;}
 .chart-panel .date-in::-webkit-calendar-picker-indicator{filter:invert(0.7);cursor:pointer;width:12px;}
-.chart-panel .date-sep{font-size:10px;color:rgba(255,255,255,0.4);font-weight:600;}
-.chart-panel .apply-btn{padding:5px 12px;border-radius:8px;background:#2563EB;border:none;color:#fff;font-size:10px;font-weight:800;font-family:var(--font-text);cursor:pointer;}
+.chart-panel .date-sep{font-size:14px;color:rgba(255,255,255,0.4);font-weight:600;}
+.chart-panel .apply-btn{padding:5px 12px;border-radius:8px;background:#2563EB;border:none;color:#fff;font-size:14px;font-weight:800;font-family:var(--font-text);cursor:pointer;}
 .chart-panel .apply-btn:hover{background:#1D4ED8;}
+
+/* LEGEND */
 .chart-panel .legend-row{padding:10px 22px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;gap:14px;flex-wrap:wrap;align-items:center;}
-.chart-panel .legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,0.7);cursor:pointer;padding:3px 8px;border-radius:6px;transition:background 0.15s;font-weight:600;font-family:var(--font-text);}
+.chart-panel .legend-item{display:flex;align-items:center;gap:6px;font-size:14px;color:rgba(255,255,255,0.7);cursor:pointer;padding:3px 8px;border-radius:6px;transition:background 0.15s;font-weight:600;font-family:var(--font-text);}
 .chart-panel .legend-item:hover{background:rgba(255,255,255,0.08);}
 .chart-panel .legend-item.hidden{opacity:0.3;}
 .chart-panel .legend-dot{width:10px;height:3px;border-radius:2px;flex-shrink:0;}
-.chart-panel .chart-wrap{padding:14px 22px 18px;height:300px;position:relative;cursor:crosshair;touch-action:none;user-select:none;}
-.chart-panel .chart-wrap canvas{height:100%!important;width:100%!important;}
+
+/* CHART WRAP */
+/* CHART WRAP — scrollable, dynamic width */
+.chart-panel .chart-wrap {
+  padding: 14px 0 18px;
+  height: 300px;
+  position: relative;
+  cursor: crosshair;
+  touch-action: none;
+  user-select: none;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.chart-panel .chart-wrap::-webkit-scrollbar {
+  height: 6px;
+}
+.chart-panel .chart-wrap::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.04);
+}
+.chart-panel .chart-wrap::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.18);
+  border-radius: 3px;
+}
+.chart-panel .chart-wrap::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.35);
+}
+/* Inner scrollable canvas container */
+.chart-scroll-inner {
+  height: 100%;
+  position: relative;
+  min-width: 100%;
+}
+.chart-scroll-inner canvas {
+  height: 100% !important;
+  display: block;
+}
 .chart-panel .chart-empty{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(7,9,15,0.9);backdrop-filter:blur(4px);z-index:5;}
 .chart-panel .chart-empty.show{display:flex;}
 .chart-panel .chart-empty .ce-icon{font-size:28px;opacity:0.4;}
 .chart-panel .chart-empty .ce-msg{font-size:12px;color:rgba(255,255,255,0.4);font-weight:600;}
-.chart-panel .zoom-hint{font-size:9px;color:rgba(255,255,255,0.6);display:flex;align-items:center;gap:8px;padding:6px 22px 8px;font-weight:500;}
+.chart-panel .zoom-hint{font-size:12px;color:rgb(255, 255, 255);display:flex;align-items:center;gap:8px;padding:6px 22px 8px;font-weight:500;}
+
+/* CROSSHAIR */
 .crosshair-v{position:absolute;top:0;bottom:0;width:1px;background:rgba(96,165,250,0.5);pointer-events:none;display:none;z-index:10;}
 .crosshair-h{position:absolute;left:0;right:0;height:1px;background:rgba(96,165,250,0.3);pointer-events:none;display:none;z-index:10;}
 .floating-tooltip{position:absolute;background:#1A2035;border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:10px 14px;min-width:160px;pointer-events:none;z-index:20;opacity:0;transition:opacity 0.1s;box-shadow:0 8px 32px rgba(0,0,0,0.6);}
@@ -137,6 +209,8 @@ thead th{font-family:var(--font-text);font-size:10px;font-weight:700;letter-spac
 .ftt-name{display:flex;align-items:center;gap:5px;font-size:10px;color:rgba(255,255,255,0.65);font-weight:600;}
 .ftt-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
 .ftt-val{font-family:var(--font-number);font-size:11px;color:#F0F4FF;font-weight:700;}
+.pinch-indicator{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(37,99,235,0.15);border:1px solid rgba(37,99,235,0.4);border-radius:12px;padding:6px 14px;font-size:11px;color:#60A5FA;font-weight:700;pointer-events:none;opacity:0;transition:opacity 0.2s;z-index:15;}
+.pinch-indicator.show{opacity:1;}
 .graph-status-pill{display:inline-flex;align-items:center;gap:5px;font-size:9px;font-weight:800;padding:3px 9px;border-radius:20px;margin-left:8px;}
 .graph-status-pill.loading{background:rgba(59,130,246,0.15);color:#60A5FA;}
 .graph-status-pill.live{background:rgba(16,185,129,0.15);color:#10B981;}
@@ -147,12 +221,12 @@ thead th{font-family:var(--font-text);font-size:10px;font-weight:700;letter-spac
 /* TABLE */
 .tbl-panel{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r16);overflow:hidden;}
 .tbl-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);}
-.tbl-title{font-size:11px;font-weight:800;letter-spacing:0.8px;text-transform:uppercase;color:#000;}
-.export-btn{font-size:10px;font-weight:800;padding:5px 12px;border-radius:20px;border:1px solid var(--border2);background:transparent;color:#000;cursor:pointer;}
+.tbl-title{font-size:16px;font-weight:800;letter-spacing:0.8px;text-transform:uppercase;color:#000;}
+.export-btn{font-size:14px;font-weight:800;padding:5px 12px;border-radius:20px;border:1px solid var(--border2);background:transparent;color:#000;cursor:pointer;}
 .tbl-wrap{overflow-x:auto;max-height:420px;overflow-y:auto;}
 table{width:100%;border-collapse:collapse;font-size:11px;min-width:600px;}
-thead th{padding:10px 12px;text-align:left;color:#000;font-size:9px;font-weight:800;text-transform:uppercase;border-bottom:1px solid var(--border);background:var(--surface);}
-tbody td{padding:10px 12px;border-bottom:1px solid var(--border);color:#000;font-weight:600;}
+thead th{padding:10px 12px;text-align:left;color:#000;font-size:14px;font-weight:800;text-transform:uppercase;border-bottom:1px solid var(--border);background:var(--surface);}
+tbody td{padding:10px 12px;border-bottom:1px solid var(--border);font-size:14px;color:#000;font-weight:600;}
 .stbadge{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:800;padding:2px 8px;border-radius:4px;}
 .stbadge.ok{background:rgba(16,185,129,0.12);color:#0E7C46;}
 .stbadge.warn{background:rgba(245,158,11,0.12);color:#B45309;}
@@ -175,7 +249,7 @@ tbody td{padding:10px 12px;border-bottom:1px solid var(--border);color:#000;font
 .drill-tooltip{position:fixed;background:#1A2035;border:1px solid rgba(255,255,255,0.12);border-radius:var(--r12);padding:12px 16px;min-width:180px;pointer-events:none;z-index:999;opacity:0;transition:opacity 0.15s;box-shadow:0 8px 32px rgba(0,0,0,0.5);}
 .drill-tooltip.show{opacity:1;}
 .section-divider{display:flex;align-items:center;gap:12px;margin:4px 0 2px;}
-.section-divider span{font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--text3);white-space:nowrap;}
+.section-divider span{font-size:18px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--text1);white-space:nowrap;}
 .section-divider::before,.section-divider::after{content:'';flex:1;height:1px;background:var(--border);}
 
 @media(max-width:1100px){.kpi-strip{grid-template-columns:repeat(3,1fr);}.savings-strip{grid-template-columns:repeat(2,1fr);}}
@@ -214,6 +288,13 @@ tbody td{padding:10px 12px;border-bottom:1px solid var(--border);color:#000;font
 
   <nav class="nav-bar">
     <ul class="nav-list">
+      <li class="nav-item">
+        <a class="nav-link"><div class="nav-dot" style="background:#94A3B8"></div>Grid Power<span class="chevron">▼</span></a>
+        <div class="nav-dropdown">
+          <a class="nav-dropdown-item"><span class="dd-icon">🌐</span>Grid Power 1</a>
+          <a class="nav-dropdown-item"><span class="dd-icon">🏭</span>Grid Power 2</a>
+        </div>
+      </li>
       <li class="nav-item">
         <a class="nav-link"><div class="nav-dot" style="background:#F59E0B"></div>Solar Generation<span class="chevron">▼</span></a>
         <div class="nav-dropdown">
@@ -256,13 +337,7 @@ tbody td{padding:10px 12px;border-bottom:1px solid var(--border);color:#000;font
           <a class="nav-dropdown-item"><span class="dd-icon">⚙️</span>Genset 2</a>
         </div>
       </li>
-      <li class="nav-item">
-        <a class="nav-link"><div class="nav-dot" style="background:#94A3B8"></div>Grid Power<span class="chevron">▼</span></a>
-        <div class="nav-dropdown">
-          <a class="nav-dropdown-item"><span class="dd-icon">🌐</span>Grid Power 1</a>
-          <a class="nav-dropdown-item"><span class="dd-icon">🏭</span>Grid Power 2</a>
-        </div>
-      </li>
+      
     </ul>
   </nav>
 
@@ -306,7 +381,6 @@ tbody td{padding:10px 12px;border-bottom:1px solid var(--border);color:#000;font
       <div class="chart-header">
         <div>
           <div class="chart-title">Power Streams<span class="graph-status-pill loading" id="gpill"><span class="spin"></span> Loading</span></div>
-          <div class="chart-meta" id="chart-meta">Multi-stream energy visualization · EST</div>
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
           <div class="chart-tabs">
@@ -323,9 +397,10 @@ tbody td{padding:10px 12px;border-bottom:1px solid var(--border);color:#000;font
         </div>
       </div>
       <div class="legend-row" id="legend-row"></div>
-      <div class="zoom-hint">🖥️ Scroll to zoom · Drag to pan · Hover for crosshair <span style="opacity:0.4;">|</span> 📱 Pinch to zoom · Swipe to pan</div>
       <div class="chart-wrap" id="chartWrap">
-        <canvas id="lineChart" role="img" aria-label="Multi-stream microgrid power chart"></canvas>
+        <div class="chart-scroll-inner" id="chartScrollInner">
+          <canvas id="lineChart" role="img" aria-label="Multi-stream microgrid power chart"></canvas>
+        </div>
         <div class="crosshair-v" id="crosshairV"></div>
         <div class="crosshair-h" id="crosshairH"></div>
         <div class="floating-tooltip" id="floatingTooltip"></div>
@@ -418,17 +493,18 @@ tbody td{padding:10px 12px;border-bottom:1px solid var(--border);color:#000;font
 const API_BASE = window.location.origin;
 const EST_MS = -5 * 60 * 60 * 1000;
 let mainChart = null, currentPeriod = 'today', refreshTimer = null, graphTimer = null, lastTS = null;
-let refreshInterval = 5000, interactionsAttached = false, viewStart = 0, viewWindow = 1.0, allLabels = [], allData = {};
+let refreshInterval = 3000, interactionsAttached = false, viewStart = 0, viewWindow = 1.0, allLabels = [], allData = {};
 let state = { currency:'₹', unitRate:0.14 };
 
 const STREAMS = [
+  { id:'grid',    label:'Grid Power',       color:'#94A3B8', simFn:(t)=>Math.max(0,5+Math.sin(t/10800)*3+Math.random()*0.5) },
   { id:'solar',   label:'Solar Generation', color:'#F59E0B', simFn:(t)=>Math.max(0,8*Math.sin((t%86400)/86400*Math.PI)+Math.random()*0.5) },
   { id:'battery', label:'Battery Power',    color:'#10B981', simFn:(t)=>(Math.sin(t/3600)*3+Math.random()*0.3) },
   { id:'ev',      label:'EV Charging',      color:'#6366F1', simFn:(t)=>Math.max(0,3.5+Math.sin(t/1800)*1.2+Math.random()*0.4) },
   { id:'load',    label:'Building Load',    color:'#F43F5E', simFn:(t)=>Math.max(0,12+Math.sin(t/7200)*4+Math.random()*0.8) },
   { id:'hvac',    label:'HVAC',             color:'#06B6D4', simFn:(t)=>Math.max(0,4+Math.sin(t/5400)*2+Math.random()*0.3) },
-  { id:'genset',  label:'Genset',           color:'#8B5CF6', simFn:()=>0 },
-  { id:'grid',    label:'Grid Power',       color:'#94A3B8', simFn:(t)=>Math.max(0,5+Math.sin(t/10800)*3+Math.random()*0.5) }
+  { id:'genset',  label:'Genset',           color:'#8B5CF6', simFn:()=>0 }
+  
 ];
 let streamVisible = {};
 STREAMS.forEach(s => { streamVisible[s.id] = true; });
@@ -467,53 +543,107 @@ function getViewSlice(){
   return {labels:allLabels.slice(startIdx,startIdx+visCount),startIdx,endIdx:startIdx+visCount};
 }
 
-function applyView(){
-  if(!mainChart) return;
-  const {labels,startIdx,endIdx}=getViewSlice();
-  mainChart.data.labels=labels;
-  STREAMS.forEach((s,i)=>{
-    mainChart.data.datasets[i].data=(allData[s.id]||[]).slice(startIdx,endIdx);
-    mainChart.data.datasets[i].pointRadius=labels.length>80?0:2;
+function applyView() {
+  if (!mainChart || !allLabels.length) return;
+
+  const pointCount = allLabels.length;
+  const inner = document.getElementById('chartScrollInner');
+  const canvas = document.getElementById('lineChart');
+  const canvasW = calcCanvasWidth(pointCount);
+  inner.style.width = canvasW + 'px';
+  canvas.style.width = canvasW + 'px';
+
+  const showPoints = pointCount <= 120;
+
+  mainChart.data.labels = allLabels;
+  STREAMS.forEach((s, i) => {
+    mainChart.data.datasets[i].data = allData[s.id] || [];
+    mainChart.data.datasets[i].pointRadius = showPoints ? 2.5 : 0;
   });
+
+  // Update tick density
+  mainChart.options.scales.x.ticks.maxTicksLimit = Math.min(pointCount, Math.floor(canvasW / 60));
+  mainChart.resize(canvasW, mainChart.canvas.parentElement?.clientHeight || 300);
   mainChart.update('none');
 }
 
-function attachChartInteractions(){
-  if(interactionsAttached) return;
-  interactionsAttached=true;
-  const wrap=document.getElementById('chartWrap');
-  if(!wrap) return;
-  let dragging=false,dragX=0,dragSV=0,dragVW=0;
-  wrap.addEventListener('wheel',e=>{
+function attachChartInteractions() {
+  if (interactionsAttached) return;
+  interactionsAttached = true;
+  const wrap = document.getElementById('chartWrap');
+  if (!wrap) return;
+
+  // ── Pinch-to-zoom on touch devices ──
+  let lastPinchDist = null;
+  wrap.addEventListener('touchstart', e => {
+    if (e.touches.length === 2) lastPinchDist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+  }, { passive: true });
+
+  wrap.addEventListener('touchmove', e => {
+    if (e.touches.length !== 2 || lastPinchDist === null) return;
+    const dist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    const ratio = lastPinchDist / dist;  // >1 = pinch in (zoom out), <1 = zoom in
+    lastPinchDist = dist;
+
+    const inner = document.getElementById('chartScrollInner');
+    const currentW = inner.offsetWidth;
+    const newW = Math.max(wrap.clientWidth, currentW * (2 - ratio));
+    inner.style.width = newW + 'px';
+    document.getElementById('lineChart').style.width = newW + 'px';
+
+    if (mainChart) {
+      const pts = allLabels.length;
+      mainChart.options.scales.x.ticks.maxTicksLimit = Math.min(pts, Math.floor(newW / 60));
+      mainChart.options.scales.x.ticks.maxRotation = 45;
+      mainChart.data.datasets.forEach(d => { d.pointRadius = (newW / pts) > 12 ? 3 : 0; });
+      mainChart.resize(newW, wrap.clientHeight - 32);
+      mainChart.update('none');
+    }
+  }, { passive: true });
+
+  wrap.addEventListener('touchend', () => { lastPinchDist = null; }, { passive: true });
+
+  // ── Mouse wheel zoom (expand/shrink canvas width) ──
+  wrap.addEventListener('wheel', e => {
     e.preventDefault();
-    const factor=e.deltaY<0?0.7:(1/0.7);
-    const rect=wrap.getBoundingClientRect();
-    const relX=(e.clientX-rect.left)/rect.width;
-    const oldWindow=viewWindow;
-    viewWindow=Math.max(0.05,Math.min(1.0,viewWindow*factor));
-    viewStart=Math.max(0,Math.min(1-viewWindow,viewStart+(oldWindow-viewWindow)*relX));
-    applyView();
-  },{passive:false});
-  wrap.addEventListener('mousedown',e=>{dragging=true;dragX=e.clientX;dragSV=viewStart;dragVW=viewWindow;wrap.classList.add('panning');});
-  window.addEventListener('mousemove',e=>{
-    if(!dragging) return;
-    const moved=(e.clientX-dragX)/wrap.clientWidth;
-    let newStart=dragSV-moved;
-    if(newStart<0){viewWindow=Math.min(1.0,dragVW+(-newStart)*0.8);newStart=0;}
-    else if(newStart+viewWindow>1){viewWindow=Math.min(1.0,dragVW+(newStart+viewWindow-1)*0.8);newStart=Math.max(0,1-viewWindow);}
-    viewStart=newStart; applyView();
+    const inner = document.getElementById('chartScrollInner');
+    const canvas = document.getElementById('lineChart');
+    const currentW = inner.offsetWidth;
+    const factor = e.deltaY < 0 ? 1.15 : (1 / 1.15);
+    const newW = Math.max(wrap.clientWidth, Math.min(allLabels.length * MAX_PX_PER_POINT, currentW * factor));
+
+    // Keep scroll anchored to cursor position
+    const relX = (e.clientX - wrap.getBoundingClientRect().left + wrap.scrollLeft) / currentW;
+    inner.style.width = newW + 'px';
+    canvas.style.width = newW + 'px';
+    wrap.scrollLeft = relX * newW - (e.clientX - wrap.getBoundingClientRect().left);
+
+    if (mainChart) {
+      const pts = allLabels.length;
+      const showPts = (newW / pts) > 10;
+      mainChart.options.scales.x.ticks.maxTicksLimit = Math.min(pts, Math.floor(newW / 60));
+      mainChart.data.datasets.forEach(d => { d.pointRadius = showPts ? 3 : 0; });
+      mainChart.resize(newW, wrap.clientHeight - 32);
+      mainChart.update('none');
+    }
+  }, { passive: false });
+
+  // ── Mouse crosshair (works within scroll) ──
+  wrap.addEventListener('mousemove', e => {
+    if (!mainChart) return;
+    const rect = wrap.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const pts = mainChart.getElementsAtEventForMode(e, 'index', { intersect: false }, true);
+    updateCrosshair(x, y, pts.length ? pts[0].index : -1);
   });
-  window.addEventListener('mouseup',()=>{
-    if(dragging){dragging=false;wrap.classList.remove('panning');if(viewWindow>=0.95){viewWindow=1.0;viewStart=0;applyView();}}
-  });
-  wrap.addEventListener('mousemove',e=>{
-    if(dragging||!mainChart) return;
-    const rect=wrap.getBoundingClientRect();
-    const x=e.clientX-rect.left,y=e.clientY-rect.top;
-    const pts=mainChart.getElementsAtEventForMode(e,'index',{intersect:false},true);
-    updateCrosshair(x,y,pts.length?pts[0].index:-1);
-  });
-  wrap.addEventListener('mouseleave',()=>updateCrosshair(null,null,-1));
+  wrap.addEventListener('mouseleave', () => updateCrosshair(null, null, -1));
 }
 
 function updateCrosshair(x,y,dataIndex){
@@ -568,41 +698,88 @@ async function fetchGraphData(period='today',fromDate=null,toDate=null){
   }catch(e){ console.error('Graph error:',e); showChartEmpty(true); setGPill('nodata','Error'); }
 }
 
-function createChart(labels,multiData){
-  const canvas=document.getElementById('lineChart');
-  if(mainChart) mainChart.destroy();
-  const ctx=canvas.getContext('2d');
-  mainChart=new Chart(ctx,{
-    type:'line',
-    data:{
+const MIN_PX_PER_POINT = 8;   // minimum pixels per data point
+const MAX_PX_PER_POINT = 40;  // maximum before it looks too sparse
+
+function calcCanvasWidth(pointCount) {
+  const wrap = document.getElementById('chartWrap');
+  if (!wrap) return 800;
+  const wrapW = wrap.clientWidth;
+  if (pointCount <= 0) return wrapW;
+  // Scale: more points = wider canvas, up to a ceiling
+  const desiredW = pointCount * MIN_PX_PER_POINT;
+  return Math.max(wrapW, Math.min(desiredW, pointCount * MAX_PX_PER_POINT));
+}
+
+function createChart(labels, multiData) {
+  const canvas = document.getElementById('lineChart');
+  const inner = document.getElementById('chartScrollInner');
+  if (mainChart) { mainChart.destroy(); mainChart = null; }
+
+  const pointCount = labels.length;
+  const canvasW = calcCanvasWidth(pointCount);
+  inner.style.width = canvasW + 'px';
+  canvas.style.width = canvasW + 'px';
+
+  const showPoints = pointCount <= 120; // show dots only when zoomed/small dataset
+
+  const ctx = canvas.getContext('2d');
+  mainChart = new Chart(ctx, {
+    type: 'line',
+    data: {
       labels,
-      datasets:STREAMS.map(s=>({
-        label:s.label,
-        data:multiData[s.id]||[],
-        borderColor:s.color,
-        backgroundColor:'transparent',
-        borderWidth:2,
-        pointRadius:labels.length>60?0:2,
-        pointHoverRadius:5,
-        pointBackgroundColor:s.color,
-        fill:false,
-        tension:0.4,
-        hidden:!streamVisible[s.id]
+      datasets: STREAMS.map(s => ({
+        label: s.label,
+        data: multiData[s.id] || [],
+        borderColor: s.color,
+        backgroundColor: 'transparent',
+        borderWidth: 1.5,
+        pointRadius: showPoints ? 2.5 : 0,
+        pointHoverRadius: 5,
+        pointBackgroundColor: s.color,
+        fill: false,
+        tension: 0.35,
+        hidden: !streamVisible[s.id]
       }))
     },
-    options:{
-      responsive:true,
-      maintainAspectRatio:false,
-      interaction:{mode:'index',intersect:false},
-      plugins:{legend:{display:false},tooltip:{enabled:false}},
-      scales:{
-        x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#fff',font:{size:10}}},
-        y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#fff',callback:v=>v.toFixed(1)+' kW'},beginAtZero:true}
+    options: {
+      responsive: false,          // we control width manually
+      maintainAspectRatio: false,
+      animation: { duration: 300 },
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: false }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: {
+            color: '#aaa',
+            font: { size: 10 },
+            maxRotation: 45,
+            // Thin out ticks when many points
+            maxTicksLimit: Math.min(pointCount, Math.floor(canvasW / 60))
+          }
+        },
+        y: {
+          grid: { color: 'rgba(255,255,255,0.06)' },
+          ticks: {
+            color: '#aaa',
+            callback: v => v.toFixed(1) + ' kW'
+          },
+          beginAtZero: true
+        }
       }
     }
   });
-}
 
+  // Auto-scroll to latest (right edge)
+  requestAnimationFrame(() => {
+    const wrap = document.getElementById('chartWrap');
+    if (wrap) wrap.scrollLeft = wrap.scrollWidth;
+  });
+}
 // ── KEY FIX: safe DOM updates — no null references that could crash into catch ──
 async function fetchLiveData(){
   try{
@@ -775,8 +952,7 @@ function init(){
   fetchRecent();
   fetchGraphData('today');
   refreshTimer=setInterval(()=>{fetchLiveData();fetchRecent();},refreshInterval);
-  graphTimer=setInterval(()=>fetchGraphData(currentPeriod),30000);
-  setInterval(()=>{ setText('clock-display', fmtClock()+' EST'); },1000);
+  graphTimer = setInterval(() => fetchGraphData(currentPeriod), 60000); // 1-minute refresh  setInterval(()=>{ setText('clock-display', fmtClock()+' EST'); },1000);
   window.addEventListener('online',()=>reconnect());
   window.addEventListener('offline',()=>{showBanner('offline','Network lost');document.getElementById('offline-bar').classList.add('show');});
   document.addEventListener('click',e=>{if(!e.target.closest('#lineChart')) document.getElementById('drill-tooltip').classList.remove('show');});

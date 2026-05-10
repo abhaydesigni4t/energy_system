@@ -415,69 +415,53 @@ class GraphDataView(APIView):
             timestamp__gte=start_ts,
             timestamp__lte=end_ts
         ).order_by('timestamp')
-        
+
         if readings.exists():
-            # For better visibility, show individual readings for small datasets
-            if period == 'today' or readings.count() <= 48:  # Show individual readings for today or small datasets
-                labels = []
-                values = []
-                
-                for reading in readings:
-                    dt = datetime.fromtimestamp(reading.timestamp)
-                    # Format: HH:MM for today, MM-DD HH:MM for others
-                    if period == 'today':
-                        labels.append(dt.strftime('%H:%M'))
-                    else:
-                        labels.append(dt.strftime('%m-%d %H:%M'))
-                    
-                    # Get the power value
-                    power_value = reading.active_power_kw if reading.active_power_kw else 0
-                    values.append(round(power_value, 2))
-                
+            # === NEW: Always bucket into 1-minute intervals ===
+            minute_data = {}
+            for reading in readings:
+                # Truncate to the minute
+                dt = datetime.fromtimestamp(reading.timestamp)
+                minute_key = dt.replace(second=0, microsecond=0)
+
+                if minute_key not in minute_data:
+                    minute_data[minute_key] = {'total': 0.0, 'count': 0}
+                if reading.active_power_kw is not None:
+                    minute_data[minute_key]['total'] += reading.active_power_kw
+                    minute_data[minute_key]['count'] += 1
+
+            labels = []
+            values = []
+            for minute_key in sorted(minute_data.keys()):
+                entry = minute_data[minute_key]
+                if entry['count'] == 0:
+                    continue
+                avg_val = entry['total'] / entry['count']
+
+                # Label format depends on period
+                if period == 'today':
+                    labels.append(minute_key.strftime('%H:%M'))
+                else:
+                    labels.append(minute_key.strftime('%m-%d %H:%M'))
+
+                values.append(round(avg_val, 3))
+
+            data_type = 'minute_aggregated'
+            count = len(labels)
+
+            if labels:
                 data = {
                     'labels': labels,
                     'values': values,
                     'unit': 'kW',
-                    'type': 'raw_readings',
-                    'count': len(labels)
+                    'type': data_type,
+                    'count': count
                 }
             else:
-                # For large datasets, use hourly aggregation
-                hourly_data = {}
-                for reading in readings:
-                    hour_key = datetime.fromtimestamp(reading.timestamp).replace(minute=0, second=0, microsecond=0)
-                    if hour_key not in hourly_data:
-                        hourly_data[hour_key] = {'total': 0, 'count': 0}
-                    if reading.active_power_kw:
-                        hourly_data[hour_key]['total'] += reading.active_power_kw
-                        hourly_data[hour_key]['count'] += 1
-                
-                labels = []
-                values = []
-                for hour_key in sorted(hourly_data.keys()):
-                    if period == 'today':
-                        labels.append(hour_key.strftime('%H:00'))
-                    else:
-                        labels.append(hour_key.strftime('%m-%d %H:00'))
-                    avg_value = hourly_data[hour_key]['total'] / hourly_data[hour_key]['count']
-                    values.append(round(avg_value, 2))
-                
-                data = {
-                    'labels': labels,
-                    'values': values,
-                    'unit': 'kW',
-                    'type': 'hourly_aggregated',
-                    'count': len(labels)
-                }
+                data = {'labels': [], 'values': [], 'unit': 'kW', 'type': 'no_data', 'count': 0}
         else:
-            data = {
-                'labels': [],
-                'values': [],
-                'unit': 'kW',
-                'type': 'no_data',
-                'count': 0
-            }
-        
+            data = {'labels': [], 'values': [], 'unit': 'kW', 'type': 'no_data', 'count': 0}
+
         return Response(data)
 
 class RecentReadingsView(APIView):
