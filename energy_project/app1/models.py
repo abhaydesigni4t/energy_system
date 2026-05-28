@@ -111,45 +111,109 @@ class SensorReading(models.Model):
         ]
     
     def save(self, *args, **kwargs):
-        if self.block1_raw and len(self.block1_raw) > 0:
-            # Voltages
-            v_a = self.block1_raw[0] / 10
-            v_b = self.block1_raw[1] / 10
-            v_c = self.block1_raw[2] / 10
-            self.voltage = round((v_a + v_b + v_c) / 3, 1)
-            
-            # Currents
-            i_a = self.block1_raw[8] / 10
-            i_b = self.block1_raw[9] / 10
-            i_c = self.block1_raw[10] / 10
-            self.current = round((i_a + i_b + i_c) / 3, 1)
-            
-            # Active Power (from V×I calculation)
-            total_watts = (v_a * i_a) + (v_b * i_b) + (v_c * i_c)
-            self.active_power_kw = round(total_watts / 1000, 1)
-            
-            # Reactive Power
-            self.reactive_power_kvar = self.block1_raw[21] / 10 if len(self.block1_raw) > 21 else 0
-            
-            # Apparent Power
-            self.apparent_power_kva = self.block1_raw[22] / 10 if len(self.block1_raw) > 22 else 0
-        
-        if self.block2_raw and len(self.block2_raw) > 1:
-            # Combine two 16‑bit registers (low word first, high word second)
-            low = self.block2_raw[0]
+        """
+        Decode all block1_raw registers and cache key values.
+
+        Register map (block1_raw indices):
+        [0]     Phase A to Neutral voltage  (÷10 → Volts)
+        [1]     Phase B to Neutral voltage  (÷10 → Volts)
+        [2]     Phase C to Neutral voltage  (÷10 → Volts)
+        [3]     Average Line-Neutral voltage (÷10 → Volts)  ← meter's own average
+        [4]     Voltage A-B  (÷10 → Volts)
+        [5]     Voltage B-C  (÷10 → Volts)
+        [6]     Voltage C-A  (÷10 → Volts)
+        [7]     Average Line-Line voltage  (÷10 → Volts)
+        [8]     Current Phase A  (÷10 → Amps)
+        [9]     Current Phase B  (÷10 → Amps)
+        [10]    Current Phase C  (÷10 → Amps)
+        [11]    Average Current  (÷10 → Amps)  ← meter's own average
+        [12]    Demand Current   (÷10 → Amps)
+        [13]    Peak Demand Current (÷10 → Amps)
+        [14]    Neutral Current  (÷10 → Amps)
+        [15]    Frequency        (÷100 → Hz)
+        [16]    Total Power Factor  (signed 16-bit ÷ 10000 → -1.0 to +1.0)
+        [17]    Power Factor Phase A (signed 16-bit ÷ 10000)
+        [18]    Power Factor Phase B (signed 16-bit ÷ 10000)
+        [19]    Power Factor Phase C (signed 16-bit ÷ 10000)
+        [20]    Total Active Power   (signed 16-bit ÷ 10 → kW)
+        [21]    Total Reactive Power (signed 16-bit ÷ 10 → kVAR)
+        [22]    Total Apparent Power (÷10 → kVA, always positive)
+
+        block2_raw:
+        [0]     Energy low word  (32-bit combined ÷ 100 → kWh)
+        [1]     Energy high word
+        """
+
+        def to_signed_16(raw):
+            """
+            Convert unsigned 16-bit Modbus register to signed integer.
+            Modbus sends all registers as unsigned (0–65535).
+            Values above 32767 represent negative numbers in two's complement:
+                0–32767   → positive as-is
+                32768–65535 → subtract 65536 to get negative value
+            Examples:
+                raw=13    → 13       (positive, no conversion needed)
+                raw=64536 → -1000    (64536 - 65536 = -1000)
+                raw=64391 → -1145    (64391 - 65536 = -1145)
+            """
+            if raw > 32767:
+                return raw - 65536
+            return raw
+
+        if self.block1_raw and len(self.block1_raw) >= 23:
+            b = self.block1_raw
+
+            # ── Voltage Phase-to-Neutral (÷10 → Volts) ───────────────────
+            # These measure voltage from each phase wire to the neutral wire.
+            # A 480V 3-phase system has ~277V phase-to-neutral (277 × √3 = 480).
+            # Your readings show ~280V L-N and ~485V L-L which is correct.
+            v_a = b[0] / 10   # Phase A to Neutral
+            v_b = b[1] / 10   # Phase B to Neutral
+            v_c = b[2] / 10   # Phase C to Neutral
+
+            # Use meter's own average (reg[3]) — more accurate than manual average
+            # because the meter may apply its own filtering/rounding internally.
+            self.voltage = round(b[3] / 10, 1)
+
+            # ── Current (÷10 → Amps) ──────────────────────────────────────
+            # Current flowing through each phase conductor.
+            # Use meter's own average current (reg[11]) for consistency.
+            self.current = round(b[11] / 10, 1)
+
+            # ── Active Power kW (signed, ÷10) ─────────────────────────────
+            # Real/active power = actual energy consumed per second (watts).
+            # Positive = consuming power (load), Negative = generating (solar/genset).
+            # MUST use meter's register [20] directly — NOT calculated from V×I,
+            # because V×I = apparent power (kVA), not active power (kW).
+            # Verified: raw=13 → signed=13 → 13÷10 = 1.3 kW ✅
+            self.active_power_kw = round(to_signed_16(b[20]) / 10, 2)
+
+            # ── Reactive Power kVAR (signed, ÷10) ────────────────────────
+            # Power stored/released by inductors and capacitors.
+            # Positive = inductive (motors, transformers — most common loads).
+            # Negative = capacitive (power factor correction capacitors).
+            # Verified: raw=99 → signed=99 → 9.9 kVAR ✅
+            self.reactive_power_kvar = round(to_signed_16(b[21]) / 10, 2)
+
+            # ── Apparent Power kVA (unsigned, ÷10) ────────────────────────
+            # Vector sum of kW and kVAR. Always positive.
+            # kVA = √(kW² + kVAR²)
+            # Verified: √(1.3² + 9.9²) = √(1.69 + 98.01) = √99.7 = 9.985 ≈ 9.9 kVA ✅
+            self.apparent_power_kva = round(b[22] / 10, 2)
+
+        if self.block2_raw and len(self.block2_raw) >= 2:
+            # ── Energy kWh (32-bit combined, ÷100) ────────────────────────
+            # Two 16-bit Modbus registers form one 32-bit cumulative counter.
+            # Assembly: high_word shifted left 16 bits OR'd with low_word.
+            # Example: low=6063, high=0 → (0 << 16) | 6063 = 6063
+            #          6063 ÷ 100 = 60.63 kWh ✅
+            # SCALE=100 means each count = 0.01 kWh.
+            low  = self.block2_raw[0]
             high = self.block2_raw[1]
-            raw_32 = (high << 16) | low          # same as high*65536 + low
-            
-            # ─────────────────────────────────────────────────────────────
-            # ADJUST THIS SCALE FACTOR TO MATCH YOUR METER'S DOCUMENTATION
-            # Common values: 100 (0.01 kWh units), 1000 (0.001 kWh), etc.
-            # Start with 100, then change until displayed total matches the meter.
+            raw_32 = (high << 16) | low
             SCALE = 100
-            # ─────────────────────────────────────────────────────────────
-            
-            # Store the TOTAL cumulative energy (never resets) with full precision
-            self.energy_today_kwh = raw_32 / SCALE   # no rounding here
-            
+            self.energy_today_kwh = raw_32 / SCALE
+
         super().save(*args, **kwargs)
     
     def __str__(self):

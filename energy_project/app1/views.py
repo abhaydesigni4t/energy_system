@@ -27,6 +27,8 @@ from functools import wraps
 
 from .models import User
 from .forms import LoginForm, SignUpForm, AddUserForm, AssignUnitsForm
+from zoneinfo import ZoneInfo   # Python 3.9+; or: from pytz import timezone as pytz_tz
+EST = ZoneInfo("America/New_York")
 
 
 # ── Decorators ──────────────────────────────────────────────────────────────
@@ -82,6 +84,9 @@ def logout_view(request):
     messages.info(request, 'You have been signed out.')
     return redirect('login')
 
+
+def energy_dashboard_complete(request):
+    return render(request,'app1/energy_dashboard_complete.html')
 
 # ── Dashboard ────────────────────────────────────────────────────────────────
 
@@ -234,7 +239,7 @@ class SensorReadingAPIView(APIView):
         """Update or create hourly aggregate for this reading's hour"""
         try:
             # Convert unix timestamp to datetime
-            reading_time = datetime.fromtimestamp(reading.timestamp)
+            reading_time = datetime.fromtimestamp(reading.timestamp, tz=EST)
             hour_start = reading_time.replace(minute=0, second=0, microsecond=0)
             
             # Get all readings in this hour
@@ -271,17 +276,130 @@ class SensorReadingAPIView(APIView):
             logger.error(f"Error updating hourly aggregate: {str(e)}")
     
     def get(self, request):
-        """Retrieve readings (for debugging)"""
+        """
+        Verification endpoint — returns raw registers alongside every decoded value
+        with intermediate steps (_raw, _signed, final) so you can audit each register.
+        URL: /api/readings/?unit_id=100&limit=1
+        """
         unit_id = request.query_params.get('unit_id')
-        limit = int(request.query_params.get('limit', 100))
-        
+        limit   = int(request.query_params.get('limit', 10))
+
         queryset = SensorReading.objects.all()
         if unit_id:
             queryset = queryset.filter(unit_id=unit_id)
-        
-        queryset = queryset[:limit]
-        serializer = SensorReadingSerializer(queryset, many=True)
-        return Response(serializer.data)
+        queryset = queryset.order_by('-timestamp')[:limit]
+
+        def to_signed_16(raw):
+            """Two's complement unsigned→signed conversion for 16-bit Modbus registers."""
+            if raw > 32767:
+                return raw - 65536
+            return raw
+
+        results = []
+        for reading in queryset:
+            b  = reading.block1_raw or []
+            b2 = reading.block2_raw or []
+
+            def reg(idx, default=0):
+                return b[idx] if len(b) > idx else default
+
+            decoded = {
+                # ── Voltage Phase-Neutral (scale ÷10) ─────────────────────
+                "v_an_raw":     reg(0),  "v_an":     reg(0)  / 10,
+                "v_bn_raw":     reg(1),  "v_bn":     reg(1)  / 10,
+                "v_cn_raw":     reg(2),  "v_cn":     reg(2)  / 10,
+                "v_avg_ln_raw": reg(3),  "v_avg_ln": reg(3)  / 10,
+
+                # ── Voltage Line-Line (scale ÷10) ──────────────────────────
+                "v_ab_raw":     reg(4),  "v_ab":     reg(4)  / 10,
+                "v_bc_raw":     reg(5),  "v_bc":     reg(5)  / 10,
+                "v_ca_raw":     reg(6),  "v_ca":     reg(6)  / 10,
+                "v_avg_ll_raw": reg(7),  "v_avg_ll": reg(7)  / 10,
+
+                # ── Current (scale ÷10) ────────────────────────────────────
+                "i_a_raw":       reg(8),   "i_a":       reg(8)  / 10,
+                "i_b_raw":       reg(9),   "i_b":       reg(9)  / 10,
+                "i_c_raw":       reg(10),  "i_c":       reg(10) / 10,
+                "i_avg_raw":     reg(11),  "i_avg":     reg(11) / 10,
+                "i_demand_raw":  reg(12),  "i_demand":  reg(12) / 10,
+                "i_peak_raw":    reg(13),  "i_peak":    reg(13) / 10,
+                "i_neutral_raw": reg(14),  "i_neutral": reg(14) / 10,
+
+                # ── Frequency (scale ÷100) ─────────────────────────────────
+                "freq_raw": reg(15),
+                "freq_hz":  reg(15) / 100,
+
+                # ── Power Factor (signed, scale ÷10000) ───────────────────
+                # FIXED: was ÷1000, correct scale is ÷10000
+                # Proof: kW/kVA = 1.3/9.9 = 0.131
+                #        signed(-1264) ÷ 10000 = 0.1264 ✅
+                "pf_total_raw":    reg(16),
+                "pf_total_signed": to_signed_16(reg(16)),
+                "pf_total":        round(max(-1.0, min(1.0, to_signed_16(reg(16)) / 10000)), 4),
+
+                "pf_a_raw":    reg(17),
+                "pf_a_signed": to_signed_16(reg(17)),
+                "pf_a":        round(max(-1.0, min(1.0, to_signed_16(reg(17)) / 10000)), 4),
+
+                "pf_b_raw":    reg(18),
+                "pf_b_signed": to_signed_16(reg(18)),
+                "pf_b":        round(max(-1.0, min(1.0, to_signed_16(reg(18)) / 10000)), 4),
+
+                "pf_c_raw":    reg(19),
+                "pf_c_signed": to_signed_16(reg(19)),
+                "pf_c":        round(max(-1.0, min(1.0, to_signed_16(reg(19)) / 10000)), 4),
+
+                # ── Active Power (signed, scale ÷10) ──────────────────────
+                "kw_raw":    reg(20),
+                "kw_signed": to_signed_16(reg(20)),
+                "kw":        round(to_signed_16(reg(20)) / 10, 2),
+
+                # ── Reactive Power (signed, scale ÷10) ────────────────────
+                "kvar_raw":    reg(21),
+                "kvar_signed": to_signed_16(reg(21)),
+                "kvar":        round(to_signed_16(reg(21)) / 10, 2),
+
+                # ── Apparent Power (unsigned, scale ÷10) ──────────────────
+                "kva_raw": reg(22),
+                "kva":     round(reg(22) / 10, 2),
+
+                # ── Energy 32-bit (block2, scale ÷100) ────────────────────
+                "b2_low":            b2[0] if len(b2) > 0 else None,
+                "b2_high":           b2[1] if len(b2) > 1 else None,
+                "b2_combined_32bit": ((b2[1] << 16) | b2[0]) if len(b2) > 1 else None,
+                "energy_kwh":        ((b2[1] << 16) | b2[0]) / 100 if len(b2) > 1 else None,
+
+                # ── Sanity checks (computed vs meter register) ─────────────
+                # These let you instantly spot any remaining discrepancies.
+                "check_pf_from_power":   round(
+                    abs(to_signed_16(reg(20)) / reg(22)) if reg(22) else 0, 4
+                ),  # kW/kVA — should match pf_total magnitude
+                "check_kva_from_triangle": round(
+                    (
+                        (to_signed_16(reg(20)) / 10) ** 2 +
+                        (to_signed_16(reg(21)) / 10) ** 2
+                    ) ** 0.5, 2
+                ),  # √(kW²+kVAR²) — should match kva
+
+                # ── DB cached values (for comparison with live decode) ─────
+                "db_voltage":         reading.voltage,
+                "db_current":         reading.current,
+                "db_active_power_kw": reading.active_power_kw,
+                "db_reactive_kvar":   reading.reactive_power_kvar,
+                "db_apparent_kva":    reading.apparent_power_kva,
+                "db_energy_kwh":      reading.energy_today_kwh,
+            }
+
+            results.append({
+                "id":         reading.id,
+                "unit_id":    reading.unit_id,
+                "timestamp":  reading.timestamp,
+                "block1_raw": b,
+                "block2_raw": b2,
+                "decoded":    decoded,
+            })
+
+        return Response(results)
 
 class LatestReadingView(APIView):
     """Get the latest reading for live dashboard updates"""
@@ -304,7 +422,7 @@ class LatestReadingView(APIView):
                 'reactive_power_kvar': round(latest.reactive_power_kvar, 1),
                 'apparent_power_kva': round(latest.apparent_power_kva, 1),
                 'energy_today_kwh': round(latest.energy_today_kwh, 1),
-                'timestamp': datetime.fromtimestamp(latest.timestamp).isoformat(),
+                'timestamp': datetime.fromtimestamp(latest.timestamp, tz=EST).isoformat(),
                 'status': 'stale' if is_stale else 'online'
             }
             
@@ -421,7 +539,7 @@ class GraphDataView(APIView):
             minute_data = {}
             for reading in readings:
                 # Truncate to the minute
-                dt = datetime.fromtimestamp(reading.timestamp)
+                dt = datetime.fromtimestamp(reading.timestamp, tz=EST)
                 minute_key = dt.replace(second=0, microsecond=0)
 
                 if minute_key not in minute_data:
@@ -465,28 +583,136 @@ class GraphDataView(APIView):
         return Response(data)
 
 class RecentReadingsView(APIView):
-    """Get recent readings for the table"""
-    
+    """
+    Returns recent readings with ALL decoded parameters for the full dataset table.
+    Decodes directly from raw registers on every request so the table always
+    reflects the correct scaling logic without needing a DB migration.
+    """
+
     def get(self, request):
         unit_id = request.query_params.get('unit_id', 100)
         limit = int(request.query_params.get('limit', 20))
-        
+
         readings = SensorReading.objects.filter(unit_id=unit_id)[:limit]
-        
+
+        def to_signed_16(raw):
+            """
+            Unsigned 16-bit → signed 16-bit (two's complement).
+            Required for: Power Factor, Active Power, Reactive Power.
+            """
+            if raw > 32767:
+                return raw - 65536
+            return raw
+
         data = []
         for reading in readings:
-            dt = datetime.fromtimestamp(reading.timestamp)
+            dt = datetime.fromtimestamp(reading.timestamp, tz=EST)
+            b = reading.block1_raw or []
+
+            def reg(idx, default=0):
+                """Safely read register by index, return default if missing."""
+                return b[idx] if len(b) > idx else default
+
+            # ── Voltage Phase-Neutral (÷10 → V) ──────────────────────
+            v_an     = reg(0) / 10    # Phase A to Neutral (~279-281V in your system)
+            v_bn     = reg(1) / 10    # Phase B to Neutral
+            v_cn     = reg(2) / 10    # Phase C to Neutral
+            v_avg_ln = reg(3) / 10    # Meter's own average L-N voltage
+
+            # ── Voltage Line-Line (÷10 → V) ──────────────────────────
+            v_ab     = reg(4) / 10    # Between Phase A and B (~484-486V)
+            v_bc     = reg(5) / 10    # Between Phase B and C
+            v_ca     = reg(6) / 10    # Between Phase C and A
+            v_avg_ll = reg(7) / 10    # Meter's own average L-L voltage
+
+            # ── Current (÷10 → A) ────────────────────────────────────
+            i_a      = reg(8)  / 10   # Phase A current
+            i_b      = reg(9)  / 10   # Phase B current
+            i_c      = reg(10) / 10   # Phase C current
+            i_avg    = reg(11) / 10   # Meter's average current
+            i_demand = reg(12) / 10   # Current demand (rolling average)
+            i_peak   = reg(13) / 10   # Historical peak demand current
+            i_neutral= reg(14) / 10   # Neutral conductor current
+
+            # ── Frequency (÷100 → Hz) ─────────────────────────────────
+            # US grid standard = 60.00 Hz. Your readings: 59.97–60.00 Hz ✅
+            freq = reg(15) / 100
+
+            # ── Power Factor (signed ÷ 10000) ─────────────────────────
+            # SCALE IS ÷10000, NOT ÷1000.
+            # Verified by cross-check: kW/kVA = 1.3/9.9 = 0.131
+            # signed(-1264) ÷ 10000 = -0.1264 ✅  (was clamping to -1.0 with ÷1000)
+            #
+            # Sign meaning:
+            #   Positive PF = lagging  (inductive load — motors, transformers)
+            #   Negative PF = leading  (capacitive load — PFC capacitors)
+            # Your system shows ~0.13 PF which means mostly reactive (kVAR >> kW)
+            pf_total = round(
+                max(-1.0, min(1.0, to_signed_16(reg(16)) / 10000)), 4
+            )
+            pf_a = round(
+                max(-1.0, min(1.0, to_signed_16(reg(17)) / 10000)), 4
+            )
+            pf_b = round(
+                max(-1.0, min(1.0, to_signed_16(reg(18)) / 10000)), 4
+            )
+            pf_c = round(
+                max(-1.0, min(1.0, to_signed_16(reg(19)) / 10000)), 4
+            )
+
+            # ── Power (signed ÷ 10) ───────────────────────────────────
+            # Active Power: real energy consumed. Verified: raw=13 → 1.3 kW ✅
+            # Reactive Power: can be negative for capacitive loads.
+            # Apparent Power: always positive, unsigned.
+            kw   = round(to_signed_16(reg(20)) / 10, 2)
+            kvar = round(to_signed_16(reg(21)) / 10, 2)
+            kva  = round(reg(22) / 10, 2)
+
             data.append({
-                'time': dt.strftime('%H:%M:%S'),
-                'date': dt.strftime('%Y-%m-%d'),
-                'kw': round(reading.active_power_kw, 2) if reading.active_power_kw else 0,
-                'voltage': round(reading.voltage, 1) if reading.voltage else 0,
-                'current': round(reading.current, 1) if reading.current else 0,
-                'energy': round(reading.energy_today_kwh, 1) if reading.energy_today_kwh else 0,
-                'pf': round(reading.active_power_kw / reading.apparent_power_kva, 2) if reading.apparent_power_kva and reading.apparent_power_kva > 0 else 0,
-                'status': 'ok'
+                # ── Original columns (preserved, do not remove) ───────
+                'time':    dt.strftime('%H:%M:%S'),
+                'date':    dt.strftime('%Y-%m-%d'),
+                'kw':      kw,
+                # Use meter's own average L-N voltage (reg[3]), not manual average
+                'voltage': round(v_avg_ln, 1),
+                # Use meter's own average current (reg[11]), not manual average
+                'current': round(i_avg, 1),
+                'energy':  round(reading.energy_today_kwh, 2) if reading.energy_today_kwh else 0,
+                'pf':      pf_total,
+                'status':  'ok',
+
+                # ── All voltage parameters ────────────────────────────
+                'v_an':      round(v_an, 1),
+                'v_bn':      round(v_bn, 1),
+                'v_cn':      round(v_cn, 1),
+                'v_avg_ln':  round(v_avg_ln, 1),
+                'v_ab':      round(v_ab, 1),
+                'v_bc':      round(v_bc, 1),
+                'v_ca':      round(v_ca, 1),
+                'v_avg_ll':  round(v_avg_ll, 1),
+
+                # ── All current parameters ────────────────────────────
+                'i_a':       round(i_a, 2),
+                'i_b':       round(i_b, 2),
+                'i_c':       round(i_c, 2),
+                'i_avg':     round(i_avg, 2),
+                'i_demand':  round(i_demand, 2),
+                'i_peak':    round(i_peak, 2),
+                'i_neutral': round(i_neutral, 2),
+
+                # ── Frequency ─────────────────────────────────────────
+                'frequency': round(freq, 2),
+
+                # ── All power factor parameters (FIXED: ÷10000) ───────
+                'pf_a':  pf_a,
+                'pf_b':  pf_b,
+                'pf_c':  pf_c,
+
+                # ── All power parameters ──────────────────────────────
+                'kvar': kvar,
+                'kva':  kva,
             })
-        
+
         return Response(data)
     
     

@@ -3,4 +3,7 @@ from .models import *
 # Register your models here.
 admin.site.register(SensorReading)  
 admin.site.register(HourlyAggregate)
-admin.site.register(User)
+admin.site.register(User)   
+admin.site.register(Company)
+admin.site.register(Device)
+
