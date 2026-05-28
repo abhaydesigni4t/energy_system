@@ -285,24 +285,50 @@ class Company(models.Model):
         return self.devices.count()
 
 
+"""
+In models.py, add DEVICE_CATEGORY_CHOICES before the Device class,
+then replace the Device class entirely with this version.
+"""
+
+DEVICE_CATEGORY_CHOICES = [
+    ('Meters', 'Meters'),
+    ('Solar Generation', 'Solar Generation'),
+    ('Battery Power', 'Battery Power'),
+    ('EV Charging', 'EV Charging'),
+    ('Building Load', 'Building Load'),
+    ('HVAC', 'HVAC'),
+    ('Genset', 'Genset'),
+]
+
+
 class Device(models.Model):
     """
     Represents a physical Modbus unit (energy meter / sensor).
     unit_id must match what the SBC sends in readings.
     """
     unit_id = models.PositiveIntegerField(unique=True, db_index=True)
+    # name is kept for backwards compatibility but is optional
     name = models.CharField(max_length=200, default='', blank=True)
+    device_category = models.CharField(
+        max_length=50,
+        choices=DEVICE_CATEGORY_CHOICES,
+        default='Meters',
+        help_text='Category determines which navbar dropdown this device appears under.',
+    )
+    per_unit_cost = models.DecimalField(
+        max_digits=10, decimal_places=4,
+        null=True, blank=True,
+        help_text='Cost per kWh for financial calculations (optional).',
+    )
     description = models.TextField(blank=True)
     location = models.CharField(max_length=300, blank=True)
 
     company = models.ForeignKey(
         Company,
         on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
+        null=True, blank=True,
         related_name='devices',
     )
-    # Which users can access this device
     assigned_users = models.ManyToManyField(
         'User',
         blank=True,
@@ -317,7 +343,8 @@ class Device(models.Model):
         ordering = ['unit_id']
 
     def __str__(self):
-        return f"Unit {self.unit_id}" + (f" – {self.name}" if self.name else "")
+        label = self.name if self.name else f"Unit {self.unit_id}"
+        return f"{label} [{self.device_category}]"
 
     def get_display_name(self):
         return self.name if self.name else f"Unit {self.unit_id}"

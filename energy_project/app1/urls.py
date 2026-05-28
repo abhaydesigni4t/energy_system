@@ -27,6 +27,7 @@ urlpatterns = [
     path('api/readings/summary/', views.SummaryStatsView.as_view(), name='summary-stats'),
     path('api/readings/graph/', views.GraphDataView.as_view(), name='graph-data'),
     path('api/readings/recent/', views.RecentReadingsView.as_view(), name='recent-readings'),
+    path('api/devices/by-category/', views.DevicesByCategoryView.as_view(), name='devices_by_category'),
     
     # ── Device Management ────────────────────────────────────────
     path('device-management/', views.company_list, name='company_list'),

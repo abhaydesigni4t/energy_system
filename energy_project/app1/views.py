@@ -855,22 +855,79 @@ def device_detail(request, device_id):
         'latest': latest,
     })
     
+    
+class DevicesByCategoryView(APIView):
+    """
+    Returns all active devices grouped by device_category.
+    Used by energy_dashboard_v2 navbar to dynamically populate dropdowns.
+ 
+    GET /api/devices/by-category/
+    Optional query param: ?unit_ids=100,101,102  (comma-separated, for non-admin users)
+ 
+    Response shape:
+    {
+      "Meters": [
+        {"unit_id": 100, "display_name": "Main Panel", "location": "Bldg A"},
+        ...
+      ],
+      "Solar Generation": [...],
+      ...
+    }
+    """
+    permission_classes = []   # adjust to your auth scheme if needed
+ 
+    def get(self, request):
+        # Respect user access control
+        user = request.user
+        queryset = Device.objects.filter(is_active=True).select_related('company')
+ 
+        if not user.is_authenticated:
+            return Response({})
+ 
+        if not user.is_admin_or_superadmin():
+            allowed = user.get_unit_ids()
+            if allowed:
+                queryset = queryset.filter(unit_id__in=allowed)
+            else:
+                return Response({})
+ 
+        # Group by category
+        result = {}
+        for device in queryset.order_by('device_category', 'unit_id'):
+            cat = device.device_category
+            if cat not in result:
+                result[cat] = []
+            result[cat].append({
+                'unit_id': device.unit_id,
+                'display_name': device.get_display_name(),
+                'location': device.location or '',
+                'company': device.company.name if device.company else '',
+                'per_unit_cost': str(device.per_unit_cost) if device.per_unit_cost else None,
+            })
+ 
+        return Response(result)
+    
 @login_required(login_url='login')
 def energy_dashboard_v2(request):
+    """
+    Energy Dashboard v2 — dynamic multi-device dashboard.
+    Passes the primary unit and accessible unit list to the template.
+    The navbar device list is loaded client-side via /api/devices/by-category/.
+    """
     if request.user.is_admin_or_superadmin():
-        accessible_units = list(User.objects.values_list('unit_ids', flat=True))
-        all_units = set()
-        for units in accessible_units:
-            if units:
-                all_units.update(units)
-        all_units.add(100)
-        unit_ids = sorted(all_units)
+        # Admin sees all devices
+        from .models import Device as DeviceModel
+        unit_ids = list(DeviceModel.objects.filter(is_active=True).values_list('unit_id', flat=True))
+        if not unit_ids:
+            unit_ids = [100]
     else:
         unit_ids = request.user.get_unit_ids() or [100]
-
+ 
+    primary_unit = unit_ids[0] if unit_ids else 100
+ 
     context = {
         'user': request.user,
         'unit_ids': unit_ids,
-        'primary_unit': unit_ids[0] if unit_ids else 100,
+        'primary_unit': primary_unit,
     }
     return render(request, 'app1/energy_dashboard_v2.html', context)

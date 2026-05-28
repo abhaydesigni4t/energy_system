@@ -121,6 +121,10 @@ class AddUserForm(forms.ModelForm):
         return user
 
 
+from django import forms
+from .models import Company, Device, User, DEVICE_CATEGORY_CHOICES
+
+
 class AssignUnitsForm(forms.Form):
     """Form for assigning unit IDs to a user"""
     unit_ids_input = forms.CharField(
@@ -141,11 +145,6 @@ class AssignUnitsForm(forms.Form):
             return [int(x.strip()) for x in raw.split(',') if x.strip()]
         except ValueError:
             raise forms.ValidationError("Please enter valid numeric unit IDs.")
-        
-        
-        
-from django import forms
-from .models import Company, Device, User
 
 
 class CompanyForm(forms.ModelForm):
@@ -164,10 +163,18 @@ class CompanyForm(forms.ModelForm):
 class DeviceForm(forms.ModelForm):
     class Meta:
         model = Device
-        fields = ['unit_id', 'name', 'description', 'location', 'company', 'assigned_users', 'is_active']
+        fields = [
+            'unit_id', 'device_category', 'per_unit_cost',
+            'description', 'location', 'company', 'assigned_users', 'is_active',
+        ]
         widgets = {
             'unit_id': forms.NumberInput(attrs={'class': 'fi', 'placeholder': 'e.g. 100'}),
-            'name': forms.TextInput(attrs={'class': 'fi', 'placeholder': 'e.g. Main Panel Meter'}),
+            'device_category': forms.Select(attrs={'class': 'fi'}),
+            'per_unit_cost': forms.NumberInput(attrs={
+                'class': 'fi',
+                'placeholder': 'e.g. 0.14',
+                'step': '0.0001',
+            }),
             'description': forms.Textarea(attrs={'class': 'fi', 'rows': 3}),
             'location': forms.TextInput(attrs={'class': 'fi', 'placeholder': 'e.g. Building A, Floor 2'}),
             'company': forms.Select(attrs={'class': 'fi'}),
@@ -180,6 +187,7 @@ class DeviceForm(forms.ModelForm):
         self.fields['assigned_users'].queryset = User.objects.all().order_by('username')
         self.fields['company'].empty_label = '— No Company —'
         self.fields['assigned_users'].required = False
+        self.fields['per_unit_cost'].required = False
 
 
 class AssignDeviceToCompanyForm(forms.Form):
@@ -188,7 +196,8 @@ class AssignDeviceToCompanyForm(forms.Form):
         widget=forms.NumberInput(attrs={'class': 'fi', 'placeholder': 'Unit ID'}),
         label='Unit ID'
     )
-    name = forms.CharField(
-        required=False,
-        widget=forms.TextInput(attrs={'class': 'fi', 'placeholder': 'Device name (optional)'}),
+    device_category = forms.ChoiceField(
+        choices=DEVICE_CATEGORY_CHOICES,
+        widget=forms.Select(attrs={'class': 'fi'}),
+        label='Device Category'
     )

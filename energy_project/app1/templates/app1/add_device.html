@@ -37,6 +37,8 @@ select[multiple].fi{min-height:120px;}
 .field-hint{font-size:11px;color:var(--text3);margin-top:4px;}
 .required-star{color:var(--red);}
 .check-row{display:flex;align-items:center;gap:10px;}
+.section-sep{border:none;border-top:1px solid var(--border);margin:8px 0 20px;}
+.section-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;color:var(--text3);margin-bottom:14px;}
 </style>
 </head>
 <body>
@@ -48,7 +50,7 @@ select[multiple].fi{min-height:120px;}
   </nav>
 </header>
 <div class="breadcrumb">
-  <a href="{% url 'energy_dashboard' %}">Dashboard</a> <span>›</span>
+  <a href="{% url 'energy_dashboard_v2' %}">Dashboard</a> <span>›</span>
   <a href="{% url 'company_list' %}">Device Management</a> <span>›</span>
   <a href="{% url 'device_list' %}">All Devices</a> <span>›</span>
   <span>Add Device</span>
@@ -57,21 +59,32 @@ select[multiple].fi{min-height:120px;}
   <div class="form-card">
     <div class="form-card-header">
       <div class="form-card-title">⚡ Add New Device</div>
-      <div class="form-card-sub">Register a Modbus unit and assign it to a company and users.</div>
+      <div class="form-card-sub">Register a Modbus unit. The device will automatically appear under its category in the dashboard navbar.</div>
     </div>
     <div class="form-body">
       <form method="post">
         {% csrf_token %}
+
+        <!-- ── Core identity ── -->
+        <div class="section-label">Device Identity</div>
+
         <div class="fg">
           <label class="flb">Unit ID <span class="required-star">*</span></label>
           {{ form.unit_id }}
-          <div class="field-hint">Must match the unit_id sent by the physical device/SBC.</div>
+          <div class="field-hint">Must match the unit_id sent by the physical device / SBC.</div>
           {% if form.unit_id.errors %}<div class="errmsg">{{ form.unit_id.errors.0 }}</div>{% endif %}
         </div>
+
         <div class="fg">
-          <label class="flb">Device Name</label>
-          {{ form.name }}
+          <label class="flb">Device Category <span class="required-star">*</span></label>
+          {{ form.device_category }}
+          <div class="field-hint">Determines which navbar dropdown this device appears under in the dashboard.</div>
+          {% if form.device_category.errors %}<div class="errmsg">{{ form.device_category.errors.0 }}</div>{% endif %}
         </div>
+
+        <hr class="section-sep">
+        <div class="section-label">Optional Details</div>
+
         <div class="fg">
           <label class="flb">Description</label>
           {{ form.description }}
@@ -80,6 +93,17 @@ select[multiple].fi{min-height:120px;}
           <label class="flb">Location</label>
           {{ form.location }}
         </div>
+
+        <div class="fg">
+          <label class="flb">Cost per kWh</label>
+          {{ form.per_unit_cost }}
+          <div class="field-hint">Used for financial calculations (e.g. 0.14 for $0.14/kWh). Leave blank to use the global rate.</div>
+          {% if form.per_unit_cost.errors %}<div class="errmsg">{{ form.per_unit_cost.errors.0 }}</div>{% endif %}
+        </div>
+
+        <hr class="section-sep">
+        <div class="section-label">Access Control</div>
+
         <div class="fg">
           <label class="flb">Assign to Company</label>
           {{ form.company }}
@@ -89,6 +113,9 @@ select[multiple].fi{min-height:120px;}
           {{ form.assigned_users }}
           <div class="field-hint">Hold Ctrl/Cmd to select multiple users.</div>
         </div>
+
+        <hr class="section-sep">
+
         <div class="fg">
           <label class="flb">Active</label>
           <div class="check-row">
@@ -96,6 +123,7 @@ select[multiple].fi{min-height:120px;}
             <span style="font-size:13px;color:var(--text2);font-weight:600;">Device is active and receiving data</span>
           </div>
         </div>
+
         <div class="form-acts">
           <a href="{% url 'device_list' %}" class="nav-btn">Cancel</a>
           <button type="submit" class="nav-btn accent">Create Device →</button>
