@@ -61,6 +61,16 @@ body{font-family:var(--font);background:var(--bg);color:var(--text1);font-size:1
 .info-item .iv{font-size:14px;font-weight:700;color:var(--text1);}
 .user-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:30px;background:var(--bg);border:1px solid var(--border2);font-size:12px;font-weight:700;color:var(--text2);margin:2px;}
 
+/* Category badge */
+.cat-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;}
+.cat-Meters{background:rgba(239,68,68,0.1);color:#B91C1C;}
+.cat-Solar{background:rgba(34,197,94,0.12);color:#166534;}
+.cat-Battery{background:rgba(234,179,8,0.15);color:#713F12;}
+.cat-EV{background:rgba(189,0,255,0.1);color:#6B21A8;}
+.cat-Building{background:rgba(255,69,0,0.1);color:#92400E;}
+.cat-HVAC{background:rgba(0,255,255,0.1);color:#155E75;}
+.cat-Genset{background:rgba(240,128,128,0.15);color:#9F1239;}
+
 /* STATUS */
 .status-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:30px;font-size:12px;font-weight:800;}
 .status-pill.online{background:rgba(16,185,129,0.12);color:#0E7C46;}
@@ -75,7 +85,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text1);font-size:1
 <header class="topbar">
   <div class="topbar-brand">3rd Rock Energy System</div>
   <nav style="display:flex;gap:8px;flex-wrap:wrap;">
-    <a href="{% url 'energy_dashboard' %}" class="nav-btn">📊 Dashboard</a>
+    <a href="{% url 'energy_dashboard_v2' %}" class="nav-btn">📊 Dashboard</a>
     <a href="{% url 'company_list' %}" class="nav-btn">🏢 Companies</a>
     {% if user.is_admin_or_superadmin %}<a href="{% url 'user_list' %}" class="nav-btn">👥 Users</a>{% endif %}
     <a href="{% url 'logout' %}" class="nav-btn danger">Logout</a>
@@ -83,7 +93,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text1);font-size:1
 </header>
 
 <div class="breadcrumb">
-  <a href="{% url 'energy_dashboard' %}">Dashboard</a> <span>›</span>
+  <a href="{% url 'energy_dashboard_v2' %}">Dashboard</a> <span>›</span>
   <a href="{% url 'company_list' %}">Device Management</a> <span>›</span>
   {% if device.company %}<a href="{% url 'company_detail' device.company.pk %}">{{ device.company.name }}</a> <span>›</span>{% endif %}
   <span>{{ device.get_display_name }}</span>
@@ -161,12 +171,60 @@ body{font-family:var(--font);background:var(--bg);color:var(--text1);font-size:1
   <div class="info-card">
     <div class="info-title">Device Information</div>
     <div class="info-grid">
-      <div class="info-item"><div class="il">Unit ID</div><div class="iv" style="font-family:var(--mono);">{{ device.unit_id }}</div></div>
-      <div class="info-item"><div class="il">Name</div><div class="iv">{{ device.name|default:"—" }}</div></div>
-      <div class="info-item"><div class="il">Company</div><div class="iv">{% if device.company %}<a href="{% url 'company_detail' device.company.pk %}" style="color:var(--accent);text-decoration:none;font-weight:700;">{{ device.company.name }}</a>{% else %}—{% endif %}</div></div>
-      <div class="info-item"><div class="il">Location</div><div class="iv">{{ device.location|default:"—" }}</div></div>
-      <div class="info-item"><div class="il">Status</div><div class="iv">{% if device.is_active %}🟢 Active{% else %}🔴 Inactive{% endif %}</div></div>
-      <div class="info-item"><div class="il">Added</div><div class="iv">{{ device.created_at|date:"N j, Y" }}</div></div>
+      <div class="info-item">
+        <div class="il">Unit ID</div>
+        <div class="iv" style="font-family:var(--mono);">{{ device.unit_id }}</div>
+      </div>
+      <div class="info-item">
+        <div class="il">Category</div>
+        <div class="iv">
+          {% with cat=device.device_category %}
+          {% if cat == "Meters" %}
+            <span class="cat-badge cat-Meters">🌐 Meters</span>
+          {% elif cat == "Solar Generation" %}
+            <span class="cat-badge cat-Solar">☀️ Solar Generation</span>
+          {% elif cat == "Battery Power" %}
+            <span class="cat-badge cat-Battery">🔋 Battery Power</span>
+          {% elif cat == "EV Charging" %}
+            <span class="cat-badge cat-EV">🔌 EV Charging</span>
+          {% elif cat == "Building Load" %}
+            <span class="cat-badge cat-Building">🏢 Building Load</span>
+          {% elif cat == "HVAC" %}
+            <span class="cat-badge cat-HVAC">❄️ HVAC</span>
+          {% elif cat == "Genset" %}
+            <span class="cat-badge cat-Genset">⚙️ Genset</span>
+          {% else %}
+            <span class="cat-badge" style="background:var(--bg);border:1px solid var(--border2);color:var(--text3);">{{ cat }}</span>
+          {% endif %}
+          {% endwith %}
+        </div>
+      </div>
+      <div class="info-item">
+        <div class="il">Cost per kWh</div>
+        <div class="iv">
+          {% if device.per_unit_cost %}
+            ${{ device.per_unit_cost }}
+          {% else %}
+            <span style="color:var(--text3);font-style:italic;">Using global rate</span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="info-item">
+        <div class="il">Company</div>
+        <div class="iv">{% if device.company %}<a href="{% url 'company_detail' device.company.pk %}" style="color:var(--accent);text-decoration:none;font-weight:700;">{{ device.company.name }}</a>{% else %}—{% endif %}</div>
+      </div>
+      <div class="info-item">
+        <div class="il">Location</div>
+        <div class="iv">{{ device.location|default:"—" }}</div>
+      </div>
+      <div class="info-item">
+        <div class="il">Status</div>
+        <div class="iv">{% if device.is_active %}🟢 Active{% else %}🔴 Inactive{% endif %}</div>
+      </div>
+      <div class="info-item">
+        <div class="il">Added</div>
+        <div class="iv">{{ device.created_at|date:"N j, Y" }}</div>
+      </div>
     </div>
     {% if device.description %}
     <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">

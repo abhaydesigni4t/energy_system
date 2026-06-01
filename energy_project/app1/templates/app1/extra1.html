@@ -1,1223 +1,436 @@
-Carefully analyze the complete existing graph/canvas code and act as an experienced frontend developer without breaking any existing functionality.
-
-Issues to fix:
-
-After zooming by area selection, when scrolling the graph horizontally using .graph-col::-webkit-scrollbar, the graph automatically jumps back/reset after scrolling stops. Fix scroll position preservation and prevent any scroll reset during redraw/render.
-Sometimes while scrolling, the graph automatically zooms even though no zoom action was performed. Fix unwanted zoom triggers, event conflicts, and selection state issues.
-i thing when we scrolling graph then area selection functionality work 
-
-Check and fix:
-
-scrollLeft reset issues
-zoom + scroll synchronization
-redraw/render lifecycle
-wheel/touch/mouse event conflicts
-selection state reset
-accidental zoom trigger during scrolling
-requestAnimationFrame/render issues
-
-Requirements:
-
-Do not change existing functionality
-Keep current zoom, pan, tooltip, and dataset behavior unchanged
-Ensure smooth scrolling for large datasets
-Prevent automatic zoom unless user intentionally zooms
-Only provide modified code with explanation of where to add it and why the fix works
-
-and only give modified code with explanation where to add modified code don't give complete file code .
-
-this is energy_dashboard.html 
-"{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="csrf-token" content="{{ csrf_token }}">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-<title>3rd Rock Energy · Microgrid</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<style>
-*{margin:0;padding:0;box-sizing:border-box;}
-:root{
-  --font-number:'Consolas','Arial','Roboto Mono',monospace;
-  --font-text:'Calibri','Segoe UI','Arial',sans-serif;
-  --bg:#F8FAFC;--bg2:#FFFFFF;--bg3:#FFFFFF;--bg4:#F1F5F9;
-  --surface:#F8FAFC;--surface2:#E2E8F0;
-  --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.12);
-  --text1:#0F172A;--text2:#334155;--text3:#64748B;
-  --r6:6px;--r8:8px;--r12:12px;--r16:16px;--r20:20px;
-  --nav-bg:#4A5568;
-  --nav-bg-hover:rgba(255,255,255,0.10);
-  --nav-border:rgba(255,255,255,0.10);
-  --nav-dropdown-bg:#3D4556;
-  --nav-text:#fbfbfb;
-  --nav-text-muted:rgba(255,255,255,0.99);
-  --color-solar: #22C55E;
-  --color-meters: #EF4444;
-  --CHART-H: 300px;   /* single source of truth for chart area height */
-}
-body{font-family:var(--font-text);background:var(--bg);color:var(--text1);font-size:13px;font-weight:500;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
-.kpi-value,#clock-display,.dt-val,td,.stbadge{font-family:var(--font-number);font-weight:600;letter-spacing:0.3px;font-feature-settings:"tnum" on,"lnum" on;}
-.kpi-value{font-size:28px;font-weight:700;line-height:1.2;letter-spacing:-0.5px;}
-#clock-display{font-size:12px;font-weight:600;letter-spacing:1px;}
-td{font-family:var(--font-number);font-size:11px;font-weight:500;}
-.kpi-label,.panel-title,.tbl-title,.modal-title,.legend-item,.chart-title,.chart-meta,.chart-tab,.dt-label,.dt-name,.topbar-title,.topbar-sub,.tbtn,.stbadge{font-family:var(--font-text);font-weight:600;letter-spacing:0.2px;}
-.kpi-label,.panel-title,.tbl-title{letter-spacing:0.5px;text-transform:uppercase;font-size:10px;font-weight:700;}
-thead th{font-family:var(--font-text);font-size:10px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;}
-.main-area{margin-left:0;flex:1;display:flex;flex-direction:column;min-height:100vh;}
-.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
-.topbar-left{display:flex;flex-direction:column;gap:4px;}
-.topbar-title{font-family:var(--font-text);font-size:24px;font-weight:800;color:#000;letter-spacing:-0.3px;background:linear-gradient(135deg,#0F172A,#3B82F6);-webkit-background-clip:text;background-clip:text;color:transparent;}
-.topbar-sub{font-size:14px;color:#000;font-weight:600;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
-.topbar-right{display:flex;align-items:center;gap:10px;}
-.tbtn{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:30px;font-size:14px;font-weight:700;font-family:var(--font-text);border:1px solid var(--border2);background:transparent;color:#000;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
-.tbtn:hover{background:var(--surface);}
-.tbtn.primary{background:linear-gradient(135deg,#3B82F6,#2563EB);border-color:transparent;color:#fff;}
-.tbtn.primary:hover{opacity:0.9;}
-.btn-logout{padding:10px 22px;background:linear-gradient(135deg,#ff5f5f,#ff3b3b);color:#fff;border-radius:25px;text-decoration:none;font-weight:600;display:inline-block;transition:all 0.3s ease;box-shadow:0 4px 10px rgba(255,59,59,0.3);}
-.btn-logout:hover{background:linear-gradient(135deg,#ff3b3b,#e60000);box-shadow:0 6px 14px rgba(255,59,59,0.4);transform:translateY(-1px);}
-.btn-users{padding:10px 22px;background:linear-gradient(135deg,#4a90e2,#357abd);color:#fff;border-radius:25px;text-decoration:none;font-weight:500;font-size:15px;display:inline-block;transition:all 0.3s ease;box-shadow:0 4px 10px rgba(53,122,189,0.3);}
-.btn-users:hover{background:linear-gradient(135deg,#357abd,#2c5fa3);box-shadow:0 6px 14px rgba(53,122,189,0.4);transform:translateY(-1px);}
-#clock-display{font-family:var(--font-number);font-size:12px;color:#000;padding:5px 12px;background:var(--surface);border-radius:30px;border:1px solid var(--border);font-weight:700;}
-.status-row{display:inline-flex;align-items:center;gap:10px;margin-left:8px;}
-.online-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(16,185,129,0.12);padding:4px 12px;border-radius:30px;font-size:11px;font-weight:800;color:#0E7C46;}
-.offline-badge{background:rgba(244,63,94,0.12);color:#BE123C;}
-.reconnect-btn{background:none;border:1px solid var(--border2);border-radius:20px;padding:3px 12px;font-size:10px;font-weight:700;cursor:pointer;margin-left:4px;}
-.nav-bar{background:var(--nav-bg);border-bottom:1px solid var(--nav-border);padding:0 24px;position:sticky;top:64px;z-index:90;box-shadow:0 2px 8px rgba(0,0,0,0.15);}
-.nav-list{display:flex;align-items:stretch;gap:0;list-style:none;margin:0;padding:0;}
-.nav-item{position:relative;}
-.nav-link{display:flex;align-items:center;gap:6px;padding:0 18px;height:44px;color:var(--nav-text);font-size:16px;font-weight:700;font-family:var(--font-text);text-decoration:none;white-space:nowrap;cursor:pointer;transition:color 0.15s,background 0.15s;letter-spacing:0.3px;border-bottom:2px solid transparent;}
-.nav-link:hover,.nav-item:hover .nav-link{color:#fff;background:var(--nav-bg-hover);border-bottom-color:#60A5FA;}
-.nav-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
-.nav-link .chevron{font-size:10px;opacity:0.6;margin-left:2px;transition:transform 0.15s;}
-.nav-item:hover .nav-link .chevron{transform:rotate(180deg);}
-.nav-dropdown{position:absolute;top:100%;left:0;background:var(--nav-dropdown-bg);border:1px solid rgba(255,255,255,0.12);border-radius:0 0 12px 12px;min-width:200px;padding:6px 0;opacity:0;visibility:hidden;transform:translateY(-6px);transition:all 0.18s ease;z-index:200;box-shadow:0 16px 40px rgba(0,0,0,0.35);}
-.nav-item:hover .nav-dropdown{opacity:1;visibility:visible;transform:translateY(0);}
-.nav-dropdown-item{display:flex;align-items:center;gap:10px;padding:9px 16px;color:var(--nav-text-muted);font-size:15px;font-weight:600;font-family:var(--font-text);text-decoration:none;cursor:pointer;transition:all 0.12s;letter-spacing:0.2px;}
-.nav-dropdown-item:hover{color:#fff;background:rgba(96,165,250,0.15);padding-left:20px;}
-.nav-dropdown-item .dd-icon{font-size:13px;width:20px;text-align:center;}
-.grid-event-indicator{display:none;align-items:center;gap:7px;padding:5px 14px;border-radius:20px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.45);color:#FCD34D;font-size:11px;font-weight:800;font-family:var(--font-text);letter-spacing:0.4px;white-space:nowrap;cursor:default;animation:gridEventPulse 1.8s ease-in-out infinite;}
-.grid-event-indicator.active{display:flex;}
-.grid-event-dot{width:9px;height:9px;border-radius:50%;background:#F59E0B;box-shadow:0 0 0 0 rgba(245,158,11,0.6);animation:gridDotPing 1.8s ease-in-out infinite;flex-shrink:0;}
-@keyframes gridDotPing{0%{box-shadow:0 0 0 0 rgba(245,158,11,0.7);}60%{box-shadow:0 0 0 7px rgba(245,158,11,0);}100%{box-shadow:0 0 0 0 rgba(245,158,11,0);}}
-@keyframes gridEventPulse{0%,100%{border-color:rgba(245,158,11,0.45);background:rgba(245,158,11,0.12);}50%{border-color:rgba(245,158,11,0.75);background:rgba(245,158,11,0.22);}}
-@media(max-width:700px){.nav-list{overflow-x:auto;}.nav-link{padding:0 12px;font-size:11px;}}
-.content{padding:20px 24px;flex:1;display:flex;flex-direction:column;gap:18px;}
-.kpi-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
-.kpi-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r12);padding:14px 16px;position:relative;overflow:hidden;transition:border-color 0.2s;}
-.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--kpi-c,#3B82F6);}
-.kpi-card:hover{border-color:var(--border2);}
-.kpi-label{font-size:20px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#000;margin-bottom:10px;}
-.kpi-value{font-family:var(--font-number);font-size:28px;font-weight:700;color:#000;line-height:1.2;margin-bottom:6px;letter-spacing:-0.5px;}
-.kpi-unit{font-size:15px;color:#000;font-weight:600;}
-.kpi-badge{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:800;padding:2px 8px;border-radius:4px;margin-top:6px;}
-.kpi-badge.ok{background:rgba(16,185,129,0.12);color:#0E7C46;}
-.kpi-badge.stale{background:rgba(245,158,11,0.12);color:#B45309;}
-.kpi-badge.offline{background:rgba(244,63,94,0.12);color:#BE123C;}
-.chart-panel{background:#0C0F1A;border:1px solid rgba(255,255,255,0.07);border-radius:var(--r20);overflow:hidden;}
-.chart-panel .chart-header{padding:18px 22px 14px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;}
-.chart-panel .chart-title{font-family:var(--font-text);font-size:16px;font-weight:800;color:#F0F4FF;letter-spacing:-0.2px;display:flex;align-items:center;gap:8px;}
-.chart-panel .chart-meta{font-family:var(--font-number);font-size:16px;color:#fff;margin-top:4px;font-weight:500;}
-.chart-panel .chart-tabs{display:flex;background:#111624;border-radius:10px;padding:3px;gap:3px;border:1px solid rgba(255,255,255,0.07);}
-.chart-panel .chart-tab{padding:5px 16px;border-radius:7px;font-size:14px;font-weight:700;font-family:var(--font-text);background:transparent;border:none;color:#fff;cursor:pointer;transition:all 0.15s;}
-.chart-panel .chart-tab.on{background:#2563EB;color:#fff;font-weight:800;}
-.chart-panel .date-inputs{display:flex;align-items:center;gap:6px;margin-top:8px;}
-.chart-panel .date-in{background:#111624;border:1px solid #fff;border-radius:8px;padding:5px 10px;font-size:14px;color:#fff;font-family:var(--font-number);outline:none;font-weight:600;}
-.chart-panel .date-in:focus{border-color:#3B82F6;}
-.chart-panel .date-in::-webkit-calendar-picker-indicator{filter:invert(0.7);cursor:pointer;width:12px;}
-.chart-panel .date-sep{font-size:14px;color:#fff;font-weight:600;}
-.chart-panel .apply-btn{padding:5px 12px;border-radius:8px;background:#2563EB;border:none;color:#fff;font-size:14px;font-weight:800;font-family:var(--font-text);cursor:pointer;}
-.chart-panel .apply-btn:hover{background:#1D4ED8;}
-.chart-panel .reset-zoom-btn{padding:5px 14px;border-radius:8px;background:rgba(245,158,11,0.18);border:1px solid rgba(245,158,11,0.45);color:#FCD34D;font-size:13px;font-weight:800;font-family:var(--font-text);cursor:pointer;transition:all 0.15s;display:none;white-space:nowrap;}
-.chart-panel .reset-zoom-btn:hover{background:rgba(245,158,11,0.3);}
-.chart-panel .reset-zoom-btn.visible{display:inline-flex;align-items:center;gap:5px;}
-.chart-panel .legend-row{padding:10px 22px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;gap:14px;flex-wrap:wrap;align-items:center;}
-.chart-panel .legend-item{display:flex;align-items:center;gap:6px;font-size:14px;color:rgba(255,255,255,0.7);cursor:pointer;padding:3px 8px;border-radius:6px;transition:background 0.15s;font-weight:600;font-family:var(--font-text);}
-.chart-panel .legend-item:hover{background:rgba(255,255,255,0.08);}
-.chart-panel .legend-item.hidden{opacity:0.3;}
-.chart-panel .legend-dot{width:10px;height:3px;border-radius:2px;flex-shrink:0;}
-
-/* ═══════════════════════════════════════════════════
-   CHART LAYOUT — the entire chart area is exactly
-   CHART_H pixels tall (JS constant = 300).
-   
-   • .chart-body  = flex row, fixed 300px height, no padding.
-                    Padding was removed because padding adds to
-                    clientHeight in ways that break canvas sizing.
-   • .yaxis-col   = 72px wide fixed Y-axis column
-   • .graph-col   = flex:1 scrollable area
-   
-   Both columns are exactly CHART_H px tall.
-   The canvas inside .graph-col is also exactly CHART_H px tall.
-   This means Chart.js never guesses the height — we tell it.
-═══════════════════════════════════════════════════ */
-.chart-body {
-  display: flex;
-  flex-direction: row;
-  height: var(--CHART-H);   /* fixed — never stretches, never collapses */
-  overflow: hidden;
-  position: relative;
-  touch-action: none;
-  user-select: none;
-}
-
-/* Fixed Y-axis column */
-.yaxis-col {
-  width: 100px;
-  flex-shrink: 0;
-  height: 100%;
-  background: #0C0F1A;
-  border-right: 1px solid rgba(255,255,255,0.07);
-  position: relative;
-  z-index: 5;
-  overflow: hidden;
-  margin-left: 20px;
-}
-.yaxis-col canvas {
-  display: block;
-  /* canvas fills the column — set by JS, not CSS, so Chart.js sees correct dims */
-}
-
-/* Scrollable graph column */
-.graph-col {
-  flex: 1;
-  height: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
-  cursor: crosshair;
-  position: relative;
-}
-.graph-col::-webkit-scrollbar { height: 5px; }
-.graph-col::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.49); }
-.graph-col::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.79); border-radius: 3px; }
-.graph-col::-webkit-scrollbar-thumb:hover { background: rgb(255, 255, 255); }
-
-/* Inner div expands to canvas width; height always = CHART_H */
-.graph-inner {
-  height: 100%;
-  min-width: 100%;
-  position: relative;
-}
-/* Canvas: height set by JS to exact CHART_H pixels */
-.graph-inner canvas {
-  display: block;
-  /* width set by JS; height set by JS = CHART_H */
-}
-
-/* Zoom hint bar */
-.chart-panel .zoom-hint{font-size:12px;color:#fff;display:flex;align-items:center;gap:8px;padding:6px 22px 8px;font-weight:500;}
-
-/* Drag-zoom selection box */
-.drag-zoom-overlay{
-  position: absolute;
-  top: 0; height: 100%;
-  background: rgba(37,99,235,0.18);
-  border-left: 2px solid rgba(96,165,250,0.8);
-  border-right: 2px solid rgba(96,165,250,0.8);
-  pointer-events: none;
-  z-index: 11;
-  display: none;
-}
-
-/* Crosshairs */
-.crosshair-v{position:absolute;top:0;bottom:0;width:1px;background:rgba(96,165,250,0.5);pointer-events:none;display:none;z-index:10;}
-.crosshair-h{position:absolute;left:0;right:0;height:1px;background:rgba(96,165,250,0.3);pointer-events:none;display:none;z-index:10;}
-
-/* Floating tooltip */
-.floating-tooltip{position:absolute;background:#1A2035;border:1px solid rgba(255,255,255,0.88);border-radius:10px;padding:10px 14px;min-width:160px;pointer-events:none;z-index:20;opacity:0;transition:opacity 0.1s;box-shadow:0 8px 32px rgba(0,0,0,0.6);}
-.floating-tooltip.show{opacity:1;}
-.ftt-time{font-family:var(--font-number);font-size:10px;color:#fff;margin-bottom:7px;font-weight:600;}
-.ftt-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:3px;}
-.ftt-name{display:flex;align-items:center;gap:5px;font-size:10px;color:rgba(255,255,255,0.65);font-weight:600;}
-.ftt-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
-.ftt-val{font-family:var(--font-number);font-size:11px;color:#F0F4FF;font-weight:700;}
-
-/* Empty state */
-.chart-empty{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(7,9,15,0.9);backdrop-filter:blur(4px);z-index:5;}
-.chart-empty.show{display:flex;}
-.chart-empty .ce-icon{font-size:28px;opacity:0.4;}
-.chart-empty .ce-msg{font-size:12px;color:rgba(255,255,255,0.4);font-weight:600;}
-
-/* Status pill */
-.graph-status-pill{display:inline-flex;align-items:center;gap:5px;font-size:9px;font-weight:800;padding:3px 9px;border-radius:20px;margin-left:8px;}
-.graph-status-pill.loading{background:rgba(59,130,246,0.15);color:#60A5FA;}
-.graph-status-pill.live{background:rgba(16,185,129,0.15);color:#10B981;}
-.graph-status-pill.nodata{background:rgba(245,158,11,0.15);color:#F59E0B;}
-.spin{display:inline-block;width:8px;height:8px;border:1.5px solid rgba(96,165,50,0.4);border-top-color:#60A5FA;border-radius:50%;animation:spin 0.6s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg);}}
-
-/* ── TABLE ── */
-.tbl-panel{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r16);overflow:hidden;}
-.tbl-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);}
-.tbl-title{font-size:16px;font-weight:800;letter-spacing:0.8px;text-transform:uppercase;color:#000;}
-.export-btn{font-size:14px;font-weight:800;padding:5px 12px;border-radius:20px;border:1px solid var(--border2);background:transparent;color:#000;cursor:pointer;}
-.tbl-wrap{overflow-x:auto;max-height:420px;overflow-y:auto;}
-table{width:100%;border-collapse:collapse;font-size:14px;min-width:600px;}
-thead th{padding:10px 12px;text-align:left;color:#000;font-size:14px;font-weight:800;text-transform:uppercase;border-bottom:1px solid var(--border);background:var(--surface);}
-tbody td{padding:10px 12px;border-bottom:1px solid var(--border);color:#000;font-size:14px;font-weight:600;}
-.stbadge{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:800;padding:2px 8px;border-radius:4px;}
-.stbadge.ok{background:rgba(16,185,129,0.12);color:#0E7C46;}
-.stbadge.warn{background:rgba(245,158,11,0.12);color:#B45309;}
-.stbadge.err{background:rgba(244,63,94,0.12);color:#BE123C;}
-#readings-table th:first-child,#readings-table td:first-child{position:sticky;left:0;background:var(--surface);z-index:2;border-right:1px solid var(--border2);min-width:80px;}
-#readings-table tbody td:first-child{background:var(--bg3);}
-#readings-table th,#readings-table td{white-space:nowrap;min-width:72px;}
-
-/* ── MODALS / MISC ── */
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);z-index:500;display:none;align-items:center;justify-content:center;padding:20px;}
-.overlay.open{display:flex;}
-.modal{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r20);padding:24px;max-width:400px;width:100%;}
-.modal-title{font-size:15px;font-weight:800;color:#000;margin-bottom:20px;}
-.fg{margin-bottom:14px;}
-.flb{font-size:10px;font-weight:800;color:#000;text-transform:uppercase;display:block;margin-bottom:6px;}
-.fi{width:100%;padding:9px 12px;border-radius:var(--r8);border:1px solid var(--border2);background:var(--surface);color:#000;font-family:var(--font-text);font-size:12px;outline:none;font-weight:600;}
-.modal-acts{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;}
-.banner{display:none;padding:8px 24px;font-size:12px;font-weight:700;align-items:center;gap:10px;border-bottom:1px solid transparent;}
-.banner.show{display:flex;}
-.banner.offline{background:rgba(244,63,94,0.08);color:#BE123C;border-color:rgba(244,63,94,0.2);}
-.banner.reconnect{background:rgba(245,158,11,0.08);color:#B45309;border-color:rgba(245,158,11,0.2);}
-.banner.restored{background:rgba(16,185,129,0.08);color:#0E7C46;border-color:rgba(16,185,129,0.2);}
-.banner-x{margin-left:auto;background:none;border:none;cursor:pointer;color:inherit;font-size:14px;font-weight:800;}
-.offline-bar{display:none;background:rgba(244,63,94,0.07);border:1px solid rgba(244,63,94,0.2);border-radius:var(--r8);padding:10px 16px;font-size:12px;color:#BE123C;align-items:center;gap:10px;font-weight:700;margin-bottom:8px;}
-.offline-bar.show{display:flex;}
-.drill-tooltip{position:fixed;background:#1A2035;border:1px solid rgba(255,255,255,0.12);border-radius:var(--r12);padding:12px 16px;min-width:180px;pointer-events:none;z-index:999;opacity:0;transition:opacity 0.15s;box-shadow:0 8px 32px rgba(0,0,0,0.5);}
-.drill-tooltip.show{opacity:1;}
-.sys-item{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);}
-.sys-item-left{display:flex;align-items:center;gap:10px;}
-.sys-icon{width:28px;height:28px;border-radius:8px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:12px;}
-.sys-name{font-family:var(--font-text);font-size:12px;font-weight:800;color:#000;}
-.sys-sub{font-size:10px;color:#000;font-weight:600;}
-@media(max-width:1100px){.kpi-strip{grid-template-columns:repeat(3,1fr);}}
-@media(max-width:900px){.kpi-strip{grid-template-columns:repeat(2,1fr);}}
-@media(max-width:600px){.kpi-strip{grid-template-columns:1fr 1fr;} :root{--CHART-H:220px;}}
-</style>
-</head>
-<body>
-<div class="layout">
-<div class="main-area">
-
-  <header class="topbar">
-    <div class="topbar-left">
-      <div class="topbar-title">3rd Rock Energy System</div>
-      <div class="topbar-sub">
-        <span>Real-time · Unit 100</span>
-        <div class="status-row">
-          <span id="online-status-badge" class="online-badge">🟢 Online</span>
-          <span id="clock-display">--:--:-- EST</span>
-          <button class="reconnect-btn" id="quick-reconnect" onclick="reconnect()">⟳ Reconnect</button>
-        </div>
-      </div>
-    </div>
-    <div class="topbar-right">
-      {% if user.is_admin_or_superadmin %}
-      <a href="{% url 'user_list' %}" class="btn-users">User Management</a>
-      <a href="{% url 'company_list' %}" class="btn-users" style="background:linear-gradient(135deg,#7C3AED,#6D28D9);box-shadow:0 4px 10px rgba(124,58,237,0.3);">DER Management</a>
-      {% endif %}
-      <a href="{% url 'energy_dashboard_v2' %}" class="tbtn" style="background:linear-gradient(135deg,#0F172A,#3B82F6);color:#fff;border-color:transparent;font-weight:800;letter-spacing:0.5px;">✦ v2.0</a>
-      <button class="tbtn" onclick="openModal('system-status-modal')">📡 Status</button>
-      <button class="tbtn primary" onclick="openModal('settings-modal')">⚙ Settings</button>
-      <a href="{% url 'logout' %}" class="btn-logout">Logout</a>
-    </div>
-  </header>
-
-  <nav class="nav-bar">
-    <ul class="nav-list">
-      <li class="nav-item">
-        <a class="nav-link"><div class="nav-dot" style="background:var(--color-meters)"></div>Meters<span class="chevron">▼</span></a>
-        <div class="nav-dropdown">
-          <a href="{% url 'energy_dashboard' %}" class="nav-dropdown-item"><span class="dd-icon">🌐</span>Grid/Main Meter</a>
-          <a class="nav-dropdown-item" onclick="selectDER('grid2')"><span class="dd-icon">🏭</span>Grid Power 2</a>
-        </div>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link"><div class="nav-dot" style="background:var(--color-solar)"></div>Solar Generation<span class="chevron">▼</span></a>
-        <div class="nav-dropdown">
-          <a href="{% url 'energy_dashboard' %}" class="nav-dropdown-item"><span class="dd-icon">🌐</span>Atlantic County</a>
-          <a class="nav-dropdown-item" onclick="selectDER('solar1')"><span class="dd-icon">☀️</span>Solar Generation 1</a>
-          <a class="nav-dropdown-item" onclick="selectDER('solar2')"><span class="dd-icon">🔆</span>Solar Generation 2</a>
-        </div>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link"><div class="nav-dot" style="background:#FFFF00"></div>Battery Power<span class="chevron">▼</span></a>
-        <div class="nav-dropdown">
-          <a class="nav-dropdown-item" onclick="selectDER('battery1')"><span class="dd-icon">🔋</span>Container 1</a>
-          <a class="nav-dropdown-item" onclick="selectDER('battery2')"><span class="dd-icon">⚡</span>Container 2</a>
-        </div>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link"><div class="nav-dot" style="background:#BD00FF"></div>EV Charging<span class="chevron">▼</span></a>
-        <div class="nav-dropdown">
-          <a class="nav-dropdown-item" onclick="selectDER('ev1')"><span class="dd-icon">🚗</span>Charger 1</a>
-          <a class="nav-dropdown-item" onclick="selectDER('ev2')"><span class="dd-icon">🔌</span>Charger 2</a>
-        </div>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link"><div class="nav-dot" style="background:#FF4500"></div>Building Load<span class="chevron">▼</span></a>
-        <div class="nav-dropdown">
-          <a class="nav-dropdown-item" onclick="selectDER('load1')"><span class="dd-icon">🏢</span>Building Load 1</a>
-          <a class="nav-dropdown-item" onclick="selectDER('load2')"><span class="dd-icon">📊</span>Building Load 2</a>
-        </div>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link"><div class="nav-dot" style="background:#00FFFF"></div>HVAC<span class="chevron">▼</span></a>
-        <div class="nav-dropdown">
-          <a class="nav-dropdown-item" onclick="selectDER('hvac1')"><span class="dd-icon">❄️</span>Thermostat 1</a>
-          <a class="nav-dropdown-item" onclick="selectDER('hvac2')"><span class="dd-icon">🌡️</span>Thermostat 2</a>
-        </div>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link"><div class="nav-dot" style="background:#F08080"></div>Genset<span class="chevron">▼</span></a>
-        <div class="nav-dropdown">
-          <a class="nav-dropdown-item" onclick="selectDER('genset1')"><span class="dd-icon">🔧</span>Genset 1</a>
-          <a class="nav-dropdown-item" onclick="selectDER('genset2')"><span class="dd-icon">⚙️</span>Genset 2</a>
-        </div>
-      </li>
-      <li style="margin-left:auto;display:flex;align-items:center;padding-right:2px;">
-        <div class="grid-event-indicator" id="gridEventIndicator">
-          <div class="grid-event-dot"></div>⚡ Grid Event — EMS Override Active
-        </div>
-      </li>
-    </ul>
-  </nav>
-
-  <div class="banner" id="banner"><span id="banner-msg">—</span><button class="banner-x" onclick="closeBanner()">✕</button></div>
-
-  <div class="content">
-    <div class="offline-bar" id="offline-bar">⚠ Offline — showing cached data.</div>
-
-    <div class="kpi-strip">
-      <div class="kpi-card" style="--kpi-c:#10B981"><div class="kpi-label">Energy Today</div><div class="kpi-value" id="v-kwh">--</div><div class="kpi-unit">kWh consumed</div><div class="kpi-badge ok" id="b-kwh">LIVE</div></div>
-      <div class="kpi-card" style="--kpi-c:#F59E0B"><div class="kpi-label">Active Power</div><div class="kpi-value" id="v-kw">--</div><div class="kpi-unit">kilowatts</div><div class="kpi-badge ok" id="b-kw">LIVE</div></div>
-      <div class="kpi-card" style="--kpi-c:#8B5CF6"><div class="kpi-label">Apparent Power</div><div class="kpi-value" id="v-ap">--</div><div class="kpi-unit">kVA</div><div class="kpi-badge ok" id="b-ap">LIVE</div></div>
-      <div class="kpi-card" style="--kpi-c:#06B6D4"><div class="kpi-label">Current</div><div class="kpi-value" id="v-a">--</div><div class="kpi-unit">amperes</div><div class="kpi-badge ok" id="b-a">LIVE</div></div>
-      <div class="kpi-card" style="--kpi-c:#6366F1"><div class="kpi-label">Voltage</div><div class="kpi-value" id="v-v">--</div><div class="kpi-unit">volts</div><div class="kpi-badge ok" id="b-v">NORMAL</div></div>
-    </div>
-
-    <!-- ═══ CHART PANEL ═══ -->
-    <div class="chart-panel">
-      <div class="chart-header">
-        <div>
-          <div class="chart-title">Power Streams<span class="graph-status-pill loading" id="gpill"><span class="spin"></span> Loading</span></div>
-          <div class="chart-meta" id="chart-meta"></div>
-        </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
-            <button class="reset-zoom-btn" id="resetZoomBtn" onclick="resetZoom()">↺ Reset Zoom</button>
-            <div class="chart-tabs">
-              <button class="chart-tab on" onclick="switchChart('today')">Today</button>
-              <button class="chart-tab" onclick="switchChart('week')">Week</button>
-              <button class="chart-tab" onclick="switchChart('month')">Month</button>
-            </div>
-          </div>
-          <div class="date-inputs">
-            <input type="date" class="date-in" id="date-from">
-            <span class="date-sep">–</span>
-            <input type="date" class="date-in" id="date-to">
-            <button class="apply-btn" id="applyRangeBtn" onclick="applyCustomRange()" disabled>Apply</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="legend-row" id="legend-row"></div>
-      <div class="zoom-hint">🔍 Drag to zoom · Scroll/pinch to zoom · Drag-select a region to zoom in</div>
-
-      <!--
-        .chart-body = fixed-height flex row (height = CHART_H CSS var = 300px)
-        No padding on this element — padding breaks height calculations.
-
-        .yaxis-col  = 72px column for the standalone Y-axis Chart.js instance
-        .graph-col  = flex:1 horizontally-scrollable area
-          .graph-inner = expands to canvas width, always 100% tall
-            canvas#lineChart = sized entirely by JS (width varies, height = CHART_H always)
-      -->
-      <div class="chart-body" id="chartBody">
-
-        <div class="yaxis-col" id="yaxisCol">
-          <canvas id="yAxisChart"></canvas>
-        </div>
-
-        <div class="graph-col" id="graphCol">
-          <div class="graph-inner" id="graphInner">
-            <canvas id="lineChart" role="img" aria-label="Power chart"></canvas>
-            <div class="drag-zoom-overlay" id="dragZoomOverlay"></div>
-          </div>
-          <div class="crosshair-v" id="crosshairV"></div>
-          <div class="crosshair-h" id="crosshairH"></div>
-          <div class="floating-tooltip" id="floatingTooltip"></div>
-          <div class="chart-empty" id="chart-empty">
-            <div class="ce-icon">📊</div>
-            <div class="ce-msg">No data for this period</div>
-          </div>
-        </div>
-
-      </div><!-- .chart-body -->
-    </div><!-- .chart-panel -->
-
-    <!-- TABLE -->
-    <div class="tbl-panel">
-      <div class="tbl-header"><div class="tbl-title">Complete Readings · Full Dataset</div><button class="export-btn" onclick="exportCSV()">Export CSV ↓</button></div>
-      <div class="tbl-wrap">
-        <table id="readings-table">
-          <thead><tr>
-            <th>Time (EST)</th><th>kW</th><th>Voltage (V)</th><th>Current (A)</th><th>kWh</th><th>PF Total</th><th>Status</th>
-            <th>V A-N</th><th>V B-N</th><th>V C-N</th><th>Avg V L-N</th>
-            <th>V A-B</th><th>V B-C</th><th>V C-A</th><th>Avg V L-L</th>
-            <th>I Phase A</th><th>I Phase B</th><th>I Phase C</th><th>I Avg</th><th>I Demand</th><th>I Peak</th><th>I Neutral</th>
-            <th>Freq (Hz)</th><th>PF Phase A</th><th>PF Phase B</th><th>PF Phase C</th><th>kVAR</th><th>kVA</th>
-          </tr></thead>
-          <tbody id="tBody"><tr><td colspan="29" style="text-align:center;padding:20px;">Loading full dataset…</td></tr></tbody>
-        </table>
-      </div>
-    </div>
-  </div><!-- .content -->
-</div><!-- .main-area -->
-</div><!-- .layout -->
-
-<div class="drill-tooltip" id="drill-tooltip"></div>
-
-<!-- Settings modal -->
-<div class="overlay" id="settings-modal" onclick="if(event.target===this)closeModal('settings-modal')">
-  <div class="modal">
-    <div class="modal-title">Preferences</div>
-    <div class="fg"><label class="flb">Refresh Interval (sec)</label><input type="number" class="fi" id="refresh-interval" value="3" min="2" max="60"></div>
-    <div class="fg"><label class="flb">Currency</label><select class="fi" id="currency-select"><option value="$">USD ($)</option><option value="€">EUR (€)</option><option value="£">GBP (£)</option><option value="₹" selected>INR (₹)</option></select></div>
-    <div class="fg"><label class="flb">Rate per kWh</label><input type="number" class="fi" id="unit-rate" value="0.14" step="0.01"></div>
-    <div class="modal-acts"><button class="tbtn" onclick="closeModal('settings-modal')">Cancel</button><button class="tbtn primary" onclick="saveSettings()">Save Settings</button></div>
-  </div>
-</div>
-
-<!-- System status modal -->
-<div class="overlay" id="system-status-modal" onclick="if(event.target===this)closeModal('system-status-modal')">
-  <div class="modal" style="max-width:460px;">
-    <div class="modal-title">System Status</div>
-    <div id="sys-grid">
-      <div class="sys-item"><div class="sys-item-left"><div class="sys-icon">🌐</div><div><div class="sys-name">Gateway</div><div class="sys-sub">Modbus TCP connection</div></div></div><span class="stbadge" id="s-gateway">--</span></div>
-      <div class="sys-item"><div class="sys-item-left"><div class="sys-icon">📡</div><div><div class="sys-name">API Server</div><div class="sys-sub">Django backend</div></div></div><span class="stbadge" id="s-api">--</span></div>
-      <div class="sys-item"><div class="sys-item-left"><div class="sys-icon">💾</div><div><div class="sys-name">Database</div><div class="sys-sub">Data persistence</div></div></div><span class="stbadge" id="s-db">--</span></div>
-      <div class="sys-item"><div class="sys-item-left"><div class="sys-icon">⚡</div><div><div class="sys-name">Last Reading</div><div class="sys-sub" id="s-last-sub">—</div></div></div><span class="stbadge" id="s-last">--</span></div>
-    </div>
-    <div class="modal-acts"><button class="tbtn primary" onclick="closeModal('system-status-modal')">Close</button></div>
-  </div>
-</div>
-
-<script>
-// ════════════════════════════════════════════════════════════════════════
-//  CHART HEIGHT CONSTANT
-//  Single source of truth — must match --CHART-H CSS variable (300px).
-//  All canvas sizing uses this value. Never read from DOM.
-// ════════════════════════════════════════════════════════════════════════
-const CHART_H = 300;   // px  ← change here + in CSS :root --CHART-H
-
-// ════════════════════════════════════════════════════════════════════════
-//  CONSTANTS & STREAM CONFIG
-// ════════════════════════════════════════════════════════════════════════
-const API_BASE     = window.location.origin;
-const COLOR_METERS = '#EF4444';
-const COLOR_SOLAR  = '#22C55E';
-
-const STREAMS = [
-  { id:'grid', label:'Solar Gen', color: COLOR_SOLAR }
-];
-
-const MIN_PX_PER_POINT = 8;
-const MAX_PX_PER_POINT = 40;
-const CANVAS_MAX_PX    = 16000;
-
-// ════════════════════════════════════════════════════════════════════════
-//  STATE
-// ════════════════════════════════════════════════════════════════════════
-let mainChart = null;
-let yAxisChart = null;
-let currentPeriod = 'today';
-let refreshTimer  = null;
-let graphTimer    = null;
-let refreshInterval = 3000;
-let interactionsAttached = false;
-let allLabels = [];
-let allData   = {};
-let state = { currency:'₹', unitRate:0.14 };
-
-let isZoomed       = false;
-let zoomedStartIdx = 0;
-let zoomedEndIdx   = 0;
-
-let streamVisible = {};
-STREAMS.forEach(s => { streamVisible[s.id] = true; });
-
-let dragZoom = { active:false, startX:0, startDataIdx:-1, endDataIdx:-1 };
-let zoomRafId   = null;
-let isRendering = false;
-
-// ════════════════════════════════════════════════════════════════════════
-//  CANVAS SIZING — the single resize function
-//
-//  Rules:
-//    • Height is ALWAYS CHART_H. Never read from DOM. Never computed.
-//    • Width varies by zoom state and is passed in.
-//    • We set canvas.width / canvas.height (pixel attrs) THEN
-//      canvas.style.width / canvas.style.height THEN call chart.resize().
-//      This sequence prevents Chart.js from guessing the wrong size.
-// ════════════════════════════════════════════════════════════════════════
-function applyCanvasSize(canvas, w) {
-  if (!canvas) return;
-  canvas.width        = w;
-  canvas.height       = CHART_H;
-  canvas.style.width  = w + 'px';
-  canvas.style.height = CHART_H + 'px';
-}
-
-function resizeMainChart(newW) {
-  if (!mainChart) return;
-  applyCanvasSize(mainChart.canvas, newW);
-  mainChart.resize(newW, CHART_H);
-}
-
-// ════════════════════════════════════════════════════════════════════════
-//  YAXIS SYNC
-//  After any main-chart update, read its computed y-scale and mirror
-//  it into the standalone Y-axis chart, then resize the Y-axis canvas
-//  to CHART_H so tick labels stay aligned with the data lines.
-// ════════════════════════════════════════════════════════════════════════
-function syncYAxis() {
-  if (!mainChart || !yAxisChart) return;
-  try {
-    const ys = mainChart.scales.y;
-    if (!ys) return;
-    yAxisChart.options.scales.y.min = ys.min;
-    yAxisChart.options.scales.y.max = ys.max;
-    // Re-apply height so it never drifts after zoom
-    applyCanvasSize(yAxisChart.canvas, 100);
-    yAxisChart.resize(100, CHART_H);
-    yAxisChart.update('none');
-  } catch(e) {}
-}
-
-// ════════════════════════════════════════════════════════════════════════
-//  CREATE Y-AXIS CHART
-// ════════════════════════════════════════════════════════════════════════
-function createYAxisChart() {
-  const canvas = document.getElementById('yAxisChart');
-  if (!canvas) return;
-  if (yAxisChart) { yAxisChart.destroy(); yAxisChart = null; }
-
-  applyCanvasSize(canvas, 100);
-
-  yAxisChart = new Chart(canvas.getContext('2d'), {
-    type:'line',
-    data:{ labels:[''], datasets:[{ data:[0], borderColor:'transparent', pointRadius:0 }] },
-    options:{
-      responsive:false, maintainAspectRatio:false, animation:false,
-      plugins:{ legend:{display:false}, tooltip:{enabled:false} },
-      layout:{ padding:{ top:4, bottom:0, left:0, right:0 } },
-      scales:{
-        x:{ display:false },
-        y:{
-          position:'left',
-          grid:{ color:'rgba(255,255,255,0.06)', drawBorder:false },
-          ticks:{ color:'#fff', font:{size:10}, callback: v => v.toFixed(1)+' kW', maxTicksLimit:8 },
-          beginAtZero:true,
-          border:{ display:false }
-        }
-      }
-    }
-  });
-}
-
-// ════════════════════════════════════════════════════════════════════════
-//  CREATE MAIN CHART
-// ════════════════════════════════════════════════════════════════════════
-function createMainChart(labels, multiData) {
-  const canvas = document.getElementById('lineChart');
-  const inner  = document.getElementById('graphInner');
-  if (!canvas || !inner) return;
-  if (mainChart) { mainChart.destroy(); mainChart = null; }
-
-  const colW  = getGraphColWidth();
-  const canvasW = Math.min(calcCanvasWidth(labels.length, true), CANVAS_MAX_PX);
-
-  inner.style.width  = canvasW + 'px';
-  applyCanvasSize(canvas, canvasW);   // sets pixel + style + height=CHART_H
-
-  const showPts = labels.length <= 120;
-
-  mainChart = new Chart(canvas.getContext('2d'), {
-    type:'line',
-    data:{
-      labels,
-      datasets: STREAMS.map(s => ({
-        label: s.label,
-        data: multiData[s.id] || [],
-        borderColor: s.color,
-        backgroundColor:'transparent',
-        borderWidth:1.5,
-        pointRadius: showPts ? 2.5 : 0,
-        pointHoverRadius:5,
-        pointBackgroundColor: s.color,
-        fill:false, tension:0.35,
-        hidden:!streamVisible[s.id],
-        spanGaps:false
-      }))
-    },
-    options:{
-      responsive:false,
-      maintainAspectRatio:false,
-      animation:false,         // no animation = no blank-frame flash
-      interaction:{ mode:'index', intersect:false },
-      plugins:{ legend:{display:false}, tooltip:{enabled:false} },
-      layout:{
-        // Explicit, fixed padding so Chart.js never recalculates on resize
-        // top:4 gives a little breathing room above the line
-        // bottom:0 keeps X-axis pinned to the very bottom of the canvas
-        padding:{ top:4, bottom:0, left:0, right:4 }
-      },
-      scales:{
-        x:{
-          grid:{ color:'rgba(255,255,255,0.04)' },
-          ticks:{
-            color:'#fff', font:{size:10},
-            maxRotation:45,
-            maxTicksLimit: Math.max(2, Math.floor(canvasW / 65))
-          }
-        },
-        y:{
-          display:false,   // Y labels shown in separate yAxisChart
-          grid:{ color:'rgba(255,255,255,0.06)' },
-          ticks:{ color:'#fff', callback: v => v.toFixed(1)+' kW' },
-          beginAtZero:true
-        }
-      }
-    }
-  });
-
-  requestAnimationFrame(syncYAxis);
-}
-
-// ════════════════════════════════════════════════════════════════════════
-//  CANVAS WIDTH HELPERS
-// ════════════════════════════════════════════════════════════════════════
-function getGraphColWidth() {
-  const col = document.getElementById('graphCol');
-  return (col && col.clientWidth > 0) ? col.clientWidth : 800;
-}
-
-function calcCanvasWidth(pointCount, forceFullFit) {
-  const areaW = getGraphColWidth();
-  if (!pointCount) return areaW;
-  if (forceFullFit) return areaW;
-  const desired = pointCount * MIN_PX_PER_POINT;
-  return Math.max(areaW, Math.min(desired, pointCount * MAX_PX_PER_POINT));
-}
-
-// ════════════════════════════════════════════════════════════════════════
-//  APPLY VIEW  — called after data load, zoom, or reset
-// ════════════════════════════════════════════════════════════════════════
-function applyView() {
-  if (!mainChart || !allLabels.length) return;
-
-  const TRAIL = isZoomed ? 0 : 5;
-  let dispLabels, dispData;
-
-  if (isZoomed) {
-    const si = Math.max(0, Math.min(zoomedStartIdx, allLabels.length - 2));
-    const ei = Math.max(si+1, Math.min(zoomedEndIdx, allLabels.length - 1));
-    dispLabels = allLabels.slice(si, ei+1);
-    dispData   = {};
-    STREAMS.forEach(s => { dispData[s.id] = (allData[s.id]||[]).slice(si, ei+1); });
-  } else {
-    dispLabels = allLabels;
-    dispData   = allData;
-  }
-
-  const paddedLabels = TRAIL > 0 ? [...dispLabels, ...Array(TRAIL).fill('')] : dispLabels;
-  const rawW  = isZoomed
-    ? Math.max(getGraphColWidth(), dispLabels.length * 20)
-    : calcCanvasWidth(paddedLabels.length, true);
-  const canvasW = Math.min(rawW, CANVAS_MAX_PX);
-
-  // Downsample if too many points for canvas width
-  const maxRenderPts = Math.floor(canvasW / 2);
-  let renderLabels = paddedLabels;
-  let renderData = {};
-  STREAMS.forEach(s => {
-    const src = dispData[s.id] || [];
-    renderData[s.id] = TRAIL > 0 ? [...src, ...Array(TRAIL).fill(null)] : src;
-  });
-  if (paddedLabels.length > maxRenderPts && maxRenderPts > 10) {
-    const step = Math.ceil(paddedLabels.length / maxRenderPts);
-    renderLabels = paddedLabels.filter((_,i) => i % step === 0);
-    STREAMS.forEach(s => { renderData[s.id] = renderData[s.id].filter((_,i) => i % step === 0); });
-  }
-
-  // Update DOM widths
-  const inner  = document.getElementById('graphInner');
-  inner.style.width = canvasW + 'px';
-
-  // Update chart data
-  const showPts = renderLabels.length <= 120;
-  mainChart.data.labels = renderLabels;
-  STREAMS.forEach((s,i) => {
-    mainChart.data.datasets[i].data        = renderData[s.id] || [];
-    mainChart.data.datasets[i].pointRadius = showPts ? 2.5 : 0;
-  });
-  mainChart.options.scales.x.ticks.maxTicksLimit = Math.max(2, Math.floor(canvasW / 65));
-
-  // Resize canvas to new width, fixed height
-  resizeMainChart(canvasW);
-  mainChart.update('none');
-
-  requestAnimationFrame(syncYAxis);
-}
-
-// ════════════════════════════════════════════════════════════════════════
-//  ZOOM HELPERS
-// ════════════════════════════════════════════════════════════════════════
-function setResetZoomVisible(v) {
-  document.getElementById('resetZoomBtn')?.classList.toggle('visible', v);
-}
-
-function pixelToDataIndex(absPixelX) {
-  if (!mainChart || !allLabels.length) return -1;
-  const inner = document.getElementById('graphInner');
-  const ratio = Math.max(0, Math.min(1, absPixelX / inner.offsetWidth));
-  if (isZoomed) {
-    return Math.round(zoomedStartIdx + ratio * (zoomedEndIdx - zoomedStartIdx));
-  }
-  return Math.round(ratio * (allLabels.length - 1));
-}
-
-function resetZoom() {
-  isZoomed = false;
-  setResetZoomVisible(false);
-  const col   = document.getElementById('graphCol');
-  const inner = document.getElementById('graphInner');
-  const fitW  = getGraphColWidth();
-  inner.style.width = fitW + 'px';
-  if (col) col.scrollLeft = 0;
-  applyView();
-}
-
-// ════════════════════════════════════════════════════════════════════════
-//  CHART INTERACTIONS
-// ════════════════════════════════════════════════════════════════════════
-function attachChartInteractions() {
-  if (interactionsAttached) return;
-  interactionsAttached = true;
-
-  const col = document.getElementById('graphCol');
-  if (!col) return;
-
-  // ── Pinch zoom ──
-  let lastPinch = null;
-  col.addEventListener('touchstart', e => {
-    if (e.touches.length === 2)
-      lastPinch = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
-  }, {passive:true});
-
-  col.addEventListener('touchmove', e => {
-    if (e.touches.length !== 2 || lastPinch === null) return;
-    const d = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
-    const factor = lastPinch / d;
-    lastPinch = d;
-    const inner = document.getElementById('graphInner');
-    const curW  = inner.offsetWidth;
-    const newW  = Math.max(getGraphColWidth(), curW * (2-factor));
-    if (Math.abs(newW-curW) > 2) { isZoomed = true; setResetZoomVisible(true); }
-    inner.style.width = newW + 'px';
-    scheduleZoomRedraw(newW);
-  }, {passive:true});
-
-  col.addEventListener('touchend', () => { lastPinch = null; }, {passive:true});
-
-  // ── Mouse wheel zoom ──
-  col.addEventListener('wheel', e => {
-    e.preventDefault();
-    const inner  = document.getElementById('graphInner');
-    const curW   = inner.offsetWidth;
-    const factor = e.deltaY < 0 ? 1.15 : (1/1.15);
-    const newW   = Math.max(getGraphColWidth(), Math.min(allLabels.length * MAX_PX_PER_POINT, curW * factor));
-    if (newW === curW) return;
-    isZoomed = true; setResetZoomVisible(true);
-    // Zoom centred on cursor
-    const rect  = col.getBoundingClientRect();
-    const relX  = (e.clientX - rect.left + col.scrollLeft) / curW;
-    inner.style.width = newW + 'px';
-    col.scrollLeft = relX * newW - (e.clientX - rect.left);
-    scheduleZoomRedraw(newW);
-  }, {passive:false});
-
-  // ── Drag-to-zoom ──
-  const overlay = document.getElementById('dragZoomOverlay');
-
-  col.addEventListener('mousedown', e => {
-    if (e.button !== 0) return;
-    const rect = col.getBoundingClientRect();
-    const absX = e.clientX - rect.left + col.scrollLeft;
-    dragZoom.active       = true;
-    dragZoom.startX       = absX;
-    dragZoom.startDataIdx = pixelToDataIndex(absX);
-    dragZoom.endDataIdx   = dragZoom.startDataIdx;
-    overlay.style.cssText = `display:block;left:${absX}px;width:0;top:0;height:100%;`;
-    e.preventDefault();
-  });
-
-  col.addEventListener('mousemove', e => {
-    const rect = col.getBoundingClientRect();
-    const x    = e.clientX - rect.left;
-    const y    = e.clientY - rect.top;
-    const absX = x + col.scrollLeft;
-
-    if (dragZoom.active) {
-      const l = Math.min(dragZoom.startX, absX);
-      const w = Math.abs(absX - dragZoom.startX);
-      overlay.style.left  = l + 'px';
-      overlay.style.width = w + 'px';
-      dragZoom.endDataIdx = pixelToDataIndex(absX);
-      updateCrosshair(null, null, -1);
-      return;
-    }
-    if (!mainChart) return;
-    const cnt = (mainChart.data.labels||[]).length;
-    if (cnt > 0) {
-      const inner = document.getElementById('graphInner');
-      const ratio = Math.max(0, Math.min(1, absX / inner.offsetWidth));
-      updateCrosshair(x, y, Math.round(ratio * (cnt-1)));
-    }
-  });
-
-  col.addEventListener('mouseup', e => {
-    if (!dragZoom.active) return;
-    dragZoom.active       = false;
-    overlay.style.display = 'none';
-
-    const rect   = col.getBoundingClientRect();
-    const absX   = e.clientX - rect.left + col.scrollLeft;
-    const endIdx = pixelToDataIndex(absX);
-    const si     = Math.min(dragZoom.startDataIdx, endIdx);
-    const ei     = Math.max(dragZoom.startDataIdx, endIdx);
-
-    if (ei - si < 4) return;  // too small, ignore
-
-    isZoomed       = true;
-    zoomedStartIdx = si;
-    zoomedEndIdx   = ei;
-    setResetZoomVisible(true);
-
-    // Slice labels and data for selection
-    const sliceLabels = allLabels.slice(si, ei+1);
-    const sliceData   = {};
-    STREAMS.forEach(s => { sliceData[s.id] = (allData[s.id]||[]).slice(si, ei+1); });
-
-    // Canvas width: at least graphCol width, at least 20px per point
-    const zoomW = Math.min(
-      Math.max(getGraphColWidth(), sliceLabels.length * 20),
-      CANVAS_MAX_PX
-    );
-
-    // Downsample if necessary
-    const maxPts = Math.floor(zoomW / 2);
-    let renderLabels = sliceLabels;
-    let renderData   = sliceData;
-    if (sliceLabels.length > maxPts && maxPts > 10) {
-      const step = Math.ceil(sliceLabels.length / maxPts);
-      renderLabels = sliceLabels.filter((_,i) => i % step === 0);
-      STREAMS.forEach(s => { renderData[s.id] = (sliceData[s.id]||[]).filter((_,i) => i % step === 0); });
-    }
-
-    const inner  = document.getElementById('graphInner');
-    inner.style.width = zoomW + 'px';
-
-    // Update chart data
-    mainChart.data.labels = renderLabels;
-    STREAMS.forEach((s,i) => {
-      mainChart.data.datasets[i].data        = renderData[s.id] || [];
-      mainChart.data.datasets[i].pointRadius = renderLabels.length <= 120 ? 2.5 : 0;
-    });
-    mainChart.options.scales.x.ticks.maxTicksLimit = Math.max(2, Math.floor(zoomW / 65));
-
-    // THE FIX: resize with explicit CHART_H — never read from DOM
-    resizeMainChart(zoomW);
-    mainChart.update('none');
-
-    requestAnimationFrame(() => {
-      syncYAxis();
-      col.scrollLeft = 0;
-    });
-  });
-
-  col.addEventListener('mouseleave', () => {
-    if (dragZoom.active) { dragZoom.active = false; overlay.style.display = 'none'; }
-    updateCrosshair(null, null, -1);
-  });
-}
-
-// Debounced redraw for wheel / pinch — prevents blank flash during
-// rapid scroll by batching Chart.js work into one rAF per gesture tick
-function scheduleZoomRedraw(newW) {
-  if (zoomRafId) cancelAnimationFrame(zoomRafId);
-  zoomRafId = requestAnimationFrame(() => {
-    if (!mainChart || isRendering) { zoomRafId = null; return; }
-    isRendering = true;
-
-    const pts     = allLabels.length;
-    const showPts = (newW / (pts||1)) > 10;
-    const maxPts  = Math.floor(newW / 2);
-
-    if (mainChart.options.scales?.x)
-      mainChart.options.scales.x.ticks.maxTicksLimit = Math.max(2, Math.floor(newW / 65));
-
-    if (pts > maxPts && maxPts > 10) {
-      const step = Math.ceil(pts / maxPts);
-      mainChart.data.labels = allLabels.filter((_,i) => i % step === 0);
-      STREAMS.forEach((s,i) => {
-        if (!mainChart.data.datasets[i]) return;
-        mainChart.data.datasets[i].data        = (allData[s.id]||[]).filter((_,i2) => i2 % step === 0);
-        mainChart.data.datasets[i].pointRadius = showPts ? 3 : 0;
-      });
-    } else {
-      mainChart.data.labels = allLabels;
-      STREAMS.forEach((s,i) => {
-        if (!mainChart.data.datasets[i]) return;
-        mainChart.data.datasets[i].data        = allData[s.id] || [];
-        mainChart.data.datasets[i].pointRadius = showPts ? 3 : 0;
-      });
-    }
-
-    resizeMainChart(newW);   // always uses CHART_H
-    mainChart.update('none');
-    requestAnimationFrame(() => { syncYAxis(); isRendering = false; });
-    zoomRafId = null;
-  });
-}
-
-// ════════════════════════════════════════════════════════════════════════
-//  CROSSHAIR + TOOLTIP
-// ════════════════════════════════════════════════════════════════════════
-function updateCrosshair(x, y, idx) {
-  const cv = document.getElementById('crosshairV');
-  const ch = document.getElementById('crosshairH');
-  const ft = document.getElementById('floatingTooltip');
-  const col = document.getElementById('graphCol');
-  if (x === null) { cv.style.display='none'; ch.style.display='none'; ft.classList.remove('show'); return; }
-
-  cv.style.cssText = `display:block;left:${x}px;top:0;height:100%;`;
-  ch.style.cssText = `display:block;top:${y}px;left:0;width:${col.clientWidth}px;`;
-
-  if (mainChart && idx >= 0 && mainChart.data.labels[idx]) {
-    let html = `<div class="ftt-time">${mainChart.data.labels[idx]}</div>`;
-    STREAMS.forEach((s,i) => {
-      if (!streamVisible[s.id]) return;
-      const v = mainChart.data.datasets[i]?.data?.[idx];
-      if (v != null) html += `<div class="ftt-row"><div class="ftt-name"><div class="ftt-dot" style="background:${s.color}"></div>${s.label}</div><div class="ftt-val">${parseFloat(v).toFixed(2)} kW</div></div>`;
-    });
-    ft.innerHTML = html;
-    ft.classList.add('show');
-
-    const fw = ft.offsetWidth||180, fh = ft.offsetHeight||80;
-    const aw = col.clientWidth,     ah = col.clientHeight;
-    let lx = x+12; if (lx+fw > aw-4) lx = x-fw-12;
-    let ty = y-fh-12; if (ty < 4) ty = y+12;
-    ft.style.left = Math.max(4, Math.min(lx, aw-fw-4))+'px';
-    ft.style.top  = Math.max(4, Math.min(ty, ah-fh-4))+'px';
-  }
-}
-
-// ════════════════════════════════════════════════════════════════════════
-//  DATA HELPERS
-// ════════════════════════════════════════════════════════════════════════
-function padTodayLabels(rawLabels, rawValues) {
-  if (!rawLabels.length) return { paddedLabels:[], paddedData:{} };
-  const toMin = hhmm => { const [h,m]=hhmm.split(':').map(Number); return h*60+m; };
-  const fmMin = m => String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
-  const end = toMin(rawLabels[rawLabels.length-1]);
-  const full = []; for (let i=0; i<=end; i++) full.push(fmMin(i));
-  const map = {}; rawLabels.forEach((l,i) => { map[l]=rawValues[i]; });
-  return { paddedLabels:full, paddedData:{ grid: full.map(l => map[l]??null) } };
-}
-
-// ════════════════════════════════════════════════════════════════════════
-//  FETCH GRAPH DATA
-// ════════════════════════════════════════════════════════════════════════
-async function fetchGraphData(period='today', fromDate=null, toDate=null) {
-  setGPill('loading','Loading…');
-  showChartEmpty(false);
-  try {
-    let url = `${API_BASE}/api/readings/graph/?unit_id=100&period=${period}`;
-    if (fromDate && toDate) url = `${API_BASE}/api/readings/graph/?unit_id=100&from=${fromDate}&to=${toDate}`;
-    const res  = await fetch(url);
-    if (!res.ok) throw new Error();
-    const data = await res.json();
-    const rawLabels = data.labels||[];
-    const rawValues = data.values||[];
-    if (!rawLabels.length || !rawValues.some(v=>v>0)) {
-      showChartEmpty(true); setGPill('nodata','No data');
-      if (mainChart) { mainChart.data.labels=[]; mainChart.data.datasets.forEach(d=>d.data=[]); mainChart.update(); }
-      return;
-    }
-    let finalLabels, finalData;
-    if (period==='today') {
-      const {paddedLabels,paddedData} = padTodayLabels(rawLabels, rawValues.map(v=>Math.max(0,parseFloat((+v).toFixed(3)))));
-      finalLabels=paddedLabels; finalData=paddedData;
-    } else {
-      finalLabels=rawLabels; finalData={ grid: rawValues.map(v=>Math.max(0,parseFloat((+v).toFixed(3)))) };
-    }
-
-    // Preserve zoom range across live refreshes
-    let prevStart=null, prevEnd=null;
-    if (isZoomed && allLabels.length) {
-      prevStart = allLabels[Math.min(zoomedStartIdx, allLabels.length-1)];
-      prevEnd   = allLabels[Math.min(zoomedEndIdx,   allLabels.length-1)];
-    }
-    allLabels=finalLabels; allData=finalData;
-
-    if (!mainChart) { createMainChart(finalLabels, finalData); attachChartInteractions(); }
-
-    if (prevStart && prevEnd) {
-      const si=finalLabels.indexOf(prevStart), ei=finalLabels.indexOf(prevEnd);
-      if (si!==-1 && ei!==-1 && ei>si) { zoomedStartIdx=si; zoomedEndIdx=ei; }
-      else { isZoomed=false; setResetZoomVisible(false); }
-    }
-    applyView();
-
-    const peak = Math.max(...(finalData.grid||[]).filter(v=>v!=null)).toFixed(1);
-    document.getElementById('chart-meta').textContent = `${rawLabels.length} readings · Peak ${peak} kW · EST`;
-    setGPill('live',`${rawLabels.length} pts`);
-  } catch(e) { showChartEmpty(true); setGPill('nodata','Error'); }
-}
-
-// ════════════════════════════════════════════════════════════════════════
-//  LIVE DATA & TABLE
-// ════════════════════════════════════════════════════════════════════════
-async function fetchLiveData() {
-  try {
-    const res = await fetch(`${API_BASE}/api/readings/latest/?unit_id=100`);
-    if (!res.ok) throw new Error();
-    const d = await res.json();
-    if (d.status==='online'||d.status==='stale') {
-      document.getElementById('v-kw').textContent  = (d.active_power_kw  ??0).toFixed(1);
-      document.getElementById('v-kwh').textContent = (d.energy_today_kwh ??0).toFixed(1);
-      document.getElementById('v-v').textContent   = (d.voltage          ??0).toFixed(1);
-      document.getElementById('v-a').textContent   = (d.current          ??0).toFixed(1);
-      document.getElementById('v-ap').textContent  = (d.apparent_power_kva??0).toFixed(1);
-      setOnlineStatus('online');
-      const stale = d.status==='stale';
-      ['b-kw','b-kwh','b-v','b-a','b-ap'].forEach(id=>{
-        const el=document.getElementById(id);
-        if(el){el.className='kpi-badge '+(stale?'stale':'ok');el.textContent=stale?'STALE':'LIVE';}
-      });
-      document.getElementById('offline-bar').classList.remove('show');
-    } else { setOnlineStatus('offline'); document.getElementById('offline-bar').classList.add('show'); }
-  } catch(e) { setOnlineStatus('offline'); document.getElementById('offline-bar').classList.add('show'); }
-}
-
-async function fetchRecent() {
-  try {
-    const res  = await fetch(`${API_BASE}/api/readings/recent/?unit_id=100&limit=200`);
-    if (!res.ok) throw new Error();
-    const rows = await res.json();
-    const tb   = document.getElementById('tBody');
-    if (!rows||!rows.length) { tb.innerHTML='<tr><td colspan="29" style="text-align:center;padding:16px">No data</td></tr>'; return; }
-    const f = (v,d=2)=>(v!=null&&!isNaN(v))?(+v).toFixed(d):'—';
-    tb.innerHTML = rows.map(r=>`<tr>
-      <td>${r.time||'—'}</td><td>${f(r.kw)}</td><td>${f(r.voltage,1)}</td><td>${f(r.current,1)}</td>
-      <td>${f(r.energy)}</td><td>${f(r.pf,3)}</td>
-      <td><span class="stbadge ${r.status==='ok'?'ok':'warn'}">${r.status==='ok'?'Online':'⚠ '+r.status}</span></td>
-      <td>${f(r.v_an,1)}</td><td>${f(r.v_bn,1)}</td><td>${f(r.v_cn,1)}</td><td>${f(r.v_avg_ln,1)}</td>
-      <td>${f(r.v_ab,1)}</td><td>${f(r.v_bc,1)}</td><td>${f(r.v_ca,1)}</td><td>${f(r.v_avg_ll,1)}</td>
-      <td>${f(r.i_a)}</td><td>${f(r.i_b)}</td><td>${f(r.i_c)}</td><td>${f(r.i_avg)}</td>
-      <td>${f(r.i_demand)}</td><td>${f(r.i_peak)}</td><td>${f(r.i_neutral)}</td>
-      <td>${f(r.frequency)}</td><td>${f(r.pf_a,3)}</td><td>${f(r.pf_b,3)}</td><td>${f(r.pf_c,3)}</td>
-      <td>${f(r.kvar)}</td><td>${f(r.kva)}</td>
-    </tr>`).join('');
-  } catch(e) {
-    document.getElementById('tBody').innerHTML='<tr><td colspan="29" style="text-align:center;padding:16px">Failed to load</td></tr>';
-  }
-}
-
-// ════════════════════════════════════════════════════════════════════════
-//  LEGEND
-// ════════════════════════════════════════════════════════════════════════
-function buildLegend() {
-  const row = document.getElementById('legend-row');
-  row.innerHTML='';
-  STREAMS.forEach(s=>{
-    const el = document.createElement('div');
-    el.className='legend-item'; el.id=`leg-${s.id}`;
-    el.innerHTML=`<div class="legend-dot" style="background:${s.color}"></div>${s.label}`;
-    el.onclick=()=>toggleStream(s.id);
-    row.appendChild(el);
-  });
-}
-function toggleStream(id) {
-  streamVisible[id]=!streamVisible[id];
-  document.getElementById(`leg-${id}`)?.classList.toggle('hidden',!streamVisible[id]);
-  if (!mainChart) return;
-  const i=STREAMS.findIndex(s=>s.id===id);
-  mainChart.getDatasetMeta(i).hidden=!streamVisible[id];
-  mainChart.update(); syncYAxis();
-}
-
-// ════════════════════════════════════════════════════════════════════════
-//  UTILITY FUNCTIONS (all preserved from original)
-// ════════════════════════════════════════════════════════════════════════
-function fmtClock(){return new Date().toLocaleTimeString('en-US',{timeZone:'America/New_York',hour:'numeric',minute:'2-digit',second:'2-digit',hour12:true});}
-function setOnlineStatus(s){const b=document.getElementById('online-status-badge');if(s==='online'){b.innerHTML='🟢 Online';b.className='online-badge';}else{b.innerHTML='🔴 Offline';b.className='online-badge offline-badge';}}
-function setGPill(type,label){const el=document.getElementById('gpill');el.className='graph-status-pill '+type;el.innerHTML=type==='loading'?`<span class="spin"></span> ${label}`:label;}
-function showChartEmpty(show){document.getElementById('chart-empty').classList.toggle('show',show);}
-function showBanner(cls,msg){const b=document.getElementById('banner');b.className='banner show '+cls;document.getElementById('banner-msg').textContent=msg;setTimeout(()=>{if(b.classList.contains('show'))closeBanner();},4000);}
-function closeBanner(){document.getElementById('banner').className='banner';}
-function forceRefresh(){fetchLiveData();fetchRecent();fetchGraphData(currentPeriod);showBanner('restored','Manual refresh done');}
-function reconnect(){setOnlineStatus('online');fetchLiveData().then(()=>document.getElementById('offline-bar').classList.remove('show'));fetchRecent();fetchGraphData(currentPeriod);showBanner('restored','Reconnected');}
-function switchChart(period){currentPeriod=period;document.querySelectorAll('.chart-tab').forEach(t=>t.classList.toggle('on',t.textContent.toLowerCase()===period));isZoomed=false;setResetZoomVisible(false);fetchGraphData(period);}
-function applyCustomRange(){const f=document.getElementById('date-from').value,t=document.getElementById('date-to').value;if(!f||!t){showBanner('reconnect','Select both dates');return;}if(f>t){showBanner('reconnect','Start must be before end');return;}document.querySelectorAll('.chart-tab').forEach(t=>t.classList.remove('on'));currentPeriod='custom';isZoomed=false;setResetZoomVisible(false);fetchGraphData('custom',f,t);}
-function exportCSV(){const headers=['Time (EST)','kW','Voltage (V)','Current (A)','kWh','PF Total','Status','V A-N','V B-N','V C-N','Avg V L-N','V A-B','V B-C','V C-A','Avg V L-L','I Phase A','I Phase B','I Phase C','I Avg','I Demand','I Peak','I Neutral','Freq (Hz)','PF Phase A','PF Phase B','PF Phase C','kVAR','kVA'];const rows=document.querySelectorAll('#readings-table tbody tr');const csv=[headers.join(',')];rows.forEach(r=>{const c=r.querySelectorAll('td');if(c.length>1)csv.push(Array.from(c).map(x=>{const t=x.textContent.trim();return t.includes(',')? `"${t}"`:t;}).join(','));});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv.join('\n')],{type:'text/csv'}));a.download=`microgrid_full_${new Date().toISOString().split('T')[0]}.csv`;a.click();URL.revokeObjectURL(a.href);}
-function saveSettings(){const iv=parseInt(document.getElementById('refresh-interval').value)||5;state.currency=document.getElementById('currency-select').value;state.unitRate=parseFloat(document.getElementById('unit-rate').value)||0.14;refreshInterval=Math.max(2,Math.min(60,iv))*1000;if(refreshTimer)clearInterval(refreshTimer);refreshTimer=setInterval(()=>{fetchLiveData();fetchRecent();},refreshInterval);localStorage.setItem('mgSettings',JSON.stringify({refreshInterval,currency:state.currency,unitRate:state.unitRate}));closeModal('settings-modal');showBanner('restored','Settings saved');}
-function loadSettings(){try{const s=JSON.parse(localStorage.getItem('mgSettings')||'{}');if(s.refreshInterval)refreshInterval=s.refreshInterval;if(s.currency)state.currency=s.currency;if(s.unitRate)state.unitRate=s.unitRate;document.getElementById('refresh-interval').value=refreshInterval/1000;document.getElementById('currency-select').value=state.currency;document.getElementById('unit-rate').value=state.unitRate;}catch(e){}}
-function openModal(id){document.getElementById(id).classList.add('open');if(id==='system-status-modal')updateSysStatus();}
-function closeModal(id){document.getElementById(id).classList.remove('open');}
-async function updateSysStatus(){const set=(id,txt,cls)=>{const el=document.getElementById(id);if(el){el.textContent=txt;el.className='stbadge '+cls;}};try{const res=await fetch(`${API_BASE}/api/readings/latest/?unit_id=100`);if(!res.ok)throw new Error();set('s-gateway','Connected','ok');set('s-api','Online','ok');set('s-db','Active','ok');const d=await res.json();if(d.timestamp){const age=Math.floor((Date.now()-new Date(d.timestamp).getTime())/1000);set('s-last',age+'s ago',age<10?'ok':age<30?'warn':'err');document.getElementById('s-last-sub').textContent=new Date(d.timestamp).toLocaleTimeString('en-US',{timeZone:'America/New_York'});}}catch(e){set('s-gateway','Disconnected','err');set('s-api','Offline','err');set('s-db','Unknown','warn');set('s-last','No data','err');}}
-function selectDER(derId){window.location.href="{% url 'energy_dashboard_v2' %}#"+derId;}
-
-// ════════════════════════════════════════════════════════════════════════
-//  INIT
-// ════════════════════════════════════════════════════════════════════════
-function init() {
-  document.getElementById('date-to').value   = '';
-  document.getElementById('date-from').value = '';
-
-  const df=document.getElementById('date-from'), dt=document.getElementById('date-to'), ab=document.getElementById('applyRangeBtn');
-  function toggleApply(){const ok=!!(df.value&&dt.value);ab.disabled=!ok;ab.style.background=ok?'#2563EB':'#a1a1ac';ab.style.opacity=ok?'1':'0.6';ab.style.cursor=ok?'pointer':'not-allowed';}
-  df.addEventListener('change',toggleApply); dt.addEventListener('change',toggleApply); toggleApply();
-
-  loadSettings();
-  buildLegend();
-
-  // Create charts after one rAF so the browser has committed the CSS layout
-  // and .graph-col has a real clientWidth (never 0).
-  requestAnimationFrame(() => {
-    createYAxisChart();
-    createMainChart([], {});
-    attachChartInteractions();
-    fetchLiveData();
-    fetchRecent();
-    fetchGraphData('today');
-  });
-
-  refreshTimer = setInterval(()=>{ fetchLiveData(); fetchRecent(); }, refreshInterval);
-  graphTimer   = setInterval(()=> fetchGraphData(currentPeriod), 60000);
-  setInterval(()=>{ document.getElementById('clock-display').textContent = fmtClock()+' EST'; }, 1000);
-
-  window.addEventListener('online',  ()=> reconnect());
-  window.addEventListener('offline', ()=>{ showBanner('offline','Network lost'); document.getElementById('offline-bar').classList.add('show'); });
-  document.addEventListener('click', e=>{ if(!e.target.closest('#lineChart')) document.getElementById('drill-tooltip').classList.remove('show'); });
-}
-
-document.addEventListener('DOMContentLoaded', init);
-
-// Global handlers
-window.switchChart=switchChart; window.applyCustomRange=applyCustomRange; window.exportCSV=exportCSV;
-window.saveSettings=saveSettings; window.openModal=openModal; window.closeModal=closeModal;
-window.forceRefresh=forceRefresh; window.reconnect=reconnect; window.closeBanner=closeBanner;
-window.selectDER=selectDER; window.resetZoom=resetZoom;
-</script>
-</body>
-</html>"
+Read my existing `SensorReading` model and `SensorReadingAPIView` carefully.
+
+I already have a GET API that returns the latest sensor readings and decoded Modbus data. I do **not** want to modify the existing API.
+
+I need a **new separate GET API** that allows filtering historical sensor data by a date range.
+get all data ralted to range 
+### Requirements
+
+1. Create a new API endpoint, for example:
+
+   ```
+  /readings/filter/
+   ```
+
+2. The API should accept:
+
+   * `unit_id` (optional)
+   * `start_date`
+   * `end_date`
+
+3. Example request:
+
+   ```
+   GET /api/readings/filter/?unit_id=100&start_date=2026-05-01&end_date=2026-05-31
+   ```
+
+4. The API should:
+    check we use est timezome 
+   * Convert the provided dates into timestamps.
+   * Filter records from the `SensorReading` model using the `timestamp` field.
+   * Return all readings between the selected dates (inclusive).
+   * Support filtering by `unit_id` if provided.
+   * Order results by timestamp ascending.
+
+5. Response should include:
+
+   * id
+   * unit_id
+   * timestamp
+   * created_at
+   * voltage
+   * current
+   * active_power_kw
+   * reactive_power_kvar
+   * apparent_power_kva
+   * energy_today_kwh
+
+6. Example:
+
+   ```
+   GET /api/readings/filter/?unit_id=100&start_date=2026-05-01&end_date=2026-05-31
+   ```
+
+   should return all sensor readings for Unit 100 between May 1 and May 31.
+
+7. Add proper validation:
+
+   * Return 400 if `start_date` or `end_date` is missing.
+   * Return 400 if date format is invalid.
+   * Return a meaningful error message.
+
+8. Optimize the query because the `SensorReading` table may contain millions of records.
+
+Provide the complete Django REST Framework APIView code, URL configuration, and example response.
+
+
+this is models
+"class SensorReading(models.Model):
+    """
+    Stores each Modbus reading as a separate record for historical data
+    """
+    unit_id = models.PositiveIntegerField(db_index=True)
+    timestamp = models.FloatField(help_text="Unix timestamp")
+    block1_start_reg = models.PositiveIntegerField(default=40100)
+    block1_raw = models.JSONField(help_text="Raw registers from block 1")
+    block2_start_reg = models.PositiveIntegerField(default=40138)
+    block2_raw = models.JSONField(help_text="Raw registers from block 2")
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    # Cached/decoded values for faster queries
+    voltage = models.FloatField(null=True, blank=True)
+    current = models.FloatField(null=True, blank=True)
+    active_power_kw = models.FloatField(null=True, blank=True)
+    reactive_power_kvar = models.FloatField(null=True, blank=True)
+    apparent_power_kva = models.FloatField(null=True, blank=True)
+    energy_today_kwh = models.FloatField(null=True, blank=True)
+    
+    class Meta:
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['unit_id', 'timestamp']),
+            models.Index(fields=['-timestamp']),
+        ]
+    
+    def save(self, *args, **kwargs):
+        """
+        Decode all block1_raw registers and cache key values.
+
+        Register map (block1_raw indices):
+        [0]     Phase A to Neutral voltage  (÷10 → Volts)
+        [1]     Phase B to Neutral voltage  (÷10 → Volts)
+        [2]     Phase C to Neutral voltage  (÷10 → Volts)
+        [3]     Average Line-Neutral voltage (÷10 → Volts)  ← meter's own average
+        [4]     Voltage A-B  (÷10 → Volts)
+        [5]     Voltage B-C  (÷10 → Volts)
+        [6]     Voltage C-A  (÷10 → Volts)
+        [7]     Average Line-Line voltage  (÷10 → Volts)
+        [8]     Current Phase A  (÷10 → Amps)
+        [9]     Current Phase B  (÷10 → Amps)
+        [10]    Current Phase C  (÷10 → Amps)
+        [11]    Average Current  (÷10 → Amps)  ← meter's own average
+        [12]    Demand Current   (÷10 → Amps)
+        [13]    Peak Demand Current (÷10 → Amps)
+        [14]    Neutral Current  (÷10 → Amps)
+        [15]    Frequency        (÷100 → Hz)
+        [16]    Total Power Factor  (signed 16-bit ÷ 10000 → -1.0 to +1.0)
+        [17]    Power Factor Phase A (signed 16-bit ÷ 10000)
+        [18]    Power Factor Phase B (signed 16-bit ÷ 10000)
+        [19]    Power Factor Phase C (signed 16-bit ÷ 10000)
+        [20]    Total Active Power   (signed 16-bit ÷ 10 → kW)
+        [21]    Total Reactive Power (signed 16-bit ÷ 10 → kVAR)
+        [22]    Total Apparent Power (÷10 → kVA, always positive)
+
+        block2_raw:
+        [0]     Energy low word  (32-bit combined ÷ 100 → kWh)
+        [1]     Energy high word
+        """
+
+        def to_signed_16(raw):
+            """
+            Convert unsigned 16-bit Modbus register to signed integer.
+            Modbus sends all registers as unsigned (0–65535).
+            Values above 32767 represent negative numbers in two's complement:
+                0–32767   → positive as-is
+                32768–65535 → subtract 65536 to get negative value
+            Examples:
+                raw=13    → 13       (positive, no conversion needed)
+                raw=64536 → -1000    (64536 - 65536 = -1000)
+                raw=64391 → -1145    (64391 - 65536 = -1145)
+            """
+            if raw > 32767:
+                return raw - 65536
+            return raw
+
+        if self.block1_raw and len(self.block1_raw) >= 23:
+            b = self.block1_raw
+
+            # ── Voltage Phase-to-Neutral (÷10 → Volts) ───────────────────
+            # These measure voltage from each phase wire to the neutral wire.
+            # A 480V 3-phase system has ~277V phase-to-neutral (277 × √3 = 480).
+            # Your readings show ~280V L-N and ~485V L-L which is correct.
+            v_a = b[0] / 10   # Phase A to Neutral
+            v_b = b[1] / 10   # Phase B to Neutral
+            v_c = b[2] / 10   # Phase C to Neutral
+
+            # Use meter's own average (reg[3]) — more accurate than manual average
+            # because the meter may apply its own filtering/rounding internally.
+            self.voltage = round(b[3] / 10, 1)
+
+            # ── Current (÷10 → Amps) ──────────────────────────────────────
+            # Current flowing through each phase conductor.
+            # Use meter's own average current (reg[11]) for consistency.
+            self.current = round(b[11] / 10, 1)
+
+            # ── Active Power kW (signed, ÷10) ─────────────────────────────
+            # Real/active power = actual energy consumed per second (watts).
+            # Positive = consuming power (load), Negative = generating (solar/genset).
+            # MUST use meter's register [20] directly — NOT calculated from V×I,
+            # because V×I = apparent power (kVA), not active power (kW).
+            # Verified: raw=13 → signed=13 → 13÷10 = 1.3 kW ✅
+            self.active_power_kw = round(to_signed_16(b[20]) / 10, 2)
+
+            # ── Reactive Power kVAR (signed, ÷10) ────────────────────────
+            # Power stored/released by inductors and capacitors.
+            # Positive = inductive (motors, transformers — most common loads).
+            # Negative = capacitive (power factor correction capacitors).
+            # Verified: raw=99 → signed=99 → 9.9 kVAR ✅
+            self.reactive_power_kvar = round(to_signed_16(b[21]) / 10, 2)
+
+            # ── Apparent Power kVA (unsigned, ÷10) ────────────────────────
+            # Vector sum of kW and kVAR. Always positive.
+            # kVA = √(kW² + kVAR²)
+            # Verified: √(1.3² + 9.9²) = √(1.69 + 98.01) = √99.7 = 9.985 ≈ 9.9 kVA ✅
+            self.apparent_power_kva = round(b[22] / 10, 2)
+
+        if self.block2_raw and len(self.block2_raw) >= 2:
+            # ── Energy kWh (32-bit combined, ÷100) ────────────────────────
+            # Two 16-bit Modbus registers form one 32-bit cumulative counter.
+            # Assembly: high_word shifted left 16 bits OR'd with low_word.
+            # Example: low=6063, high=0 → (0 << 16) | 6063 = 6063
+            #          6063 ÷ 100 = 60.63 kWh ✅
+            # SCALE=100 means each count = 0.01 kWh.
+            low  = self.block2_raw[0]
+            high = self.block2_raw[1]
+            raw_32 = (high << 16) | low
+            SCALE = 100
+            self.energy_today_kwh = raw_32 / SCALE
+
+        super().save(*args, **kwargs)
+    
+    def __str__(self):
+        return f"Unit {self.unit_id} @ {datetime.fromtimestamp(self.timestamp)}"
+
+class HourlyAggregate(models.Model):
+    """
+    Pre-calculated hourly averages for graph performance
+    """
+    unit_id = models.PositiveIntegerField(db_index=True)
+    hour = models.DateTimeField(db_index=True)
+    avg_active_power_kw = models.FloatField(default=0)
+    min_active_power_kw = models.FloatField(default=0)
+    max_active_power_kw = models.FloatField(default=0)
+    total_energy_kwh = models.FloatField(default=0)
+    reading_count = models.PositiveIntegerField(default=0)
+    
+    class Meta:
+        unique_together = [['unit_id', 'hour']]
+        ordering = ['-hour']
+        "
+
+this is api 
+"class SensorReadingAPIView(APIView):
+    """
+    POST: Receive and store Modbus readings
+    GET: Retrieve readings (with optional filtering)
+    """
+    
+    def post(self, request):
+        """Store a new reading from the SBC"""
+        try:
+            # Validate required fields
+            required_fields = ['unit_id', 'timestamp', 'block1_raw', 'block2_raw']
+            for field in required_fields:
+                if field not in request.data:
+                    return Response(
+                        {"error": f"Missing required field: {field}"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            
+            # Prepare data for serializer
+            data = {
+                'unit_id': request.data.get('unit_id'),
+                'timestamp': request.data.get('timestamp'),
+                'block1_start_reg': request.data.get('block1_start_reg', 40100),
+                'block1_raw': request.data.get('block1_raw'),
+                'block2_start_reg': request.data.get('block2_start_reg', 40138),
+                'block2_raw': request.data.get('block2_raw'),
+            }
+            
+            serializer = SensorReadingSerializer(data=data)
+            if serializer.is_valid():
+                reading = serializer.save()
+                
+                # Trigger hourly aggregation update
+                self.update_hourly_aggregate(reading)
+                
+                return Response({
+                    "status": "success",
+                    "message": "Reading stored successfully",
+                    "id": reading.id
+                }, status=status.HTTP_201_CREATED)
+            
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+        except Exception as e:
+            logger.error(f"Error storing reading: {str(e)}")
+            return Response(
+                {"error": f"Internal server error: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    def update_hourly_aggregate(self, reading):
+        """Update or create hourly aggregate for this reading's hour"""
+        try:
+            # Convert unix timestamp to datetime
+            reading_time = datetime.fromtimestamp(reading.timestamp, tz=EST)
+            hour_start = reading_time.replace(minute=0, second=0, microsecond=0)
+            
+            # Get all readings in this hour
+            hour_end = hour_start + timedelta(hours=1)
+            hour_readings = SensorReading.objects.filter(
+                unit_id=reading.unit_id,
+                timestamp__gte=hour_start.timestamp(),
+                timestamp__lt=hour_end.timestamp()
+            )
+            
+            if hour_readings.exists():
+                # Calculate aggregates
+                avg_power = hour_readings.aggregate(Avg('active_power_kw'))['active_power_kw__avg'] or 0
+                min_power = hour_readings.aggregate(Min('active_power_kw'))['active_power_kw__min'] or 0
+                max_power = hour_readings.aggregate(Max('active_power_kw'))['active_power_kw__max'] or 0
+                count = hour_readings.count()
+                
+                # Energy (kWh) = average power (kW) * 1 hour
+                total_energy = avg_power * 1.0
+                
+                # Update or create aggregate
+                HourlyAggregate.objects.update_or_create(
+                    unit_id=reading.unit_id,
+                    hour=hour_start,
+                    defaults={
+                        'avg_active_power_kw': avg_power,
+                        'min_active_power_kw': min_power,
+                        'max_active_power_kw': max_power,
+                        'total_energy_kwh': total_energy,
+                        'reading_count': count,
+                    }
+                )
+        except Exception as e:
+            logger.error(f"Error updating hourly aggregate: {str(e)}")
+    
+    def get(self, request):
+        """
+        Verification endpoint — returns raw registers alongside every decoded value
+        with intermediate steps (_raw, _signed, final) so you can audit each register.
+        URL: /api/readings/?unit_id=100&limit=1
+        """
+        unit_id = request.query_params.get('unit_id')
+        limit   = int(request.query_params.get('limit', 10))
+
+        queryset = SensorReading.objects.all()
+        if unit_id:
+            queryset = queryset.filter(unit_id=unit_id)
+        queryset = queryset.order_by('-timestamp')[:limit]
+
+        def to_signed_16(raw):
+            """Two's complement unsigned→signed conversion for 16-bit Modbus registers."""
+            if raw > 32767:
+                return raw - 65536
+            return raw
+
+        results = []
+        for reading in queryset:
+            b  = reading.block1_raw or []
+            b2 = reading.block2_raw or []
+
+            def reg(idx, default=0):
+                return b[idx] if len(b) > idx else default
+
+            decoded = {
+                # ── Voltage Phase-Neutral (scale ÷10) ─────────────────────
+                "v_an_raw":     reg(0),  "v_an":     reg(0)  / 10,
+                "v_bn_raw":     reg(1),  "v_bn":     reg(1)  / 10,
+                "v_cn_raw":     reg(2),  "v_cn":     reg(2)  / 10,
+                "v_avg_ln_raw": reg(3),  "v_avg_ln": reg(3)  / 10,
+
+                # ── Voltage Line-Line (scale ÷10) ──────────────────────────
+                "v_ab_raw":     reg(4),  "v_ab":     reg(4)  / 10,
+                "v_bc_raw":     reg(5),  "v_bc":     reg(5)  / 10,
+                "v_ca_raw":     reg(6),  "v_ca":     reg(6)  / 10,
+                "v_avg_ll_raw": reg(7),  "v_avg_ll": reg(7)  / 10,
+
+                # ── Current (scale ÷10) ────────────────────────────────────
+                "i_a_raw":       reg(8),   "i_a":       reg(8)  / 10,
+                "i_b_raw":       reg(9),   "i_b":       reg(9)  / 10,
+                "i_c_raw":       reg(10),  "i_c":       reg(10) / 10,
+                "i_avg_raw":     reg(11),  "i_avg":     reg(11) / 10,
+                "i_demand_raw":  reg(12),  "i_demand":  reg(12) / 10,
+                "i_peak_raw":    reg(13),  "i_peak":    reg(13) / 10,
+                "i_neutral_raw": reg(14),  "i_neutral": reg(14) / 10,
+
+                # ── Frequency (scale ÷100) ─────────────────────────────────
+                "freq_raw": reg(15),
+                "freq_hz":  reg(15) / 100,
+
+                # ── Power Factor (signed, scale ÷10000) ───────────────────
+                # FIXED: was ÷1000, correct scale is ÷10000
+                # Proof: kW/kVA = 1.3/9.9 = 0.131
+                #        signed(-1264) ÷ 10000 = 0.1264 ✅
+                "pf_total_raw":    reg(16),
+                "pf_total_signed": to_signed_16(reg(16)),
+                "pf_total":        round(max(-1.0, min(1.0, to_signed_16(reg(16)) / 10000)), 4),
+
+                "pf_a_raw":    reg(17),
+                "pf_a_signed": to_signed_16(reg(17)),
+                "pf_a":        round(max(-1.0, min(1.0, to_signed_16(reg(17)) / 10000)), 4),
+
+                "pf_b_raw":    reg(18),
+                "pf_b_signed": to_signed_16(reg(18)),
+                "pf_b":        round(max(-1.0, min(1.0, to_signed_16(reg(18)) / 10000)), 4),
+
+                "pf_c_raw":    reg(19),
+                "pf_c_signed": to_signed_16(reg(19)),
+                "pf_c":        round(max(-1.0, min(1.0, to_signed_16(reg(19)) / 10000)), 4),
+
+                # ── Active Power (signed, scale ÷10) ──────────────────────
+                "kw_raw":    reg(20),
+                "kw_signed": to_signed_16(reg(20)),
+                "kw":        round(to_signed_16(reg(20)) / 10, 2),
+
+                # ── Reactive Power (signed, scale ÷10) ────────────────────
+                "kvar_raw":    reg(21),
+                "kvar_signed": to_signed_16(reg(21)),
+                "kvar":        round(to_signed_16(reg(21)) / 10, 2),
+
+                # ── Apparent Power (unsigned, scale ÷10) ──────────────────
+                "kva_raw": reg(22),
+                "kva":     round(reg(22) / 10, 2),
+
+                # ── Energy 32-bit (block2, scale ÷100) ────────────────────
+                "b2_low":            b2[0] if len(b2) > 0 else None,
+                "b2_high":           b2[1] if len(b2) > 1 else None,
+                "b2_combined_32bit": ((b2[1] << 16) | b2[0]) if len(b2) > 1 else None,
+                "energy_kwh":        ((b2[1] << 16) | b2[0]) / 100 if len(b2) > 1 else None,
+
+                # ── Sanity checks (computed vs meter register) ─────────────
+                # These let you instantly spot any remaining discrepancies.
+                "check_pf_from_power":   round(
+                    abs(to_signed_16(reg(20)) / reg(22)) if reg(22) else 0, 4
+                ),  # kW/kVA — should match pf_total magnitude
+                "check_kva_from_triangle": round(
+                    (
+                        (to_signed_16(reg(20)) / 10) ** 2 +
+                        (to_signed_16(reg(21)) / 10) ** 2
+                    ) ** 0.5, 2
+                ),  # √(kW²+kVAR²) — should match kva
+
+                # ── DB cached values (for comparison with live decode) ─────
+                "db_voltage":         reading.voltage,
+                "db_current":         reading.current,
+                "db_active_power_kw": reading.active_power_kw,
+                "db_reactive_kvar":   reading.reactive_power_kvar,
+                "db_apparent_kva":    reading.apparent_power_kva,
+                "db_energy_kwh":      reading.energy_today_kwh,
+            }
+
+            results.append({
+                "id":         reading.id,
+                "unit_id":    reading.unit_id,
+                "timestamp":  reading.timestamp,
+                "block1_raw": b,
+                "block2_raw": b2,
+                "decoded":    decoded,
+            })
+
+        return Response(results)"

@@ -51,14 +51,14 @@ def admin_required(view_func):
 def login_view(request):
     """Sign In page"""
     if request.user.is_authenticated:
-        return redirect('energy_dashboard')
+        return redirect('home')  # Changed from 'energy_dashboard_v2'
 
     form = LoginForm(request, data=request.POST or None)
     if request.method == 'POST' and form.is_valid():
         user = form.get_user()
         login(request, user)
         messages.success(request, f'Welcome back, {user.first_name or user.username}!')
-        next_url = request.GET.get('next', 'energy_dashboard')
+        next_url = request.GET.get('next', 'home')  # Changed default to 'home'
         return redirect(next_url)
 
     return render(request, 'app1/login.html', {'form': form})
@@ -67,14 +67,14 @@ def login_view(request):
 def signup_view(request):
     """Sign Up page – creates a normal user"""
     if request.user.is_authenticated:
-        return redirect('energy_dashboard')
+        return redirect('home')  # Changed from 'energy_dashboard_v2'
 
     form = SignUpForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
         user = form.save()
         login(request, user)
         messages.success(request, f'Account created! Welcome, {user.first_name or user.username}!')
-        return redirect('energy_dashboard')
+        return redirect('home')  # Changed from 'energy_dashboard_v2'
 
     return render(request, 'app1/signup.html', {'form': form})
 
@@ -400,6 +400,98 @@ class SensorReadingAPIView(APIView):
             })
 
         return Response(results)
+    
+    
+# views.py
+
+from datetime import datetime, time
+import time as time_module
+from django.utils.timezone import make_aware
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from .serializers import *
+
+
+class SensorReadingFilterView(APIView):
+    """
+    GET /api/readings/filter/
+    Query params:
+        - start_date (required): YYYY-MM-DD
+        - end_date   (required): YYYY-MM-DD
+        - unit_id    (optional): integer
+    """
+
+    DATE_FORMAT = "%Y-%m-%d"
+
+    def get(self, request):
+        start_date_str = request.query_params.get('start_date')
+        end_date_str   = request.query_params.get('end_date')
+        unit_id        = request.query_params.get('unit_id')
+
+        # ── Validate presence ────────────────────────────────────────────
+        missing = [f for f, v in [('start_date', start_date_str), ('end_date', end_date_str)] if not v]
+        if missing:
+            return Response(
+                {"error": f"Missing required parameter(s): {', '.join(missing)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # ── Validate & parse dates ───────────────────────────────────────
+        try:
+            start_dt = datetime.strptime(start_date_str, self.DATE_FORMAT)
+            end_dt   = datetime.strptime(end_date_str,   self.DATE_FORMAT)
+        except ValueError:
+            return Response(
+                {"error": "Invalid date format. Expected YYYY-MM-DD (e.g. 2026-05-01)."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if start_dt > end_dt:
+            return Response(
+                {"error": "start_date must not be later than end_date."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # ── Convert to Unix timestamps (inclusive range) ─────────────────
+        # start = 2026-05-01 00:00:00 → unix
+        # end   = 2026-05-31 23:59:59 → unix
+        start_ts = start_dt.replace(hour=0,  minute=0,  second=0,  microsecond=0).timestamp()
+        end_ts   = end_dt.replace(  hour=23, minute=59, second=59, microsecond=999999).timestamp()
+
+        # ── Build queryset ───────────────────────────────────────────────
+        # Uses the composite index (unit_id, timestamp) when unit_id is
+        # provided, and the single-column timestamp index otherwise.
+        queryset = (
+            SensorReading.objects
+            .filter(timestamp__gte=start_ts, timestamp__lte=end_ts)
+            .order_by('timestamp')               # ascending chronological
+            .only(                               # skip heavy JSON columns
+                'id', 'unit_id', 'timestamp', 'created_at',
+                'voltage', 'current', 'active_power_kw',
+                'reactive_power_kvar', 'apparent_power_kva', 'energy_today_kwh',
+            )
+        )
+
+        if unit_id is not None:
+            try:
+                queryset = queryset.filter(unit_id=int(unit_id))
+            except ValueError:
+                return Response(
+                    {"error": "unit_id must be a positive integer."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        serializer = SensorReadingFilterSerializer(queryset, many=True)
+        return Response({
+            "count":      queryset.count(),
+            "start_date": start_date_str,
+            "end_date":   end_date_str,
+            "unit_id":    unit_id,
+            "results":    serializer.data,
+        })
+        
+        
 
 class LatestReadingView(APIView):
     """Get the latest reading for live dashboard updates"""
@@ -804,7 +896,7 @@ def add_device(request):
     if request.method == 'POST' and form.is_valid():
         device = form.save()
         messages.success(request, f'Device "{device}" created.')
-        return redirect('device_detail', device_id=device.pk)
+        return redirect(energy_dashboard_v2)
     return render(request, 'app1/add_device.html', {'form': form})
 
 
@@ -892,11 +984,18 @@ class DevicesByCategoryView(APIView):
                 return Response({})
  
         # Group by category
-        result = {}
+        ALL_CATEGORIES = [
+            'Meters', 'Solar Generation', 'Battery Power',
+            'EV Charging', 'Building Load', 'HVAC', 'Genset',
+        ]
+
+        # Pre-populate all categories with empty lists
+        result = {cat: [] for cat in ALL_CATEGORIES}
+
         for device in queryset.order_by('device_category', 'unit_id'):
             cat = device.device_category
             if cat not in result:
-                result[cat] = []
+                result[cat] = []   # safety net for any unknown category
             result[cat].append({
                 'unit_id': device.unit_id,
                 'display_name': device.get_display_name(),
@@ -904,7 +1003,7 @@ class DevicesByCategoryView(APIView):
                 'company': device.company.name if device.company else '',
                 'per_unit_cost': str(device.per_unit_cost) if device.per_unit_cost else None,
             })
- 
+
         return Response(result)
     
 @login_required(login_url='login')
@@ -931,3 +1030,7 @@ def energy_dashboard_v2(request):
         'primary_unit': primary_unit,
     }
     return render(request, 'app1/energy_dashboard_v2.html', context)
+
+
+def home(request):
+    return render(request, 'app1/home.html')

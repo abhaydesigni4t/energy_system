@@ -35,3 +35,14 @@ class GraphDataSerializer(serializers.Serializer):
     labels = serializers.ListField(child=serializers.CharField())
     values = serializers.ListField(child=serializers.FloatField())
     unit = serializers.CharField()
+    
+    
+    
+class SensorReadingFilterSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SensorReading
+        fields = [
+            'id', 'unit_id', 'timestamp', 'created_at',
+            'voltage', 'current', 'active_power_kw',
+            'reactive_power_kvar', 'apparent_power_kva', 'energy_today_kwh',
+        ]

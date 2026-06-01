@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views  # Ensure you're importing views properly
-from .views import SensorReadingAPIView
+from .views import *
 
 urlpatterns = [
     # Frontend
@@ -13,6 +13,7 @@ urlpatterns = [
     # ── Dashboard ───────────────────────────────────────────────
     path('dashboard/', views.energy_dashboard, name='energy_dashboard'),
     path('dashboard/v2/', views.energy_dashboard_v2, name='energy_dashboard_v2'),
+    path('home/',   views.home,  name='home'),
     
     # ── User Management (Admin only) ────────────────────────────
     path('users/',                        views.user_list,    name='user_list'),
@@ -23,6 +24,7 @@ urlpatterns = [
     
     # API endpoints
     path('readings/', views.SensorReadingAPIView.as_view(), name='sensor-readings'),
+    path('api/readings/filter/', SensorReadingFilterView.as_view(), name='sensor-readings-filter'),
     path('api/readings/latest/', views.LatestReadingView.as_view(), name='latest-reading'),
     path('api/readings/summary/', views.SummaryStatsView.as_view(), name='summary-stats'),
     path('api/readings/graph/', views.GraphDataView.as_view(), name='graph-data'),

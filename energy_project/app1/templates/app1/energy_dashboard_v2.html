@@ -23,7 +23,6 @@
   --nav-dropdown-bg:#3D4556;
   --nav-text:#fbfbfb;
   --nav-text-muted:rgba(255,255,255,0.99);
-  /* category colours — must match CATEGORY_COLORS in JS */
   --color-meters:#EF4444;
   --color-solar:#22C55E;
   --color-battery:#FFFF00;
@@ -42,24 +41,22 @@ td{font-size:11px;font-weight:500;}
 .kpi-label,.panel-title,.tbl-title{letter-spacing:0.5px;text-transform:uppercase;font-size:10px;font-weight:700;}
 thead th{font-family:var(--font-text);font-size:10px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;}
 .main-area{flex:1;display:flex;flex-direction:column;min-height:100vh;}
-
-/* ── TOPBAR ── */
 .topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
 .topbar-left{display:flex;flex-direction:column;gap:4px;}
 .topbar-title{font-size:24px;font-weight:800;background:linear-gradient(135deg,#0F172A,#3B82F6);-webkit-background-clip:text;background-clip:text;color:transparent;}
 .topbar-sub{font-size:14px;color:#000;font-weight:600;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
 .topbar-right{display:flex;align-items:center;gap:10px;}
-.tbtn{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:30px;font-size:14px;font-weight:700;border:1px solid var(--border2);background:transparent;color:#000;cursor:pointer;transition:all 0.15s;white-space:nowrap;text-decoration:none;}
+.tbtn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:6px 14px;border-radius:30px;font-size:14px;font-weight:700;border:1px solid var(--border2);background:transparent;color:#000;cursor:pointer;transition:all 0.15s;white-space:nowrap;text-decoration:none;}
 .tbtn:hover{background:var(--surface);}
 .tbtn.primary{background:linear-gradient(135deg,#3B82F6,#2563EB);border-color:transparent;color:#fff;}
+.home-btn{display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;font-size:28px;border-radius:50%;border:2px solid var(--border2);background:transparent;cursor:pointer;text-decoration:none;flex-shrink:0;transition:background 0.15s;}
+.home-btn:hover{background:var(--surface2);}
 .btn-logout{padding:10px 22px;background:linear-gradient(135deg,#ff5f5f,#ff3b3b);color:#fff;border-radius:25px;text-decoration:none;font-weight:600;display:inline-block;transition:all 0.3s;box-shadow:0 4px 10px rgba(255,59,59,0.3);}
 .btn-users{padding:10px 22px;background:linear-gradient(135deg,#4a90e2,#357abd);color:#fff;border-radius:25px;text-decoration:none;font-weight:500;font-size:15px;display:inline-block;transition:all 0.3s;box-shadow:0 4px 10px rgba(53,122,189,0.3);}
 #clock-display{font-size:12px;color:#000;padding:5px 12px;background:var(--surface);border-radius:30px;border:1px solid var(--border);font-weight:700;}
 .online-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(16,185,129,0.12);padding:4px 12px;border-radius:30px;font-size:11px;font-weight:800;color:#0E7C46;}
 .offline-badge{background:rgba(244,63,94,0.12);color:#BE123C;}
 .reconnect-btn{background:none;border:1px solid var(--border2);border-radius:20px;padding:3px 12px;font-size:10px;font-weight:700;cursor:pointer;margin-left:4px;}
-
-/* ── NAVBAR ── */
 .nav-bar{background:var(--nav-bg);border-bottom:1px solid var(--nav-border);padding:0 24px;position:sticky;top:64px;z-index:90;box-shadow:0 2px 8px rgba(0,0,0,0.15);}
 .nav-list{display:flex;align-items:stretch;gap:0;list-style:none;margin:0;padding:0;}
 .nav-item{position:relative;}
@@ -72,6 +69,8 @@ thead th{font-family:var(--font-text);font-size:10px;font-weight:700;letter-spac
 .nav-item:hover .nav-dropdown{opacity:1;visibility:visible;transform:translateY(0);}
 .nav-dropdown-item{display:flex;align-items:center;gap:10px;padding:9px 16px;color:var(--nav-text-muted);font-size:15px;font-weight:600;text-decoration:none;cursor:pointer;transition:all 0.12s;letter-spacing:0.2px;}
 .nav-dropdown-item:hover{color:#fff;background:rgba(96,165,250,0.15);padding-left:20px;}
+.nav-dropdown-item.all-option{border-bottom:1px solid rgba(255,255,255,0.12);margin-bottom:2px;color:#fff;font-weight:700;}
+.nav-dropdown-item.all-option:hover{background:rgba(96,165,250,0.25);}
 .nav-dropdown-empty{padding:9px 16px;color:rgba(255,255,255,0.35);font-size:12px;font-style:italic;}
 .dd-icon{font-size:13px;width:20px;text-align:center;}
 .grid-event-indicator{display:none;align-items:center;gap:7px;padding:5px 14px;border-radius:20px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.45);color:#FCD34D;font-size:11px;font-weight:800;white-space:nowrap;cursor:default;animation:gridEventPulse 1.8s ease-in-out infinite;}
@@ -80,8 +79,6 @@ thead th{font-family:var(--font-text);font-size:10px;font-weight:700;letter-spac
 @keyframes gridDotPing{0%{box-shadow:0 0 0 0 rgba(245,158,11,0.7);}60%{box-shadow:0 0 0 7px rgba(245,158,11,0);}100%{box-shadow:0 0 0 0 rgba(245,158,11,0);}}
 @keyframes gridEventPulse{0%,100%{border-color:rgba(245,158,11,0.45);background:rgba(245,158,11,0.12);}50%{border-color:rgba(245,158,11,0.75);background:rgba(245,158,11,0.22);}}
 @media(max-width:700px){.nav-list{overflow-x:auto;}.nav-link{padding:0 12px;font-size:11px;}}
-
-/* ── CONTENT ── */
 .content{padding:20px 24px;flex:1;display:flex;flex-direction:column;gap:18px;}
 .banner{display:none;padding:8px 24px;font-size:12px;font-weight:700;align-items:center;gap:10px;border-bottom:1px solid transparent;}
 .banner.show{display:flex;}
@@ -91,9 +88,7 @@ thead th{font-family:var(--font-text);font-size:10px;font-weight:700;letter-spac
 .banner-x{margin-left:auto;background:none;border:none;cursor:pointer;color:inherit;font-size:14px;font-weight:800;}
 .offline-bar{display:none;background:rgba(244,63,94,0.07);border:1px solid rgba(244,63,94,0.2);border-radius:var(--r8);padding:10px 16px;font-size:12px;color:#BE123C;align-items:center;gap:10px;font-weight:700;margin-bottom:8px;}
 .offline-bar.show{display:flex;}
-
-/* ── KPI STRIP ── */
-.kpi-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
+.kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
 .kpi-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r12);padding:14px 16px;position:relative;overflow:hidden;transition:border-color 0.2s;}
 .kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--kpi-c,#3B82F6);}
 .kpi-card:hover{border-color:var(--border2);}
@@ -104,12 +99,16 @@ thead th{font-family:var(--font-text);font-size:10px;font-weight:700;letter-spac
 .kpi-badge.ok{background:rgba(16,185,129,0.12);color:#0E7C46;}
 .kpi-badge.stale{background:rgba(245,158,11,0.12);color:#B45309;}
 .kpi-badge.offline{background:rgba(244,63,94,0.12);color:#BE123C;}
-
-/* ── CHART PANEL ── */
+.energy-period-tile{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r12);padding:14px 16px;position:relative;overflow:hidden;transition:border-color 0.2s;}
+.energy-period-tile::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:#10B981;}
+.energy-period-tile:hover{border-color:var(--border2);}
+.energy-period-label{font-size:20px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#000;margin-bottom:10px;}
+.energy-period-value{font-family:var(--font-number);font-size:28px;font-weight:700;color:#000;line-height:1.2;margin-bottom:6px;letter-spacing:-0.5px;}
+.energy-period-unit{font-size:13px;color:#000;font-weight:600;}
+.energy-period-badge{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:800;padding:2px 8px;border-radius:4px;margin-top:6px;background:rgba(16,185,129,0.12);color:#0E7C46;}
 .chart-panel{background:#0C0F1A;border:1px solid rgba(255,255,255,0.07);border-radius:var(--r20);overflow:hidden;}
 .chart-panel .chart-header{padding:18px 22px 14px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;}
 .chart-panel .chart-title{font-size:16px;font-weight:800;color:#F0F4FF;letter-spacing:-0.2px;display:flex;align-items:center;gap:8px;}
-.chart-panel .chart-meta{font-size:16px;color:#fff;margin-top:4px;font-weight:500;}
 .chart-panel .chart-tabs{display:flex;background:#111624;border-radius:10px;padding:3px;gap:3px;border:1px solid rgba(255,255,255,0.07);}
 .chart-panel .chart-tab{padding:5px 16px;border-radius:7px;font-size:14px;font-weight:700;background:transparent;border:none;color:#fff;cursor:pointer;transition:all 0.15s;}
 .chart-panel .chart-tab.on{background:#2563EB;color:#fff;font-weight:800;}
@@ -127,12 +126,8 @@ thead th{font-family:var(--font-text);font-size:10px;font-weight:700;letter-spac
 .chart-panel .legend-item:hover{background:rgba(255,255,255,0.08);}
 .chart-panel .legend-item.hidden{opacity:0.3;}
 .chart-panel .legend-dot{width:10px;height:3px;border-radius:2px;flex-shrink:0;}
-/* Active device indicator in header */
-.active-device-badge{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:800;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.3);color:#60A5FA;margin-left:8px;}
-
-/* ── CHART LAYOUT ── */
 .chart-body{display:flex;flex-direction:row;height:var(--CHART-H);overflow:hidden;position:relative;touch-action:none;user-select:none;}
-.yaxis-col{width:100px;flex-shrink:0;height:100%;background:#0C0F1A;border-right:1px solid rgba(255,255,255,0.07);position:relative;z-index:5;overflow:hidden;margin-left:20px;}
+.yaxis-col{width:90px;flex-shrink:0;height:100%;background:#0C0F1A;border-right:1px solid rgba(255,255,255,0.07);position:relative;z-index:5;overflow:visible;margin-left:0;}
 .yaxis-col canvas{display:block;}
 .graph-col{flex:1;height:100%;overflow-x:auto;overflow-y:hidden;cursor:crosshair;position:relative;}
 .graph-col::-webkit-scrollbar{height:5px;}
@@ -156,14 +151,53 @@ thead th{font-family:var(--font-text);font-size:10px;font-weight:700;letter-spac
 .chart-empty.show{display:flex;}
 .chart-empty .ce-icon{font-size:28px;opacity:0.4;}
 .chart-empty .ce-msg{font-size:12px;color:rgba(255,255,255,0.4);font-weight:600;}
-.graph-status-pill{display:inline-flex;align-items:center;gap:5px;font-size:9px;font-weight:800;padding:3px 9px;border-radius:20px;margin-left:8px;}
+.graph-loading-overlay{
+  position:absolute;inset:0;display:none;flex-direction:column;
+  align-items:center;justify-content:center;gap:12px;
+  background:rgba(7,9,15,0.82);backdrop-filter:blur(3px);
+  z-index:15;border-radius:0;
+  animation:glFadeIn 0.25s ease;
+}
+.graph-loading-overlay.show{display:flex;}
+.glo-spinner{
+  width:36px;height:36px;border-radius:50%;
+  border:3px solid rgba(96,165,250,0.18);
+  border-top-color:#60A5FA;
+  animation:spin 0.75s linear infinite;
+  flex-shrink:0;
+}
+.glo-msg{
+  font-size:14px;font-weight:700;color:#E2E8F0;
+  letter-spacing:0.3px;text-align:center;padding:0 24px;
+  font-family:var(--font-text);
+}
+@keyframes glFadeIn{from{opacity:0;}to{opacity:1;}}
+
+.graph-status-pill{display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:800;padding:4px 12px;border-radius:20px;margin-left:8px;letter-spacing:0.2px;}
 .graph-status-pill.loading{background:rgba(59,130,246,0.15);color:#60A5FA;}
 .graph-status-pill.live{background:rgba(16,185,129,0.15);color:#10B981;}
 .graph-status-pill.nodata{background:rgba(245,158,11,0.15);color:#F59E0B;}
 .spin{display:inline-block;width:8px;height:8px;border:1.5px solid rgba(96,165,50,0.4);border-top-color:#60A5FA;border-radius:50%;animation:spin 0.6s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
-
-/* ── TABLE ── */
+.raw-data-panel{background:#0C0F1A;border:1px solid rgba(255,255,255,0.07);border-radius:var(--r20);overflow:hidden;}
+.raw-data-header{padding:14px 22px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.raw-data-title{font-family:var(--font-text);font-size:18px;font-weight:800;color:#F0F4FF;display:flex;align-items:center;gap:8px;}
+.raw-der-label{font-size:11px;font-weight:700;font-family:var(--font-text);padding:3px 10px;border-radius:20px;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.3);color:#60A5FA;}
+.raw-update-time{font-family:var(--font-number);font-size:14px;color:rgba(255,255,255,1);font-weight:600;}
+.raw-data-scroll{padding:16px 22px;overflow-y:auto;max-height:320px;}
+.raw-data-scroll::-webkit-scrollbar{width:4px;}
+.raw-data-scroll::-webkit-scrollbar-track{background:rgba(255,255,255,0.02);}
+.raw-data-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.12);border-radius:2px;}
+.raw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;}
+.raw-card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:var(--r12);padding:12px 14px;transition:border-color 0.2s,background 0.2s;}
+.raw-card:hover{background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.12);}
+.raw-card-device{font-size:10px;font-weight:700;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;}
+.raw-card-label{font-size:14px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;color:rgb(255,255,255);margin-bottom:6px;font-family:var(--font-text);}
+.raw-card-value{font-family:var(--font-number);font-size:22px;font-weight:700;color:#F0F4FF;line-height:1.1;letter-spacing:-0.3px;}
+.raw-card-unit{font-size:12px;color:rgb(255,255,255);font-weight:600;margin-left:3px;font-family:var(--font-text);}
+.raw-card-bar{height:3px;border-radius:2px;margin-top:8px;background:rgba(255,255,255,0.08);overflow:hidden;}
+.raw-card-bar-fill{height:100%;border-radius:2px;transition:width 0.6s ease;}
+.raw-card-timestamp{font-size:12px;color:rgb(255,255,255);margin-top:4px;font-family:var(--font-number);font-weight:600;}
 .tbl-panel{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r16);overflow:hidden;}
 .tbl-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);}
 .tbl-title{font-size:16px;font-weight:800;letter-spacing:0.8px;text-transform:uppercase;color:#000;}
@@ -179,8 +213,6 @@ tbody td{padding:10px 12px;border-bottom:1px solid var(--border);color:#000;font
 #readings-table th:first-child,#readings-table td:first-child{position:sticky;left:0;background:var(--surface);z-index:2;border-right:1px solid var(--border2);min-width:80px;}
 #readings-table tbody td:first-child{background:var(--bg3);}
 #readings-table th,#readings-table td{white-space:nowrap;min-width:72px;}
-
-/* ── MODALS ── */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);z-index:500;display:none;align-items:center;justify-content:center;padding:20px;}
 .overlay.open{display:flex;}
 .modal{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r20);padding:24px;max-width:400px;width:100%;}
@@ -194,8 +226,7 @@ tbody td{padding:10px 12px;border-bottom:1px solid var(--border);color:#000;font
 .sys-icon{width:28px;height:28px;border-radius:8px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:12px;}
 .sys-name{font-size:12px;font-weight:800;color:#000;}
 .sys-sub{font-size:10px;color:#000;font-weight:600;}
-
-@media(max-width:1100px){.kpi-strip{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:1100px){.kpi-strip{grid-template-columns:repeat(2,1fr);}}
 @media(max-width:900px){.kpi-strip{grid-template-columns:repeat(2,1fr);}}
 @media(max-width:600px){.kpi-strip{grid-template-columns:1fr 1fr;}:root{--CHART-H:220px;}}
 </style>
@@ -203,16 +234,17 @@ tbody td{padding:10px 12px;border-bottom:1px solid var(--border);color:#000;font
 <body>
 <div class="layout">
 <div class="main-area">
-
   <header class="topbar">
-    <div class="topbar-left">
-      <div class="topbar-title">3rd Rock Energy System</div>
-      <div class="topbar-sub">
-        <span id="topbar-device-label">Real-time · v2.0</span>
-        <div style="display:inline-flex;align-items:center;gap:10px;margin-left:8px;">
-          <span id="online-status-badge" class="online-badge">🟢 Online</span>
-          <span id="clock-display">--:--:-- EST</span>
-          <button class="reconnect-btn" onclick="reconnect()">⟳ Reconnect</button>
+    <div style="display:flex;align-items:center;gap:12px;flex:1;">
+      <a href="{% url 'home' %}" class="home-btn" title="Home">🏠</a>
+      <div class="topbar-left">
+        <div class="topbar-title">3rd Rock Energy System</div>
+        <div class="topbar-sub">
+          <div style="display:inline-flex;align-items:center;gap:10px;margin-left:8px;">
+            <span id="online-status-badge" class="online-badge">🟢 Online</span>
+            <span id="clock-display">--:--:-- EST</span>
+            <button class="reconnect-btn" onclick="reconnect()">⟳ Reconnect</button>
+          </div>
         </div>
       </div>
     </div>
@@ -221,17 +253,14 @@ tbody td{padding:10px 12px;border-bottom:1px solid var(--border);color:#000;font
         <a href="{% url 'user_list' %}" class="btn-users">User Management</a>
         <a href="{% url 'company_list' %}" class="btn-users" style="background:linear-gradient(135deg,#7C3AED,#6D28D9);box-shadow:0 4px 10px rgba(124,58,237,0.3);">DER Management</a>
       {% endif %}
-      <a href="{% url 'energy_dashboard' %}" class="tbtn" style="background:linear-gradient(135deg,#0F172A,#3B82F6);color:#fff;border-color:transparent;font-weight:800;letter-spacing:0.5px;">✦ v1.0</a>
       <button class="tbtn" onclick="openModal('system-status-modal')">📡 Status</button>
       <button class="tbtn primary" onclick="openModal('settings-modal')">⚙ Settings</button>
       <a href="{% url 'logout' %}" class="btn-logout">Logout</a>
     </div>
   </header>
 
-  <!-- Dynamic navbar — populated by JS from /api/devices/by-category/ -->
   <nav class="nav-bar">
     <ul class="nav-list" id="main-nav-list">
-      <!-- Loading placeholder -->
       <li class="nav-item" style="padding:0 18px;display:flex;align-items:center;">
         <span style="color:rgba(255,255,255,0.4);font-size:13px;">Loading devices…</span>
       </li>
@@ -249,23 +278,48 @@ tbody td{padding:10px 12px;border-bottom:1px solid var(--border);color:#000;font
     <div class="offline-bar" id="offline-bar">⚠ Offline — showing cached data.</div>
 
     <div class="kpi-strip">
-      <div class="kpi-card" style="--kpi-c:#10B981"><div class="kpi-label">Energy Today</div><div class="kpi-value" id="v-kwh">--</div><div class="kpi-unit">kWh consumed</div><div class="kpi-badge ok" id="b-kwh">LIVE</div></div>
-      <div class="kpi-card" style="--kpi-c:#F59E0B"><div class="kpi-label">Active Power</div><div class="kpi-value" id="v-kw">--</div><div class="kpi-unit">kilowatts</div><div class="kpi-badge ok" id="b-kw">LIVE</div></div>
-      <div class="kpi-card" style="--kpi-c:#8B5CF6"><div class="kpi-label">Apparent Power</div><div class="kpi-value" id="v-ap">--</div><div class="kpi-unit">kVA</div><div class="kpi-badge ok" id="b-ap">LIVE</div></div>
-      <div class="kpi-card" style="--kpi-c:#06B6D4"><div class="kpi-label">Current</div><div class="kpi-value" id="v-a">--</div><div class="kpi-unit">amperes</div><div class="kpi-badge ok" id="b-a">LIVE</div></div>
-      <div class="kpi-card" style="--kpi-c:#6366F1"><div class="kpi-label">Voltage</div><div class="kpi-value" id="v-v">--</div><div class="kpi-unit">volts</div><div class="kpi-badge ok" id="b-v">NORMAL</div></div>
+      <div class="kpi-card" style="--kpi-c:#10B981">
+        <div class="kpi-label">Energy This Week</div>
+        <div class="kpi-value" id="v-week">--</div>
+        <div class="kpi-unit">kWh</div>
+        <div class="kpi-badge ok" id="b-week">LIVE</div>
+      </div>
+      <div class="kpi-card" style="--kpi-c:#3B82F6">
+        <div class="kpi-label">Energy This Month</div>
+        <div class="kpi-value" id="v-month">--</div>
+        <div class="kpi-unit">kWh</div>
+        <div class="kpi-badge ok" id="b-month">LIVE</div>
+      </div>
+      <div class="kpi-card" style="--kpi-c:#F59E0B">
+        <div class="kpi-label">Energy This Year</div>
+        <div class="kpi-value" id="v-year">--</div>
+        <div class="kpi-unit">kWh</div>
+        <div class="kpi-badge ok" id="b-year">LIVE</div>
+      </div>
+      <div class="kpi-card" style="--kpi-c:#8B5CF6">
+        <div class="kpi-label">Lifetime Energy</div>
+        <div class="kpi-value" id="v-lifetime">--</div>
+        <div class="kpi-unit">kWh</div>
+        <div class="kpi-badge ok" id="b-lifetime">LIVE</div>
+      </div>
     </div>
 
-    <!-- CHART PANEL — identical structure to energy_dashboard.html -->
+    <div class="energy-period-tile">
+      <div class="energy-period-label" id="energy-period-label">Energy This Period – kWh Consumed</div>
+      <div style="display:flex;align-items:baseline;gap:8px;">
+        <div class="energy-period-value" id="v-period">--</div>
+        <span class="energy-period-unit">kWh</span>
+      </div>
+      <div class="energy-period-badge">LIVE</div>
+    </div>
+
     <div class="chart-panel">
       <div class="chart-header">
         <div>
           <div class="chart-title">
-            Power Streams
-            <span class="active-device-badge" id="active-device-badge">No Device Selected</span>
+            Showing <span id="chart-showing-label" style="color:#60A5FA;font-weight:900;margin-left:4px;">No Device Selected</span>
             <span class="graph-status-pill loading" id="gpill"><span class="spin"></span> Loading</span>
           </div>
-          <div class="chart-meta" id="chart-meta"></div>
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
@@ -285,7 +339,7 @@ tbody td{padding:10px 12px;border-bottom:1px solid var(--border);color:#000;font
         </div>
       </div>
       <div class="legend-row" id="legend-row"></div>
-      <div class="zoom-hint">🔍 Drag to zoom · Scroll/pinch to zoom · Drag-select a region to zoom in</div>
+      <div class="zoom-hint">🖱️ Point – Click – Drag to zoom into any region</div>
       <div class="chart-body" id="chartBody">
         <div class="yaxis-col" id="yaxisCol">
           <canvas id="yAxisChart"></canvas>
@@ -294,6 +348,10 @@ tbody td{padding:10px 12px;border-bottom:1px solid var(--border);color:#000;font
           <div class="graph-inner" id="graphInner">
             <canvas id="lineChart" role="img" aria-label="Power chart"></canvas>
             <div class="drag-zoom-overlay" id="dragZoomOverlay"></div>
+          </div>
+          <div class="graph-loading-overlay" id="graphLoadingOverlay">
+            <div class="glo-spinner"></div>
+            <div class="glo-msg" id="graphLoadingMsg">⚡ Charging up your energy insights...</div>
           </div>
           <div class="crosshair-v" id="crosshairV"></div>
           <div class="crosshair-h" id="crosshairH"></div>
@@ -306,7 +364,19 @@ tbody td{padding:10px 12px;border-bottom:1px solid var(--border);color:#000;font
       </div>
     </div>
 
-    <!-- TABLE -->
+    <div class="raw-data-panel">
+      <div class="raw-data-header">
+        <div class="raw-data-title">
+          📡 Current Status of all DERs
+          <span class="raw-der-label" id="rawDERLabel">All DERs</span>
+        </div>
+        <div class="raw-update-time" id="rawUpdateTime">—</div>
+      </div>
+      <div class="raw-data-scroll">
+        <div class="raw-grid" id="rawGrid"></div>
+      </div>
+    </div>
+
     <div class="tbl-panel">
       <div class="tbl-header">
         <div class="tbl-title">Complete Readings · <span id="tbl-device-label">No Device Selected</span></div>
@@ -329,7 +399,6 @@ tbody td{padding:10px 12px;border-bottom:1px solid var(--border);color:#000;font
 </div>
 </div>
 
-<!-- Settings modal -->
 <div class="overlay" id="settings-modal" onclick="if(event.target===this)closeModal('settings-modal')">
   <div class="modal">
     <div class="modal-title">Preferences</div>
@@ -340,7 +409,6 @@ tbody td{padding:10px 12px;border-bottom:1px solid var(--border);color:#000;font
   </div>
 </div>
 
-<!-- System status modal -->
 <div class="overlay" id="system-status-modal" onclick="if(event.target===this)closeModal('system-status-modal')">
   <div class="modal" style="max-width:460px;">
     <div class="modal-title">System Status</div>
@@ -355,14 +423,15 @@ tbody td{padding:10px 12px;border-bottom:1px solid var(--border);color:#000;font
 </div>
 
 <script>
-// ════════════════════════════════════════════════════════════════════════
-//  CHART HEIGHT CONSTANT — matches --CHART-H CSS var (300px)
-// ════════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
+// CONSTANTS
+// ════════════════════════════════════════════════════════════
 const CHART_H = 300;
-
 const API_BASE = window.location.origin;
+const MIN_PX_PER_POINT = 8;
+const MAX_PX_PER_POINT = 40;
+const CANVAS_MAX_PX    = 16000;
 
-// Category → navbar dot colour mapping
 const CATEGORY_COLORS = {
   'Meters':           '#EF4444',
   'Solar Generation': '#22C55E',
@@ -373,7 +442,17 @@ const CATEGORY_COLORS = {
   'Genset':           '#F08080',
 };
 
-// Category → emoji icon
+// Secondary shades for multi-device aggregate lines
+const CATEGORY_COLOR_PALETTES = {
+  'Meters':           ['#EF4444','#F87171','#FCA5A5','#DC2626','#B91C1C'],
+  'Solar Generation': ['#22C55E','#4ADE80','#86EFAC','#16A34A','#15803D'],
+  'Battery Power':    ['#FFFF00','#FDE047','#FEF08A','#EAB308','#CA8A04'],
+  'EV Charging':      ['#BD00FF','#A855F7','#C084FC','#9333EA','#7C3AED'],
+  'Building Load':    ['#FF4500','#F97316','#FB923C','#EA580C','#C2410C'],
+  'HVAC':             ['#00FFFF','#22D3EE','#67E8F9','#0891B2','#0E7490'],
+  'Genset':           ['#F08080','#FB923C','#FCA5A5','#EF4444','#DC2626'],
+};
+
 const CATEGORY_ICONS = {
   'Meters':           '🌐',
   'Solar Generation': '☀️',
@@ -384,43 +463,54 @@ const CATEGORY_ICONS = {
   'Genset':           '⚙️',
 };
 
-// ── Active state ──────────────────────────────────────────────────────
-let currentUnitId   = null;   // currently selected device unit_id
-let currentDeviceName = '';
-let currentCategory  = '';
-let currentPeriod   = 'today';
-let refreshInterval = 3000;
-let refreshTimer    = null;
-let graphTimer      = null;
-let state = { currency: '₹', unitRate: 0.14 };
+// ════════════════════════════════════════════════════════════
+// ACTIVE STATE
+// ════════════════════════════════════════════════════════════
+// mode: 'single' | 'aggregate'
+let selectionMode      = 'single';
+let currentUnitId      = null;      // single mode: the unit_id
+let currentDeviceName  = '';
+let currentCategory    = '';
+let aggDevices         = [];        // aggregate mode: [{unit_id, display_name, category}, ...]
+let currentPeriod      = 'today';
+let refreshInterval    = 3000;
+let refreshTimer       = null;
+let graphTimer         = null;
+let state              = { currency: '₹', unitRate: 0.14 };
 
-// ── Chart state (same as energy_dashboard.html) ───────────────────────
-const STREAM_ID = 'active_device';  // single stream for the active device
-const MIN_PX_PER_POINT = 8;
-const MAX_PX_PER_POINT = 40;
-const CANVAS_MAX_PX    = 16000;
-
-let mainChart = null;
-let yAxisChart = null;
+// ── Chart state ──
+let mainChart          = null;
+let yAxisChart         = null;
 let interactionsAttached = false;
-let allLabels = [];
-let allData   = {};   // { active_device: [...] }
+let allLabels          = [];
+// allData: { [streamKey]: number[] }
+// single: { 'u_<unitId>': [...] }
+// aggregate: { 'u_<unitId1>': [...], 'u_<unitId2>': [...], ... }
+let allData            = {};
 
-let isZoomed       = false;
-let zoomedStartIdx = 0;
-let zoomedEndIdx   = 0;
-let dragZoom       = { active: false, startX: 0, startDataIdx: -1, endDataIdx: -1 };
-let zoomRafId      = null;
-let isRendering    = false;
-let streamVisible  = { active_device: true };
+// activeStreams: [{ key, label, color, unit_id }]
+let activeStreams       = [];
 
-// ════════════════════════════════════════════════════════════════════════
-//  CANVAS SIZING — identical logic to energy_dashboard.html
-// ════════════════════════════════════════════════════════════════════════
+let isZoomed           = false;
+let zoomedStartIdx     = 0;
+let zoomedEndIdx       = 0;
+let dragZoom           = { active: false, startX: 0, startDataIdx: -1, endDataIdx: -1 };
+let zoomRafId          = null;
+let isRendering        = false;
+let streamVisible      = {};  // key → bool
+
+// ════════════════════════════════════════════════════════════
+// STREAM KEY HELPER
+// ════════════════════════════════════════════════════════════
+const streamKey = (unitId) => `u_${unitId}`;
+
+// ════════════════════════════════════════════════════════════
+// CANVAS SIZING
+// ════════════════════════════════════════════════════════════
 function applyCanvasSize(canvas, w) {
   if (!canvas) return;
-  canvas.width  = w;  canvas.height  = CHART_H;
-  canvas.style.width = w + 'px';  canvas.style.height = CHART_H + 'px';
+  canvas.width = w; canvas.height = CHART_H;
+  canvas.style.width = w + 'px'; canvas.style.height = CHART_H + 'px';
 }
 function resizeMainChart(newW) {
   if (!mainChart) return;
@@ -434,8 +524,8 @@ function syncYAxis() {
     if (!ys) return;
     yAxisChart.options.scales.y.min = ys.min;
     yAxisChart.options.scales.y.max = ys.max;
-    applyCanvasSize(yAxisChart.canvas, 100);
-    yAxisChart.resize(100, CHART_H);
+    applyCanvasSize(yAxisChart.canvas, 90);
+    yAxisChart.resize(90, CHART_H);
     yAxisChart.update('none');
   } catch(e) {}
 }
@@ -443,108 +533,97 @@ function getGraphColWidth() {
   const col = document.getElementById('graphCol');
   return (col && col.clientWidth > 0) ? col.clientWidth : 800;
 }
-function calcCanvasWidth(pointCount, forceFullFit) {
-  const areaW = getGraphColWidth();
-  if (!pointCount) return areaW;
-  if (forceFullFit) return areaW;
-  return Math.max(areaW, Math.min(pointCount * MIN_PX_PER_POINT, pointCount * MAX_PX_PER_POINT));
+function calcCanvasWidth(n, forceFullFit) {
+  const w = getGraphColWidth();
+  if (!n) return w;
+  if (forceFullFit) return w;
+  return Math.max(w, Math.min(n * MIN_PX_PER_POINT, n * MAX_PX_PER_POINT));
 }
 
-// ════════════════════════════════════════════════════════════════════════
-//  CREATE Y-AXIS CHART
-// ════════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
+// CREATE Y-AXIS CHART
+// ════════════════════════════════════════════════════════════
 function createYAxisChart() {
   const canvas = document.getElementById('yAxisChart');
   if (!canvas) return;
   if (yAxisChart) { yAxisChart.destroy(); yAxisChart = null; }
-  applyCanvasSize(canvas, 100);
+  applyCanvasSize(canvas, 90);
   yAxisChart = new Chart(canvas.getContext('2d'), {
-    type:'line',
-    data:{ labels:[''], datasets:[{ data:[0], borderColor:'transparent', pointRadius:0 }] },
-    options:{
-      responsive:false, maintainAspectRatio:false, animation:false,
-      plugins:{ legend:{display:false}, tooltip:{enabled:false} },
-      layout:{ padding:{ top:4, bottom:0, left:0, right:0 } },
-      scales:{
-        x:{ display:false },
-        y:{
-          position:'left',
-          grid:{ color:'rgba(255,255,255,0.06)', drawBorder:false },
-          ticks:{ color:'#fff', font:{size:10}, callback: v => v.toFixed(1)+' kW', maxTicksLimit:8 },
-          beginAtZero:true, border:{ display:false }
+    type: 'line',
+    data: { labels: [''], datasets: [{ data: [0], borderColor: 'transparent', pointRadius: 0 }] },
+    options: {
+      responsive: false, maintainAspectRatio: false, animation: false,
+      plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      layout: { padding: { top: 4, bottom: 0, left: 0, right: 2 } },
+      scales: {
+        x: { display: false },
+        y: {
+          position: 'left',
+          grid: { color: 'rgba(255,255,255,0.06)', drawBorder: false },
+          ticks: { color: '#fff', font: { size: 9 }, callback: v => v % 1 === 0 ? v + ' kW' : v.toFixed(1) + ' kW', maxTicksLimit: 7, padding: 4 },
+          afterFit(scale) { scale.width = 88; },
+          beginAtZero: true, border: { display: false }
         }
       }
     }
   });
 }
 
-// ════════════════════════════════════════════════════════════════════════
-//  CREATE MAIN CHART
-// ════════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
+// CREATE / REBUILD MAIN CHART — supports N datasets
+// ════════════════════════════════════════════════════════════
 function createMainChart(labels, data) {
   const canvas = document.getElementById('lineChart');
   const inner  = document.getElementById('graphInner');
   if (!canvas || !inner) return;
   if (mainChart) { mainChart.destroy(); mainChart = null; }
-
-  const color   = CATEGORY_COLORS[currentCategory] || '#3B82F6';
   const canvasW = Math.min(calcCanvasWidth(labels.length, true), CANVAS_MAX_PX);
   inner.style.width = canvasW + 'px';
   applyCanvasSize(canvas, canvasW);
-
   const showPts = labels.length <= 120;
-
+  const datasets = activeStreams.map(s => ({
+    label: s.label,
+    data: data[s.key] || [],
+    borderColor: s.color,
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    pointRadius: showPts ? 2.5 : 0,
+    pointHoverRadius: 5,
+    pointBackgroundColor: s.color,
+    fill: false, tension: 0.35,
+    hidden: !streamVisible[s.key],
+    spanGaps: false,
+  }));
   mainChart = new Chart(canvas.getContext('2d'), {
-    type:'line',
-    data:{
-      labels,
-      datasets:[{
-        label: currentDeviceName || `Unit ${currentUnitId}`,
-        data: data[STREAM_ID] || [],
-        borderColor: color,
-        backgroundColor:'transparent',
-        borderWidth:1.5,
-        pointRadius: showPts ? 2.5 : 0,
-        pointHoverRadius:5,
-        pointBackgroundColor: color,
-        fill:false, tension:0.35,
-        hidden:false, spanGaps:false,
-      }]
-    },
-    options:{
-      responsive:false, maintainAspectRatio:false, animation:false,
-      interaction:{ mode:'index', intersect:false },
-      plugins:{ legend:{display:false}, tooltip:{enabled:false} },
-      layout:{ padding:{ top:4, bottom:0, left:0, right:4 } },
-      scales:{
-        x:{
-          grid:{ color:'rgba(255,255,255,0.04)' },
-          ticks:{ color:'#fff', font:{size:10}, maxRotation:45, maxTicksLimit: Math.max(2, Math.floor(canvasW/65)) }
-        },
-        y:{
-          display:false,
-          grid:{ color:'rgba(255,255,255,0.06)' },
-          ticks:{ color:'#fff', callback: v => v.toFixed(1)+' kW' },
-          beginAtZero:true
-        }
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: false, maintainAspectRatio: false, animation: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      layout: { padding: { top: 4, bottom: 0, left: 0, right: 4 } },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#fff', font: { size: 10 }, maxRotation: 45, maxTicksLimit: Math.max(2, Math.floor(canvasW / 65)) } },
+        y: { display: false, grid: { color: 'rgba(255,255,255,0.06)' }, ticks: { color: '#fff', callback: v => v.toFixed(1) + ' kW' }, beginAtZero: true }
       }
     }
   });
   requestAnimationFrame(syncYAxis);
 }
 
-// ════════════════════════════════════════════════════════════════════════
-//  APPLY VIEW — identical logic to energy_dashboard.html
-// ════════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
+// APPLY VIEW — N-dataset aware
+// ════════════════════════════════════════════════════════════
 function applyView() {
   if (!mainChart || !allLabels.length) return;
   const TRAIL = isZoomed ? 0 : 5;
   let dispLabels, dispData;
   if (isZoomed) {
-    const si = Math.max(0, Math.min(zoomedStartIdx, allLabels.length-2));
-    const ei = Math.max(si+1, Math.min(zoomedEndIdx, allLabels.length-1));
-    dispLabels = allLabels.slice(si, ei+1);
-    dispData   = { [STREAM_ID]: (allData[STREAM_ID]||[]).slice(si, ei+1) };
+    const si = Math.max(0, Math.min(zoomedStartIdx, allLabels.length - 2));
+    const ei = Math.max(si + 1, Math.min(zoomedEndIdx, allLabels.length - 1));
+    dispLabels = allLabels.slice(si, ei + 1);
+    dispData = {};
+    activeStreams.forEach(s => { dispData[s.key] = (allData[s.key] || []).slice(si, ei + 1); });
   } else {
     dispLabels = allLabels; dispData = allData;
   }
@@ -553,11 +632,15 @@ function applyView() {
   const canvasW = Math.min(rawW, CANVAS_MAX_PX);
   const maxRenderPts = Math.floor(canvasW / 2);
   let renderLabels = paddedLabels;
-  let renderData   = { [STREAM_ID]: TRAIL > 0 ? [...(dispData[STREAM_ID]||[]), ...Array(TRAIL).fill(null)] : (dispData[STREAM_ID]||[]) };
+  let renderData = {};
+  activeStreams.forEach(s => {
+    const src = dispData[s.key] || [];
+    renderData[s.key] = TRAIL > 0 ? [...src, ...Array(TRAIL).fill(null)] : src;
+  });
   if (paddedLabels.length > maxRenderPts && maxRenderPts > 10) {
     const step = Math.ceil(paddedLabels.length / maxRenderPts);
-    renderLabels = paddedLabels.filter((_,i) => i % step === 0);
-    renderData[STREAM_ID] = renderData[STREAM_ID].filter((_,i) => i % step === 0);
+    renderLabels = paddedLabels.filter((_, i) => i % step === 0);
+    activeStreams.forEach(s => { renderData[s.key] = renderData[s.key].filter((_, i) => i % step === 0); });
   }
   const inner = document.getElementById('graphInner');
   const col   = document.getElementById('graphCol');
@@ -565,24 +648,27 @@ function applyView() {
   inner.style.width = canvasW + 'px';
   const showPts = renderLabels.length <= 120;
   mainChart.data.labels = renderLabels;
-  mainChart.data.datasets[0].data        = renderData[STREAM_ID] || [];
-  mainChart.data.datasets[0].pointRadius = showPts ? 2.5 : 0;
-  mainChart.options.scales.x.ticks.maxTicksLimit = Math.max(2, Math.floor(canvasW/65));
+  activeStreams.forEach((s, i) => {
+    if (!mainChart.data.datasets[i]) return;
+    mainChart.data.datasets[i].data = renderData[s.key] || [];
+    mainChart.data.datasets[i].pointRadius = showPts ? 2.5 : 0;
+    mainChart.data.datasets[i].hidden = !streamVisible[s.key];
+  });
+  mainChart.options.scales.x.ticks.maxTicksLimit = Math.max(2, Math.floor(canvasW / 65));
   resizeMainChart(canvasW);
   mainChart.update('none');
   requestAnimationFrame(() => { if (col && isZoomed) col.scrollLeft = savedScroll; syncYAxis(); });
 }
 
-// ════════════════════════════════════════════════════════════════════════
-//  ZOOM HELPERS — identical to energy_dashboard.html
-// ════════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
+// ZOOM HELPERS
+// ════════════════════════════════════════════════════════════
 function setResetZoomVisible(v) { document.getElementById('resetZoomBtn')?.classList.toggle('visible', v); }
-function pixelToDataIndex(absPixelX) {
+function pixelToDataIndex(absX) {
   if (!mainChart || !allLabels.length) return -1;
   const inner = document.getElementById('graphInner');
-  const ratio = Math.max(0, Math.min(1, absPixelX / inner.offsetWidth));
-  if (isZoomed) return Math.round(zoomedStartIdx + ratio * (zoomedEndIdx - zoomedStartIdx));
-  return Math.round(ratio * (allLabels.length - 1));
+  const ratio = Math.max(0, Math.min(1, absX / inner.offsetWidth));
+  return isZoomed ? Math.round(zoomedStartIdx + ratio * (zoomedEndIdx - zoomedStartIdx)) : Math.round(ratio * (allLabels.length - 1));
 }
 function resetZoom() {
   isZoomed = false; setResetZoomVisible(false);
@@ -592,394 +678,607 @@ function resetZoom() {
   applyView();
 }
 
-// ════════════════════════════════════════════════════════════════════════
-//  CHART INTERACTIONS — identical to energy_dashboard.html
-// ════════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
+// CHART INTERACTIONS — N-dataset aware
+// ════════════════════════════════════════════════════════════
 function attachChartInteractions() {
   if (interactionsAttached) return;
   interactionsAttached = true;
   const col = document.getElementById('graphCol');
   if (!col) return;
   let lastPinch = null;
-  col.addEventListener('touchstart', e => { if (e.touches.length===2) lastPinch=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY); },{passive:true});
+  col.addEventListener('touchstart', e => { if (e.touches.length === 2) lastPinch = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); }, { passive: true });
   col.addEventListener('touchmove', e => {
-    if (e.touches.length!==2||lastPinch===null) return;
-    const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
-    const factor=lastPinch/d; lastPinch=d;
-    const inner=document.getElementById('graphInner'), curW=inner.offsetWidth, newW=Math.max(getGraphColWidth(),curW*(2-factor));
-    if (Math.abs(newW-curW)>2){isZoomed=true;setResetZoomVisible(true);}
-    inner.style.width=newW+'px'; scheduleZoomRedraw(newW);
-  },{passive:true});
-  col.addEventListener('touchend',()=>{lastPinch=null;},{passive:true});
+    if (e.touches.length !== 2 || lastPinch === null) return;
+    const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY), factor = lastPinch / d; lastPinch = d;
+    const inner = document.getElementById('graphInner'), curW = inner.offsetWidth, newW = Math.max(getGraphColWidth(), curW * (2 - factor));
+    if (Math.abs(newW - curW) > 2) { isZoomed = true; setResetZoomVisible(true); }
+    inner.style.width = newW + 'px'; scheduleZoomRedraw(newW);
+  }, { passive: true });
+  col.addEventListener('touchend', () => { lastPinch = null; }, { passive: true });
   col.addEventListener('wheel', e => {
-    if (Math.abs(e.deltaX)>Math.abs(e.deltaY)) return;
-    const isIntentionalZoom=e.ctrlKey||e.metaKey||Math.abs(e.deltaY)>50;
-    if (!isIntentionalZoom) return;
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+    const ok = e.ctrlKey || e.metaKey || Math.abs(e.deltaY) > 50; if (!ok) return;
     e.preventDefault();
-    const inner=document.getElementById('graphInner'), curW=inner.offsetWidth, factor=e.deltaY<0?1.15:(1/1.15);
-    const newW=Math.max(getGraphColWidth(),Math.min(allLabels.length*MAX_PX_PER_POINT,curW*factor));
-    if (newW===curW) return;
-    isZoomed=true; setResetZoomVisible(true);
-    const rect=col.getBoundingClientRect(), relX=(e.clientX-rect.left+col.scrollLeft)/curW;
-    inner.style.width=newW+'px'; col.scrollLeft=relX*newW-(e.clientX-rect.left);
-    scheduleZoomRedraw(newW);
-  },{passive:false});
-  const overlay=document.getElementById('dragZoomOverlay');
+    const inner = document.getElementById('graphInner'), curW = inner.offsetWidth, factor = e.deltaY < 0 ? 1.15 : (1 / 1.15);
+    const newW = Math.max(getGraphColWidth(), Math.min(allLabels.length * MAX_PX_PER_POINT, curW * factor)); if (newW === curW) return;
+    isZoomed = true; setResetZoomVisible(true);
+    const rect = col.getBoundingClientRect(), relX = (e.clientX - rect.left + col.scrollLeft) / curW;
+    inner.style.width = newW + 'px'; col.scrollLeft = relX * newW - (e.clientX - rect.left); scheduleZoomRedraw(newW);
+  }, { passive: false });
+  const overlay = document.getElementById('dragZoomOverlay');
   col.addEventListener('mousedown', e => {
-    if (e.button!==0) return;
-    const rect=col.getBoundingClientRect(), absX=e.clientX-rect.left+col.scrollLeft;
-    dragZoom.active=true; dragZoom.startX=absX; dragZoom.startDataIdx=pixelToDataIndex(absX); dragZoom.endDataIdx=dragZoom.startDataIdx;
-    dragZoom._startClientX=e.clientX; dragZoom._startClientY=e.clientY;
-    overlay.style.cssText=`display:none;left:${absX}px;width:0;top:0;height:100%;`;
+    if (e.button !== 0) return;
+    const rect = col.getBoundingClientRect(), absX = e.clientX - rect.left + col.scrollLeft;
+    dragZoom.active = true; dragZoom.startX = absX; dragZoom.startDataIdx = pixelToDataIndex(absX); dragZoom.endDataIdx = dragZoom.startDataIdx;
+    dragZoom._startClientX = e.clientX; dragZoom._startClientY = e.clientY;
+    overlay.style.cssText = `display:none;left:${absX}px;width:0;top:0;height:100%;`;
   });
   col.addEventListener('mousemove', e => {
-    const rect=col.getBoundingClientRect(), x=e.clientX-rect.left, y=e.clientY-rect.top, absX=x+col.scrollLeft;
+    const rect = col.getBoundingClientRect(), x = e.clientX - rect.left, y = e.clientY - rect.top, absX = x + col.scrollLeft;
     if (dragZoom.active) {
-      const dx=Math.abs(e.clientX-dragZoom._startClientX), dy=Math.abs(e.clientY-dragZoom._startClientY);
-      if (dx>8&&dx>dy*1.5) {
-        const l=Math.min(dragZoom.startX,absX), w=Math.abs(absX-dragZoom.startX);
-        overlay.style.display='block'; overlay.style.left=l+'px'; overlay.style.width=w+'px';
-        dragZoom.endDataIdx=pixelToDataIndex(absX); dragZoom._isDragging=true;
-      }
-      updateCrosshair(null,null,-1); return;
+      const dx = Math.abs(e.clientX - dragZoom._startClientX), dy = Math.abs(e.clientY - dragZoom._startClientY);
+      if (dx > 8 && dx > dy * 1.5) { const l = Math.min(dragZoom.startX, absX), w = Math.abs(absX - dragZoom.startX); overlay.style.display = 'block'; overlay.style.left = l + 'px'; overlay.style.width = w + 'px'; dragZoom.endDataIdx = pixelToDataIndex(absX); dragZoom._isDragging = true; }
+      updateCrosshair(null, null, -1); return;
     }
     if (!mainChart) return;
-    const cnt=(mainChart.data.labels||[]).length;
-    if (cnt>0) { const inner=document.getElementById('graphInner'), ratio=Math.max(0,Math.min(1,absX/inner.offsetWidth)); updateCrosshair(x,y,Math.round(ratio*(cnt-1))); }
+    const cnt = (mainChart.data.labels || []).length;
+    if (cnt > 0) { const inner = document.getElementById('graphInner'), ratio = Math.max(0, Math.min(1, absX / inner.offsetWidth)); updateCrosshair(x, y, Math.round(ratio * (cnt - 1))); }
   });
   col.addEventListener('mouseup', e => {
-    if (!dragZoom.active) return;
-    dragZoom.active=false; overlay.style.display='none';
-    if (!dragZoom._isDragging){dragZoom._isDragging=false;return;} dragZoom._isDragging=false;
-    const rect=col.getBoundingClientRect(), absX=e.clientX-rect.left+col.scrollLeft, endIdx=pixelToDataIndex(absX);
-    const si=Math.min(dragZoom.startDataIdx,endIdx), ei=Math.max(dragZoom.startDataIdx,endIdx);
-    if (ei-si<4) return;
-    isZoomed=true; zoomedStartIdx=si; zoomedEndIdx=ei; setResetZoomVisible(true);
-    const sliceLabels=allLabels.slice(si,ei+1), sliceData={ [STREAM_ID]:(allData[STREAM_ID]||[]).slice(si,ei+1) };
-    const zoomW=Math.min(Math.max(getGraphColWidth(),sliceLabels.length*20),CANVAS_MAX_PX);
-    const maxPts=Math.floor(zoomW/2); let renderLabels=sliceLabels, renderData=sliceData;
-    if (sliceLabels.length>maxPts&&maxPts>10){const step=Math.ceil(sliceLabels.length/maxPts);renderLabels=sliceLabels.filter((_,i)=>i%step===0);renderData[STREAM_ID]=renderData[STREAM_ID].filter((_,i)=>i%step===0);}
-    const inner=document.getElementById('graphInner'); inner.style.width=zoomW+'px';
-    mainChart.data.labels=renderLabels; mainChart.data.datasets[0].data=renderData[STREAM_ID]||[]; mainChart.data.datasets[0].pointRadius=renderLabels.length<=120?2.5:0;
-    mainChart.options.scales.x.ticks.maxTicksLimit=Math.max(2,Math.floor(zoomW/65));
+    if (!dragZoom.active) return; dragZoom.active = false; overlay.style.display = 'none';
+    if (!dragZoom._isDragging) { dragZoom._isDragging = false; return; } dragZoom._isDragging = false;
+    const rect = col.getBoundingClientRect(), absX = e.clientX - rect.left + col.scrollLeft, endIdx = pixelToDataIndex(absX);
+    const si = Math.min(dragZoom.startDataIdx, endIdx), ei = Math.max(dragZoom.startDataIdx, endIdx); if (ei - si < 4) return;
+    isZoomed = true; zoomedStartIdx = si; zoomedEndIdx = ei; setResetZoomVisible(true);
+    const sliceLabels = allLabels.slice(si, ei + 1);
+    const sliceData = {};
+    activeStreams.forEach(s => { sliceData[s.key] = (allData[s.key] || []).slice(si, ei + 1); });
+    const zoomW = Math.min(Math.max(getGraphColWidth(), sliceLabels.length * 20), CANVAS_MAX_PX), maxPts = Math.floor(zoomW / 2);
+    let rL = sliceLabels, rD = sliceData;
+    if (sliceLabels.length > maxPts && maxPts > 10) { const step = Math.ceil(sliceLabels.length / maxPts); rL = sliceLabels.filter((_, i) => i % step === 0); activeStreams.forEach(s => { rD[s.key] = (sliceData[s.key] || []).filter((_, i) => i % step === 0); }); }
+    const inner = document.getElementById('graphInner'); inner.style.width = zoomW + 'px';
+    mainChart.data.labels = rL;
+    activeStreams.forEach((s, i) => { if (!mainChart.data.datasets[i]) return; mainChart.data.datasets[i].data = rD[s.key] || []; mainChart.data.datasets[i].pointRadius = rL.length <= 120 ? 2.5 : 0; });
+    mainChart.options.scales.x.ticks.maxTicksLimit = Math.max(2, Math.floor(zoomW / 65));
     resizeMainChart(zoomW); mainChart.update('none');
-    requestAnimationFrame(()=>{ syncYAxis(); col.scrollLeft=0; });
+    requestAnimationFrame(() => { syncYAxis(); col.scrollLeft = 0; });
   });
-  col.addEventListener('mouseleave',()=>{ if(dragZoom.active){dragZoom.active=false;overlay.style.display='none';} updateCrosshair(null,null,-1); });
+  col.addEventListener('mouseleave', () => { if (dragZoom.active) { dragZoom.active = false; overlay.style.display = 'none'; } updateCrosshair(null, null, -1); });
 }
 
 function scheduleZoomRedraw(newW) {
   if (zoomRafId) cancelAnimationFrame(zoomRafId);
-  zoomRafId=requestAnimationFrame(()=>{
-    if (!mainChart||isRendering){zoomRafId=null;return;} isRendering=true;
-    const pts=allLabels.length, showPts=(newW/(pts||1))>10, maxPts=Math.floor(newW/2);
-    if (mainChart.options.scales?.x) mainChart.options.scales.x.ticks.maxTicksLimit=Math.max(2,Math.floor(newW/65));
-    if (pts>maxPts&&maxPts>10){const step=Math.ceil(pts/maxPts);mainChart.data.labels=allLabels.filter((_,i)=>i%step===0);mainChart.data.datasets[0].data=(allData[STREAM_ID]||[]).filter((_,i2)=>i2%step===0);mainChart.data.datasets[0].pointRadius=showPts?3:0;}
-    else{mainChart.data.labels=allLabels;mainChart.data.datasets[0].data=allData[STREAM_ID]||[];mainChart.data.datasets[0].pointRadius=showPts?3:0;}
+  zoomRafId = requestAnimationFrame(() => {
+    if (!mainChart || isRendering) { zoomRafId = null; return; } isRendering = true;
+    const pts = allLabels.length, showPts = (newW / (pts || 1)) > 10, maxPts = Math.floor(newW / 2);
+    if (mainChart.options.scales?.x) mainChart.options.scales.x.ticks.maxTicksLimit = Math.max(2, Math.floor(newW / 65));
+    if (pts > maxPts && maxPts > 10) {
+      const step = Math.ceil(pts / maxPts);
+      mainChart.data.labels = allLabels.filter((_, i) => i % step === 0);
+      activeStreams.forEach((s, i) => { if (!mainChart.data.datasets[i]) return; mainChart.data.datasets[i].data = (allData[s.key] || []).filter((_, j) => j % step === 0); mainChart.data.datasets[i].pointRadius = showPts ? 3 : 0; });
+    } else {
+      mainChart.data.labels = allLabels;
+      activeStreams.forEach((s, i) => { if (!mainChart.data.datasets[i]) return; mainChart.data.datasets[i].data = allData[s.key] || []; mainChart.data.datasets[i].pointRadius = showPts ? 3 : 0; });
+    }
     resizeMainChart(newW); mainChart.update('none');
-    requestAnimationFrame(()=>{syncYAxis();isRendering=false;}); zoomRafId=null;
+    requestAnimationFrame(() => { syncYAxis(); isRendering = false; }); zoomRafId = null;
   });
 }
 
-// ════════════════════════════════════════════════════════════════════════
-//  CROSSHAIR + TOOLTIP
-// ════════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
+// CROSSHAIR + TOOLTIP — N-dataset aware
+// ════════════════════════════════════════════════════════════
 function updateCrosshair(x, y, idx) {
-  const cv=document.getElementById('crosshairV'), ch=document.getElementById('crosshairH');
-  const ft=document.getElementById('floatingTooltip'), col=document.getElementById('graphCol');
-  if (x===null){cv.style.display='none';ch.style.display='none';ft.classList.remove('show');return;}
-  cv.style.cssText=`display:block;left:${x}px;top:0;height:100%;`;
-  ch.style.cssText=`display:block;top:${y}px;left:0;width:${col.clientWidth}px;`;
-  if (mainChart&&idx>=0&&mainChart.data.labels[idx]) {
-    const color=CATEGORY_COLORS[currentCategory]||'#3B82F6';
-    const v=mainChart.data.datasets[0]?.data?.[idx];
-    let html=`<div class="ftt-time">${mainChart.data.labels[idx]}</div>`;
-    if (v!=null) html+=`<div class="ftt-row"><div class="ftt-name"><div class="ftt-dot" style="background:${color}"></div>${currentDeviceName||'Unit '+currentUnitId}</div><div class="ftt-val">${parseFloat(v).toFixed(2)} kW</div></div>`;
-    ft.innerHTML=html; ft.classList.add('show');
-    const fw=ft.offsetWidth||180,fh=ft.offsetHeight||80,aw=col.clientWidth,ah=col.clientHeight;
-    let lx=x+12; if(lx+fw>aw-4) lx=x-fw-12;
-    let ty=y-fh-12; if(ty<4) ty=y+12;
-    ft.style.left=Math.max(4,Math.min(lx,aw-fw-4))+'px'; ft.style.top=Math.max(4,Math.min(ty,ah-fh-4))+'px';
+  const cv = document.getElementById('crosshairV'), ch = document.getElementById('crosshairH');
+  const ft = document.getElementById('floatingTooltip'), col = document.getElementById('graphCol');
+  if (x === null) { cv.style.display = 'none'; ch.style.display = 'none'; ft.classList.remove('show'); return; }
+  cv.style.cssText = `display:block;left:${x}px;top:0;height:100%;`;
+  ch.style.cssText = `display:block;top:${y}px;left:0;width:${col.clientWidth}px;`;
+  if (mainChart && idx >= 0 && mainChart.data.labels[idx]) {
+    let html = `<div class="ftt-time">${mainChart.data.labels[idx]}</div>`;
+    activeStreams.forEach((s, i) => {
+      if (!streamVisible[s.key]) return;
+      const v = mainChart.data.datasets[i]?.data?.[idx];
+      if (v != null) html += `<div class="ftt-row"><div class="ftt-name"><div class="ftt-dot" style="background:${s.color}"></div>${s.label}</div><div class="ftt-val">${parseFloat(v).toFixed(2)} kW</div></div>`;
+    });
+    ft.innerHTML = html; ft.classList.add('show');
+    const fw = ft.offsetWidth || 180, fh = ft.offsetHeight || 80, aw = col.clientWidth, ah = col.clientHeight;
+    let lx = x + 12; if (lx + fw > aw - 4) lx = x - fw - 12;
+    let ty = y - fh - 12; if (ty < 4) ty = y + 12;
+    ft.style.left = Math.max(4, Math.min(lx, aw - fw - 4)) + 'px'; ft.style.top = Math.max(4, Math.min(ty, ah - fh - 4)) + 'px';
   }
 }
 
-// ════════════════════════════════════════════════════════════════════════
-//  DATA HELPERS — identical to energy_dashboard.html
-// ════════════════════════════════════════════════════════════════════════
-function padTodayLabels(rawLabels, rawValues) {
-  if (!rawLabels.length) return { paddedLabels:[], paddedData:{} };
-  const toMin=hhmm=>{const[h,m]=hhmm.split(':').map(Number);return h*60+m;};
-  const fmMin=m=>String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
-  const end=toMin(rawLabels[rawLabels.length-1]);
-  const full=[]; for(let i=0;i<=end;i++) full.push(fmMin(i));
-  const map={}; rawLabels.forEach((l,i)=>{map[l]=rawValues[i];});
-  return { paddedLabels:full, paddedData:{ [STREAM_ID]: full.map(l=>map[l]??null) } };
+// ════════════════════════════════════════════════════════════
+// DATA HELPERS
+// ════════════════════════════════════════════════════════════
+function padTodayLabels(rawLabels, rawValuesMap) {
+  if (!rawLabels.length) return { paddedLabels: [], paddedData: {} };
+  const toMin = hhmm => { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m; };
+  const fmMin = m => String(Math.floor(m / 60) % 24).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+  const end = toMin(rawLabels[rawLabels.length - 1]);
+  const full = []; for (let i = 0; i <= end; i++) full.push(fmMin(i));
+  const paddedData = {};
+  Object.entries(rawValuesMap).forEach(([key, values]) => {
+    const map = {}; rawLabels.forEach((l, i) => { map[l] = values[i]; });
+    paddedData[key] = full.map(l => map[l] ?? null);
+  });
+  return { paddedLabels: full, paddedData };
 }
 
-// ════════════════════════════════════════════════════════════════════════
-//  FETCH GRAPH DATA — uses currently selected device's unit_id
-// ════════════════════════════════════════════════════════════════════════
-async function fetchGraphData(period='today', fromDate=null, toDate=null) {
-  if (!currentUnitId) { showChartEmpty(true, 'Select a device from the navbar'); setGPill('nodata','No device'); return; }
-  setGPill('loading','Loading…'); showChartEmpty(false);
-  try {
-    let url=`${API_BASE}/api/readings/graph/?unit_id=${currentUnitId}&period=${period}`;
-    if (fromDate&&toDate) url=`${API_BASE}/api/readings/graph/?unit_id=${currentUnitId}&from=${fromDate}&to=${toDate}`;
-    const res=await fetch(url); if(!res.ok) throw new Error();
-    const data=await res.json();
-    const rawLabels=data.labels||[], rawValues=data.values||[];
-    if (!rawLabels.length||!rawValues.some(v=>v>0)) {
-      showChartEmpty(true,'No data for this period'); setGPill('nodata','No data');
-      if (mainChart){mainChart.data.labels=[];mainChart.data.datasets[0].data=[];mainChart.update();}
-      return;
-    }
-    let finalLabels, finalData;
-    if (period==='today') {
-      const {paddedLabels,paddedData}=padTodayLabels(rawLabels,rawValues.map(v=>Math.max(0,parseFloat((+v).toFixed(3)))));
-      finalLabels=paddedLabels; finalData=paddedData;
-    } else {
-      finalLabels=rawLabels; finalData={ [STREAM_ID]: rawValues.map(v=>Math.max(0,parseFloat((+v).toFixed(3)))) };
-    }
-    let prevStart=null, prevEnd=null;
-    if (isZoomed&&allLabels.length){prevStart=allLabels[Math.min(zoomedStartIdx,allLabels.length-1)];prevEnd=allLabels[Math.min(zoomedEndIdx,allLabels.length-1)];}
-    allLabels=finalLabels; allData=finalData;
-    if (!mainChart){createMainChart(finalLabels,finalData);attachChartInteractions();}
-    else {
-      // Update dataset color and label if device changed
-      const color=CATEGORY_COLORS[currentCategory]||'#3B82F6';
-      mainChart.data.datasets[0].borderColor=color; mainChart.data.datasets[0].pointBackgroundColor=color;
-      mainChart.data.datasets[0].label=currentDeviceName||`Unit ${currentUnitId}`;
-    }
-    if (prevStart&&prevEnd){const si=finalLabels.indexOf(prevStart),ei=finalLabels.indexOf(prevEnd);if(si!==-1&&ei!==-1&&ei>si){zoomedStartIdx=si;zoomedEndIdx=ei;}else{isZoomed=false;setResetZoomVisible(false);}}
-    applyView();
-    const peak=Math.max(...(finalData[STREAM_ID]||[]).filter(v=>v!=null)).toFixed(1);
-    document.getElementById('chart-meta').textContent=`${rawLabels.length} readings · Peak ${peak} kW · EST`;
-    setGPill('live',`${rawLabels.length} pts`);
-  } catch(e){ showChartEmpty(true,'Error loading data'); setGPill('nodata','Error'); }
+function updateEnergyPeriodLabel() {
+  const el = document.getElementById('energy-period-label'); if (!el) return;
+  el.textContent = currentCategory === 'Solar Generation' ? 'Energy This Period – kWh Generated' : 'Energy This Period – kWh Consumed';
 }
 
-// ════════════════════════════════════════════════════════════════════════
-//  LIVE DATA — fetches for currently selected device
-// ════════════════════════════════════════════════════════════════════════
-async function fetchLiveData() {
-  if (!currentUnitId) return;
-  try {
-    const res=await fetch(`${API_BASE}/api/readings/latest/?unit_id=${currentUnitId}`);
-    if (!res.ok) throw new Error();
-    const d=await res.json();
-    if (d.status==='online'||d.status==='stale') {
-      document.getElementById('v-kw').textContent  =(d.active_power_kw??0).toFixed(1);
-      document.getElementById('v-kwh').textContent =(d.energy_today_kwh??0).toFixed(1);
-      document.getElementById('v-v').textContent   =(d.voltage??0).toFixed(1);
-      document.getElementById('v-a').textContent   =(d.current??0).toFixed(1);
-      document.getElementById('v-ap').textContent  =(d.apparent_power_kva??0).toFixed(1);
-      setOnlineStatus('online');
-      const stale=d.status==='stale';
-      ['b-kw','b-kwh','b-v','b-a','b-ap'].forEach(id=>{const el=document.getElementById(id);if(el){el.className='kpi-badge '+(stale?'stale':'ok');el.textContent=stale?'STALE':'LIVE';}});
-      document.getElementById('offline-bar').classList.remove('show');
-    } else { setOnlineStatus('offline'); document.getElementById('offline-bar').classList.add('show'); }
-  } catch(e){ setOnlineStatus('offline'); document.getElementById('offline-bar').classList.add('show'); }
-}
-
-// ════════════════════════════════════════════════════════════════════════
-//  RECENT TABLE — fetches for currently selected device
-// ════════════════════════════════════════════════════════════════════════
-async function fetchRecent() {
-  if (!currentUnitId) return;
-  try {
-    const res=await fetch(`${API_BASE}/api/readings/recent/?unit_id=${currentUnitId}&limit=200`);
-    if (!res.ok) throw new Error();
-    const rows=await res.json();
-    const tb=document.getElementById('tBody');
-    if (!rows||!rows.length){tb.innerHTML='<tr><td colspan="29" style="text-align:center;padding:16px">No data</td></tr>';return;}
-    const f=(v,d=2)=>(v!=null&&!isNaN(v))?(+v).toFixed(d):'—';
-    tb.innerHTML=rows.map(r=>`<tr>
-      <td>${r.time||'—'}</td><td>${f(r.kw)}</td><td>${f(r.voltage,1)}</td><td>${f(r.current,1)}</td>
-      <td>${f(r.energy)}</td><td>${f(r.pf,3)}</td>
-      <td><span class="stbadge ${r.status==='ok'?'ok':'warn'}">${r.status==='ok'?'Online':'⚠ '+r.status}</span></td>
-      <td>${f(r.v_an,1)}</td><td>${f(r.v_bn,1)}</td><td>${f(r.v_cn,1)}</td><td>${f(r.v_avg_ln,1)}</td>
-      <td>${f(r.v_ab,1)}</td><td>${f(r.v_bc,1)}</td><td>${f(r.v_ca,1)}</td><td>${f(r.v_avg_ll,1)}</td>
-      <td>${f(r.i_a)}</td><td>${f(r.i_b)}</td><td>${f(r.i_c)}</td><td>${f(r.i_avg)}</td>
-      <td>${f(r.i_demand)}</td><td>${f(r.i_peak)}</td><td>${f(r.i_neutral)}</td>
-      <td>${f(r.frequency)}</td><td>${f(r.pf_a,3)}</td><td>${f(r.pf_b,3)}</td><td>${f(r.pf_c,3)}</td>
-      <td>${f(r.kvar)}</td><td>${f(r.kva)}</td>
-    </tr>`).join('');
-  } catch(e){document.getElementById('tBody').innerHTML='<tr><td colspan="29" style="text-align:center;padding:16px">Failed to load</td></tr>';}
-}
-
-// ════════════════════════════════════════════════════════════════════════
-//  LEGEND — single stream
-// ════════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
+// BUILD LEGEND — N-dataset aware, click to toggle visibility
+// ════════════════════════════════════════════════════════════
 function buildLegend() {
-  const row=document.getElementById('legend-row'); row.innerHTML='';
-  if (!currentUnitId) return;
-  const color=CATEGORY_COLORS[currentCategory]||'#3B82F6';
-  const label=currentDeviceName||`Unit ${currentUnitId}`;
-  const el=document.createElement('div'); el.className='legend-item';
-  el.innerHTML=`<div class="legend-dot" style="background:${color}"></div>${label} <span style="font-size:10px;opacity:0.5;margin-left:4px;">${currentCategory}</span>`;
-  row.appendChild(el);
+  const row = document.getElementById('legend-row'); row.innerHTML = '';
+  activeStreams.forEach(s => {
+    const el = document.createElement('div');
+    el.className = 'legend-item' + (streamVisible[s.key] ? '' : ' hidden');
+    el.id = 'leg-' + s.key;
+    el.innerHTML = `<div class="legend-dot" style="background:${s.color}"></div>${s.label} <span style="font-size:10px;opacity:0.5;margin-left:4px;">${s.category || currentCategory}</span>`;
+    el.onclick = () => toggleStream(s.key);
+    row.appendChild(el);
+  });
 }
 
-// ════════════════════════════════════════════════════════════════════════
-//  SELECT DEVICE — called when user clicks a device in the navbar
-// ════════════════════════════════════════════════════════════════════════
-function selectDevice(unitId, displayName, category) {
-  if (currentUnitId === unitId) return;   // already selected
-  currentUnitId    = unitId;
-  currentDeviceName = displayName;
-  currentCategory  = category;
+function toggleStream(key) {
+  streamVisible[key] = !streamVisible[key];
+  document.getElementById('leg-' + key)?.classList.toggle('hidden', !streamVisible[key]);
+  if (!mainChart) return;
+  const idx = activeStreams.findIndex(s => s.key === key);
+  if (idx >= 0) mainChart.getDatasetMeta(idx).hidden = !streamVisible[key];
+  mainChart.update(); syncYAxis();
+}
 
-  // Update UI labels
-  document.getElementById('topbar-device-label').textContent = `Real-time · ${displayName} · v2.0`;
-  document.getElementById('active-device-badge').textContent = displayName;
-  document.getElementById('tbl-device-label').textContent    = displayName;
 
-  // Reset chart state
-  isZoomed=false; setResetZoomVisible(false); allLabels=[]; allData={};
-  if (mainChart){mainChart.destroy();mainChart=null;}
+const LOADING_MESSAGES = [
+  '⚡ Charging up your energy insights...',
+  '📡 Receiving live meter signals...',
+  '📊 Turning data into decisions...',
+  '🔍 Discovering hidden energy trends...',
+  '🚀 Launching your dashboard...',
+  '💡 Illuminating your energy story...',
+  '📈 Crafting powerful visualizations...',
+  '🌍 Tracking every watt that matters...',
+];
+function showGraphLoading(show) {
+  const overlay = document.getElementById('graphLoadingOverlay');
+  const msg     = document.getElementById('graphLoadingMsg');
+  if (!overlay) return;
+  if (show) {
+    msg.textContent = LOADING_MESSAGES[Math.floor(Math.random() * LOADING_MESSAGES.length)];
+    overlay.classList.add('show');
+  } else {
+    overlay.classList.remove('show');
+  }
+}
 
+// ════════════════════════════════════════════════════════════
+// FETCH GRAPH DATA — single or aggregate
+// ════════════════════════════════════════════════════════════
+async function fetchGraphData(period = 'today', fromDate = null, toDate = null) {
+  if (!activeStreams.length) { showChartEmpty(true, 'Select a device from the navbar'); setGPill('nodata', 'No device'); return; }
+  showGraphLoading(true);
+  setGPill('loading', 'Loading…'); showChartEmpty(false);
+  try {
+    // Fetch all streams in parallel
+    const fetches = activeStreams.map(s => {
+      let url = `${API_BASE}/api/readings/graph/?unit_id=${s.unit_id}&period=${period}`;
+      if (fromDate && toDate) url = `${API_BASE}/api/readings/graph/?unit_id=${s.unit_id}&from=${fromDate}&to=${toDate}`;
+      return fetch(url).then(r => r.ok ? r.json() : { labels: [], values: [] }).catch(() => ({ labels: [], values: [] }));
+    });
+    const results = await Promise.all(fetches);
+
+    // Build master labels = longest set
+    let masterLabels = [];
+    results.forEach(r => { if ((r.labels || []).length > masterLabels.length) masterLabels = r.labels; });
+
+    if (!masterLabels.length) { showChartEmpty(true, 'No data for this period'); setGPill('nodata', 'No data'); showGraphLoading(false);  return; }
+
+    // Build raw data map: key → values aligned to masterLabels
+    const rawMultiData = {};
+    activeStreams.forEach((s, i) => {
+      const map = {}; (results[i].labels || []).forEach((l, j) => { map[l] = results[i].values[j]; });
+      rawMultiData[s.key] = masterLabels.map(l => { const v = map[l]; return v != null ? Math.max(0, parseFloat((+v).toFixed(3))) : null; });
+    });
+
+    let finalLabels, finalData;
+    if (period === 'today') {
+      const { paddedLabels, paddedData } = padTodayLabels(masterLabels, rawMultiData);
+      finalLabels = paddedLabels; finalData = paddedData;
+    } else {
+      finalLabels = masterLabels; finalData = rawMultiData;
+    }
+
+    allLabels = finalLabels; allData = finalData;
+
+    if (!mainChart) {
+      createMainChart(finalLabels, finalData);
+      attachChartInteractions();
+    } else {
+      // Update existing chart datasets to match active streams
+      if (mainChart.data.datasets.length !== activeStreams.length) {
+        // Stream count changed — rebuild chart
+        createMainChart(finalLabels, finalData);
+      } else {
+        activeStreams.forEach((s, i) => {
+          mainChart.data.datasets[i].borderColor = s.color;
+          mainChart.data.datasets[i].pointBackgroundColor = s.color;
+          mainChart.data.datasets[i].label = s.label;
+        });
+      }
+    }
+    applyView();
+    const allVals = Object.values(finalData).flat().filter(v => v != null);
+    setGPill('live', `${masterLabels.length} pts`);
+    showGraphLoading(false); 
+  } catch (e) {
+    console.error(e); showChartEmpty(true, 'Error loading data'); setGPill('nodata', 'Error'); showGraphLoading(false); 
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// FETCH ENERGY STATS
+// Aggregate mode: sums stats across all devices in the group
+// ════════════════════════════════════════════════════════════
+async function fetchEnergyStats() {
+  if (!activeStreams.length) return;
+  try {
+    const allResults = await Promise.all(activeStreams.map(s =>
+      Promise.all([
+        fetch(`${API_BASE}/api/readings/summary/?unit_id=${s.unit_id}`).then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch(`${API_BASE}/api/readings/latest/?unit_id=${s.unit_id}`).then(r => r.ok ? r.json() : null).catch(() => null),
+      ])
+    ));
+
+    let totalWeek = 0, totalMonth = 0, totalLifetime = 0, totalPeriod = 0;
+    allResults.forEach(([summary, latest]) => {
+      if (summary) { totalWeek += +(summary.week_kwh || 0); totalMonth += +(summary.month_kwh || 0); }
+      if (latest) { totalLifetime += +(latest.energy_today_kwh || 0); totalPeriod += +(latest.energy_today_kwh || 0); }
+    });
+
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = isNaN(val) ? '--' : val.toFixed(1); };
+    set('v-week', totalWeek); set('v-month', totalMonth);
+    set('v-year', totalMonth * 12); // approximate
+    set('v-lifetime', totalLifetime); set('v-period', totalPeriod);
+  } catch (e) { console.error('fetchEnergyStats:', e); }
+}
+
+// ════════════════════════════════════════════════════════════
+// FETCH LIVE DATA + RAW PANEL
+// Aggregate: shows a card per device; single: shows metric cards
+// ════════════════════════════════════════════════════════════
+async function fetchLiveData() {
+  if (!activeStreams.length) return;
+  try {
+    const results = await Promise.all(activeStreams.map(s =>
+      fetch(`${API_BASE}/api/readings/latest/?unit_id=${s.unit_id}`).then(r => r.ok ? r.json() : null).catch(() => null)
+    ));
+
+    const anyOnline = results.some(d => d && (d.status === 'online' || d.status === 'stale'));
+    const anyStale  = results.some(d => d && d.status === 'stale');
+    setOnlineStatus(anyOnline ? 'online' : 'offline');
+    if (anyOnline) {
+      document.getElementById('offline-bar').classList.remove('show');
+      ['b-week', 'b-month', 'b-year', 'b-lifetime'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.className = 'kpi-badge ' + (anyStale ? 'stale' : 'ok'); el.textContent = anyStale ? 'STALE' : 'LIVE'; }
+      });
+    } else {
+      document.getElementById('offline-bar').classList.add('show');
+    }
+
+    // Update raw panel
+    updateRawPanel(results);
+  } catch (e) {
+    setOnlineStatus('offline'); document.getElementById('offline-bar').classList.add('show');
+  }
+}
+
+function updateRawPanel(latestDataArray) {
+  const grid = document.getElementById('rawGrid');
+  const updateTime = document.getElementById('rawUpdateTime');
+  if (!grid) return;
+
+  if (!activeStreams.length) {
+    grid.innerHTML = '<div style="color:rgba(255,255,255,0.4);font-size:12px;padding:8px;">No device selected</div>';
+    return;
+  }
+
+  if (selectionMode === 'single') {
+    // Single device: show metric cards
+    const d = latestDataArray[0];
+    if (!d) { grid.innerHTML = '<div style="color:rgba(255,255,255,0.4);font-size:12px;padding:8px;">No data</div>'; return; }
+    const color = CATEGORY_COLORS[currentCategory] || '#3B82F6';
+    const cards = [
+      { label: 'Active Power',    value: d.active_power_kw,        unit: 'kW'   },
+      { label: 'Apparent Power',  value: d.apparent_power_kva,     unit: 'kVA'  },
+      { label: 'Current',         value: d.current,                unit: 'A'    },
+      { label: 'Voltage',         value: d.voltage,                unit: 'V'    },
+      { label: 'Reactive Power',  value: d.reactive_power_kvar,    unit: 'kVAR' },
+      { label: 'Energy',          value: d.energy_today_kwh,       unit: 'kWh'  },
+    ];
+    grid.innerHTML = cards.map(c => {
+      const val = c.value != null ? (+c.value).toFixed(c.unit === 'kWh' ? 1 : Math.abs(+c.value) < 10 ? 2 : 1) : '—';
+      const isNeg = c.value != null && +c.value < 0;
+      return `<div class="raw-card">
+        <div class="raw-card-label">${c.label}</div>
+        <div class="raw-card-value"><span style="color:${isNeg ? '#F87171' : color}">${val}</span><span class="raw-card-unit">${c.unit}</span></div>
+        <div class="raw-card-bar"><div class="raw-card-bar-fill" style="width:60%;background:${color};"></div></div>
+      </div>`;
+    }).join('');
+  } else {
+    // Aggregate: one card per device showing active power
+    grid.innerHTML = activeStreams.map((s, i) => {
+      const d = latestDataArray[i];
+      const val = d && d.active_power_kw != null ? (+d.active_power_kw).toFixed(2) : '—';
+      const status = d ? (d.status || 'unknown') : 'offline';
+      const statusColor = status === 'online' ? '#10B981' : status === 'stale' ? '#F59E0B' : '#EF4444';
+      const ts = d && d.timestamp ? new Date(d.timestamp).toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—';
+      return `<div class="raw-card" style="border-left:3px solid ${s.color};">
+        <div class="raw-card-device">${CATEGORY_ICONS[currentCategory] || ''} ${currentCategory}</div>
+        <div class="raw-card-label">${s.label}</div>
+        <div class="raw-card-value"><span style="color:${s.color}">${val}</span><span class="raw-card-unit">kW</span></div>
+        <div class="raw-card-bar"><div class="raw-card-bar-fill" style="width:${d && d.active_power_kw ? Math.min(100, Math.abs(+d.active_power_kw) * 5) : 0}%;background:${s.color};"></div></div>
+        <div class="raw-card-timestamp" style="color:${statusColor}">${status} · ${ts}</div>
+      </div>`;
+    }).join('');
+  }
+
+  if (updateTime) updateTime.textContent = 'Updated ' + new Date().toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+// ════════════════════════════════════════════════════════════
+// RECENT TABLE — single mode only; aggregate shows combined
+// ════════════════════════════════════════════════════════════
+async function fetchRecent() {
+  if (!activeStreams.length) return;
+  const tb = document.getElementById('tBody');
+  const f = (v, d = 2) => (v != null && !isNaN(v)) ? (+v).toFixed(d) : '—';
+  try {
+    if (selectionMode === 'single') {
+      const res = await fetch(`${API_BASE}/api/readings/recent/?unit_id=${activeStreams[0].unit_id}&limit=200`);
+      if (!res.ok) throw new Error();
+      const rows = await res.json();
+      if (!rows || !rows.length) { tb.innerHTML = '<tr><td colspan="29" style="text-align:center;padding:16px">No data</td></tr>'; return; }
+      tb.innerHTML = rows.map(r => `<tr>
+        <td>${r.time || '—'}</td><td>${f(r.kw)}</td><td>${f(r.voltage, 1)}</td><td>${f(r.current, 1)}</td>
+        <td>${f(r.energy)}</td><td>${f(r.pf, 3)}</td>
+        <td><span class="stbadge ${r.status === 'ok' ? 'ok' : 'warn'}">${r.status === 'ok' ? 'Online' : '⚠ ' + r.status}</span></td>
+        <td>${f(r.v_an, 1)}</td><td>${f(r.v_bn, 1)}</td><td>${f(r.v_cn, 1)}</td><td>${f(r.v_avg_ln, 1)}</td>
+        <td>${f(r.v_ab, 1)}</td><td>${f(r.v_bc, 1)}</td><td>${f(r.v_ca, 1)}</td><td>${f(r.v_avg_ll, 1)}</td>
+        <td>${f(r.i_a)}</td><td>${f(r.i_b)}</td><td>${f(r.i_c)}</td><td>${f(r.i_avg)}</td>
+        <td>${f(r.i_demand)}</td><td>${f(r.i_peak)}</td><td>${f(r.i_neutral)}</td>
+        <td>${f(r.frequency)}</td><td>${f(r.pf_a, 3)}</td><td>${f(r.pf_b, 3)}</td><td>${f(r.pf_c, 3)}</td>
+        <td>${f(r.kvar)}</td><td>${f(r.kva)}</td>
+      </tr>`).join('');
+    } else {
+      // Aggregate: show note
+      tb.innerHTML = `<tr><td colspan="29" style="text-align:center;padding:16px;color:#64748B;">Showing aggregate view — select an individual device for detailed readings</td></tr>`;
+    }
+  } catch (e) {
+    tb.innerHTML = '<tr><td colspan="29" style="text-align:center;padding:16px">Failed to load</td></tr>';
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// SELECTION HELPERS — set activeStreams then refresh everything
+// ════════════════════════════════════════════════════════════
+function applySelection() {
+  // Reset zoom + chart
+  isZoomed = false; setResetZoomVisible(false); allLabels = []; allData = {};
+  if (mainChart) { mainChart.destroy(); mainChart = null; }
+
+  // Reset KPI tiles
+  ['v-week', 'v-month', 'v-year', 'v-lifetime', 'v-period'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = '--'; });
+
+  updateEnergyPeriodLabel();
   buildLegend();
-  // Reset KPIs
-  ['v-kw','v-kwh','v-v','v-a','v-ap'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='--';});
-
   fetchLiveData();
+  fetchEnergyStats();
   fetchRecent();
   fetchGraphData(currentPeriod);
 }
 
-// ════════════════════════════════════════════════════════════════════════
-//  NAVBAR — load devices dynamically from API
-// ════════════════════════════════════════════════════════════════════════
+function selectDevice(unitId, displayName, category) {
+  if (selectionMode === 'single' && currentUnitId === unitId) return;
+  selectionMode = 'single';
+  currentUnitId = unitId;
+  currentDeviceName = displayName;
+  currentCategory = category;
+  aggDevices = [];
+
+  // Build single stream
+  const color = CATEGORY_COLORS[category] || '#3B82F6';
+  activeStreams = [{ key: streamKey(unitId), label: displayName, color, unit_id: unitId, category }];
+  streamVisible = { [streamKey(unitId)]: true };
+
+  document.getElementById('chart-showing-label').textContent = `${category} – ${displayName}`;
+  document.getElementById('tbl-device-label').textContent    = displayName;
+  document.getElementById('rawDERLabel').textContent         = displayName;
+
+  applySelection();
+}
+
+function selectAllCategory(cat, devices) {
+  if (!devices.length) return;
+  selectionMode = 'aggregate';
+  currentCategory = cat;
+  currentDeviceName = `All ${cat}`;
+  currentUnitId = null;
+  aggDevices = devices;
+
+  // Build one stream per device with distinct colors from palette
+  const palette = CATEGORY_COLOR_PALETTES[cat] || ['#94A3B8'];
+  activeStreams = devices.map((dev, i) => ({
+    key:      streamKey(dev.unit_id),
+    label:    dev.display_name,
+    color:    palette[i % palette.length],
+    unit_id:  dev.unit_id,
+    category: cat,
+  }));
+  streamVisible = {};
+  activeStreams.forEach(s => { streamVisible[s.key] = true; });
+
+  document.getElementById('chart-showing-label').textContent = `All ${cat} (${devices.length} devices)`;
+  document.getElementById('tbl-device-label').textContent    = `All ${cat}`;
+  document.getElementById('rawDERLabel').textContent         = `All ${cat}`;
+
+  applySelection();
+}
+
+// ════════════════════════════════════════════════════════════
+// NAVBAR — loads from API, builds "All [Cat]" + individual items
+// New devices added by admin automatically appear here
+// ════════════════════════════════════════════════════════════
 async function loadNavbarDevices() {
   try {
-    const res=await fetch(`${API_BASE}/api/devices/by-category/`);
+    const res = await fetch(`${API_BASE}/api/devices/by-category/`);
     if (!res.ok) throw new Error();
-    const grouped=await res.json();   // { "Meters": [...], "Solar Generation": [...], ... }
+    const grouped = await res.json();
 
-    const navList=document.getElementById('main-nav-list');
-    // Clear placeholder but keep grid-event indicator
-    const gridEvent=navList.querySelector('li:last-child');
-    navList.innerHTML='';
+    const navList  = document.getElementById('main-nav-list');
+    const gridEvent = navList.querySelector('li:last-child');
+    navList.innerHTML = '';
 
-    // Ordered category list
-    const ALL_CATS=['Meters','Solar Generation','Battery Power','EV Charging','Building Load','HVAC','Genset'];
-    let firstDevice=null;
+    const ALL_CATS = ['Meters', 'Solar Generation', 'Battery Power', 'EV Charging', 'Building Load', 'HVAC', 'Genset'];
+    let firstDevice = null, firstDeviceCat = null;
 
     ALL_CATS.forEach(cat => {
-      const devices=grouped[cat];
-      if (!devices||!devices.length) return;   // skip categories with no devices
+      const devices = grouped[cat] || [];
+      const color   = CATEGORY_COLORS[cat] || '#aaa';
+      const icon    = CATEGORY_ICONS[cat]  || '📡';
 
-      const color=CATEGORY_COLORS[cat]||'#aaa';
-      const icon=CATEGORY_ICONS[cat]||'📡';
+      const li = document.createElement('li'); li.className = 'nav-item';
+      li.innerHTML = `<a class="nav-link"><div class="nav-dot" style="background:${color}"></div>${cat}<span class="chevron">▼</span></a><div class="nav-dropdown"></div>`;
+      const dd = li.querySelector('.nav-dropdown');
 
-      const li=document.createElement('li'); li.className='nav-item';
-      li.innerHTML=`
-        <a class="nav-link">
-          <div class="nav-dot" style="background:${color}"></div>
-          ${cat}<span class="chevron">▼</span>
-        </a>
-        <div class="nav-dropdown" id="nav-dd-${cat.replace(/\s+/g,'_')}"></div>
-      `;
+      if (devices.length) {
+        // "All [Cat]" — aggregate option
+        const allItem = document.createElement('a');
+        allItem.className = 'nav-dropdown-item all-option';
+        allItem.innerHTML = `<span class="dd-icon">${icon}</span><strong>All ${cat}</strong>`;
+        allItem.onclick = () => selectAllCategory(cat, devices.map(d => ({ ...d, category: cat })));
+        dd.appendChild(allItem);
 
-      const dd=li.querySelector('.nav-dropdown');
-      devices.forEach(dev => {
-        const a=document.createElement('a');
-        a.className='nav-dropdown-item';
-        a.innerHTML=`<span class="dd-icon">${icon}</span>${dev.display_name}${dev.location?'<span style="font-size:10px;opacity:0.5;margin-left:6px;">'+dev.location+'</span>':''}`;
-        a.onclick=()=>selectDevice(dev.unit_id, dev.display_name, cat);
-        dd.appendChild(a);
-        if (!firstDevice) firstDevice=dev;
-      });
-
+        // Individual devices
+        devices.forEach(dev => {
+          const a = document.createElement('a');
+          a.className = 'nav-dropdown-item';
+          a.dataset.unitId = dev.unit_id;
+          a.innerHTML = `<span class="dd-icon">${icon}</span>${dev.display_name}${dev.location ? '<span style="font-size:10px;opacity:0.5;margin-left:6px;">' + dev.location + '</span>' : ''}`;
+          a.onclick = () => selectDevice(dev.unit_id, dev.display_name, cat);
+          dd.appendChild(a);
+          if (!firstDevice) { firstDevice = dev; firstDeviceCat = cat; }
+        });
+      } else {
+        const empty = document.createElement('div'); empty.className = 'nav-dropdown-empty'; empty.textContent = 'No devices added yet'; dd.appendChild(empty);
+      }
       navList.appendChild(li);
-
-      if (!firstDevice) firstDevice=devices[0];
     });
-
-    // If no devices from any known category, show message
-    if (!navList.children.length) {
-      const li=document.createElement('li'); li.className='nav-item';
-      li.innerHTML='<span style="color:rgba(255,255,255,0.4);font-size:13px;padding:0 18px;">No active devices found</span>';
-      navList.appendChild(li);
-    }
 
     // Re-append grid event indicator
     if (gridEvent) navList.appendChild(gridEvent);
     else {
-      const eventLi=document.createElement('li');
-      eventLi.style.cssText='margin-left:auto;display:flex;align-items:center;padding-right:2px;';
-      eventLi.innerHTML='<div class="grid-event-indicator" id="gridEventIndicator"><div class="grid-event-dot"></div>⚡ Grid Event — EMS Override Active</div>';
-      navList.appendChild(eventLi);
+      const el = document.createElement('li'); el.style.cssText = 'margin-left:auto;display:flex;align-items:center;padding-right:2px;';
+      el.innerHTML = '<div class="grid-event-indicator" id="gridEventIndicator"><div class="grid-event-dot"></div>⚡ Grid Event — EMS Override Active</div>';
+      navList.appendChild(el);
+    }
+
+    // Handle hash navigation (e.g. from home page links)
+    const hash = window.location.hash;
+    if (hash) {
+      // Aggregate: #all_Solar%20Generation or #all_Meters etc.
+      if (hash.startsWith('#all_')) {
+        const cat = decodeURIComponent(hash.replace('#all_', ''));
+        const devices = grouped[cat] || [];
+        if (devices.length) {
+          history.replaceState(null, '', window.location.pathname);
+          selectAllCategory(cat, devices.map(d => ({ ...d, category: cat })));
+          return;
+        }
+      }
+      // Individual device: #unit_100
+      if (hash.startsWith('#unit_')) {
+        const targetId = parseInt(hash.replace('#unit_', ''));
+        if (!isNaN(targetId)) {
+          const anchor = document.querySelector(`.nav-dropdown-item[data-unit-id="${targetId}"]`);
+          if (anchor) { anchor.click(); history.replaceState(null, '', window.location.pathname); return; }
+        }
+      }
     }
 
     // Auto-select first device
-    if (firstDevice) {
-      const catOfFirst=Object.keys(grouped).find(c=>(grouped[c]||[]).some(d=>d.unit_id===firstDevice.unit_id));
-      if (catOfFirst) selectDevice(firstDevice.unit_id, firstDevice.display_name, catOfFirst);
-    }
+    if (firstDevice && firstDeviceCat) selectDevice(firstDevice.unit_id, firstDevice.display_name, firstDeviceCat);
 
-  } catch(e) {
-    const navList=document.getElementById('main-nav-list');
-    navList.innerHTML='<li style="padding:0 18px;display:flex;align-items:center;"><span style="color:rgba(255,100,100,0.7);font-size:13px;">Failed to load devices</span></li>';
+  } catch (e) {
+    document.getElementById('main-nav-list').innerHTML = '<li style="padding:0 18px;display:flex;align-items:center;"><span style="color:rgba(255,100,100,0.7);font-size:13px;">Failed to load devices</span></li>';
   }
 }
 
-// ════════════════════════════════════════════════════════════════════════
-//  UTILITY FUNCTIONS — preserved from energy_dashboard.html
-// ════════════════════════════════════════════════════════════════════════
-function fmtClock(){return new Date().toLocaleTimeString('en-US',{timeZone:'America/New_York',hour:'numeric',minute:'2-digit',second:'2-digit',hour12:true});}
-function setOnlineStatus(s){const b=document.getElementById('online-status-badge');if(s==='online'){b.innerHTML='🟢 Online';b.className='online-badge';}else{b.innerHTML='🔴 Offline';b.className='online-badge offline-badge';}}
-function setGPill(type,label){const el=document.getElementById('gpill');el.className='graph-status-pill '+type;el.innerHTML=type==='loading'?`<span class="spin"></span> ${label}`:label;}
-function showChartEmpty(show,msg){const ce=document.getElementById('chart-empty');ce.classList.toggle('show',show);if(msg){const m=document.getElementById('chart-empty-msg');if(m)m.textContent=msg;}}
-function showBanner(cls,msg){const b=document.getElementById('banner');b.className='banner show '+cls;document.getElementById('banner-msg').textContent=msg;setTimeout(()=>{if(b.classList.contains('show'))closeBanner();},4000);}
-function closeBanner(){document.getElementById('banner').className='banner';}
-function forceRefresh(){fetchLiveData();fetchRecent();fetchGraphData(currentPeriod);showBanner('restored','Manual refresh done');}
-function reconnect(){setOnlineStatus('online');fetchLiveData().then(()=>document.getElementById('offline-bar').classList.remove('show'));fetchRecent();fetchGraphData(currentPeriod);showBanner('restored','Reconnected');}
-function switchChart(period){currentPeriod=period;document.querySelectorAll('.chart-tab').forEach(t=>t.classList.toggle('on',t.textContent.toLowerCase()===period));isZoomed=false;setResetZoomVisible(false);fetchGraphData(period);}
-function applyCustomRange(){const f=document.getElementById('date-from').value,t=document.getElementById('date-to').value;if(!f||!t){showBanner('reconnect','Select both dates');return;}if(f>t){showBanner('reconnect','Start must be before end');return;}document.querySelectorAll('.chart-tab').forEach(t=>t.classList.remove('on'));currentPeriod='custom';isZoomed=false;setResetZoomVisible(false);fetchGraphData('custom',f,t);}
-function exportCSV(){const headers=['Time (EST)','kW','Voltage (V)','Current (A)','kWh','PF Total','Status','V A-N','V B-N','V C-N','Avg V L-N','V A-B','V B-C','V C-A','Avg V L-L','I Phase A','I Phase B','I Phase C','I Avg','I Demand','I Peak','I Neutral','Freq (Hz)','PF Phase A','PF Phase B','PF Phase C','kVAR','kVA'];const rows=document.querySelectorAll('#readings-table tbody tr');const csv=[headers.join(',')];rows.forEach(r=>{const c=r.querySelectorAll('td');if(c.length>1)csv.push(Array.from(c).map(x=>{const t=x.textContent.trim();return t.includes(',')? `"${t}"`:t;}).join(','));});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv.join('\n')],{type:'text/csv'}));a.download=`device_${currentUnitId}_${new Date().toISOString().split('T')[0]}.csv`;a.click();URL.revokeObjectURL(a.href);}
-function saveSettings(){const iv=parseInt(document.getElementById('refresh-interval').value)||5;state.currency=document.getElementById('currency-select').value;state.unitRate=parseFloat(document.getElementById('unit-rate').value)||0.14;refreshInterval=Math.max(2,Math.min(60,iv))*1000;if(refreshTimer)clearInterval(refreshTimer);refreshTimer=setInterval(()=>{fetchLiveData();fetchRecent();},refreshInterval);localStorage.setItem('mgSettings',JSON.stringify({refreshInterval,currency:state.currency,unitRate:state.unitRate}));closeModal('settings-modal');showBanner('restored','Settings saved');}
-function loadSettings(){try{const s=JSON.parse(localStorage.getItem('mgSettings')||'{}');if(s.refreshInterval)refreshInterval=s.refreshInterval;if(s.currency)state.currency=s.currency;if(s.unitRate)state.unitRate=s.unitRate;document.getElementById('refresh-interval').value=refreshInterval/1000;document.getElementById('currency-select').value=state.currency;document.getElementById('unit-rate').value=state.unitRate;}catch(e){}}
-function openModal(id){document.getElementById(id).classList.add('open');if(id==='system-status-modal')updateSysStatus();}
-function closeModal(id){document.getElementById(id).classList.remove('open');}
-async function updateSysStatus(){const set=(id,txt,cls)=>{const el=document.getElementById(id);if(el){el.textContent=txt;el.className='stbadge '+cls;}};try{const uid=currentUnitId||100;const res=await fetch(`${API_BASE}/api/readings/latest/?unit_id=${uid}`);if(!res.ok)throw new Error();set('s-gateway','Connected','ok');set('s-api','Online','ok');set('s-db','Active','ok');const d=await res.json();if(d.timestamp){const age=Math.floor((Date.now()-new Date(d.timestamp).getTime())/1000);set('s-last',age+'s ago',age<10?'ok':age<30?'warn':'err');document.getElementById('s-last-sub').textContent=new Date(d.timestamp).toLocaleTimeString('en-US',{timeZone:'America/New_York'});}}catch(e){set('s-gateway','Disconnected','err');set('s-api','Offline','err');set('s-db','Unknown','warn');set('s-last','No data','err');}}
+// ════════════════════════════════════════════════════════════
+// UTILITIES
+// ════════════════════════════════════════════════════════════
+function fmtClock() { return new Date().toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true }); }
+function setOnlineStatus(s) { const b = document.getElementById('online-status-badge'); if (s === 'online') { b.innerHTML = '🟢 Online'; b.className = 'online-badge'; } else { b.innerHTML = '🔴 Offline'; b.className = 'online-badge offline-badge'; } }
+function setGPill(type, label) { const el = document.getElementById('gpill'); el.className = 'graph-status-pill ' + type; el.innerHTML = type === 'loading' ? `<span class="spin"></span> ${label}` : label; }
+function showChartEmpty(show, msg) { const ce = document.getElementById('chart-empty'); ce.classList.toggle('show', show); if (msg) { const m = document.getElementById('chart-empty-msg'); if (m) m.textContent = msg; } }
+function showBanner(cls, msg) { const b = document.getElementById('banner'); b.className = 'banner show ' + cls; document.getElementById('banner-msg').textContent = msg; setTimeout(() => { if (b.classList.contains('show')) closeBanner(); }, 4000); }
+function closeBanner() { document.getElementById('banner').className = 'banner'; }
+function forceRefresh() { fetchLiveData(); fetchEnergyStats(); fetchRecent(); fetchGraphData(currentPeriod); showBanner('restored', 'Manual refresh done'); }
+function reconnect() { setOnlineStatus('online'); fetchLiveData().then(() => document.getElementById('offline-bar').classList.remove('show')); fetchEnergyStats(); fetchRecent(); fetchGraphData(currentPeriod); showBanner('restored', 'Reconnected'); }
+function switchChart(period) { currentPeriod = period; document.querySelectorAll('.chart-tab').forEach(t => t.classList.toggle('on', t.textContent.toLowerCase() === period)); isZoomed = false; setResetZoomVisible(false); fetchGraphData(period); }
+function applyCustomRange() { const f = document.getElementById('date-from').value, t = document.getElementById('date-to').value; if (!f || !t) { showBanner('reconnect', 'Select both dates'); return; } if (f > t) { showBanner('reconnect', 'Start must be before end'); return; } document.querySelectorAll('.chart-tab').forEach(t => t.classList.remove('on')); currentPeriod = 'custom'; isZoomed = false; setResetZoomVisible(false); fetchGraphData('custom', f, t); }
+function exportCSV() { const headers = ['Time (EST)', 'kW', 'Voltage (V)', 'Current (A)', 'kWh', 'PF Total', 'Status', 'V A-N', 'V B-N', 'V C-N', 'Avg V L-N', 'V A-B', 'V B-C', 'V C-A', 'Avg V L-L', 'I Phase A', 'I Phase B', 'I Phase C', 'I Avg', 'I Demand', 'I Peak', 'I Neutral', 'Freq (Hz)', 'PF Phase A', 'PF Phase B', 'PF Phase C', 'kVAR', 'kVA']; const rows = document.querySelectorAll('#readings-table tbody tr'); const csv = [headers.join(',')]; rows.forEach(r => { const c = r.querySelectorAll('td'); if (c.length > 1) csv.push(Array.from(c).map(x => { const t = x.textContent.trim(); return t.includes(',') ? `"${t}"` : t; }).join(',')); }); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv.join('\n')], { type: 'text/csv' })); a.download = `device_${currentUnitId || 'aggregate'}_${new Date().toISOString().split('T')[0]}.csv`; a.click(); URL.revokeObjectURL(a.href); }
+function saveSettings() { const iv = parseInt(document.getElementById('refresh-interval').value) || 5; state.currency = document.getElementById('currency-select').value; state.unitRate = parseFloat(document.getElementById('unit-rate').value) || 0.14; refreshInterval = Math.max(2, Math.min(60, iv)) * 1000; if (refreshTimer) clearInterval(refreshTimer); refreshTimer = setInterval(() => { fetchLiveData(); fetchEnergyStats(); fetchRecent(); }, refreshInterval); localStorage.setItem('mgSettings', JSON.stringify({ refreshInterval, currency: state.currency, unitRate: state.unitRate })); closeModal('settings-modal'); showBanner('restored', 'Settings saved'); }
+function loadSettings() { try { const s = JSON.parse(localStorage.getItem('mgSettings') || '{}'); if (s.refreshInterval) refreshInterval = s.refreshInterval; if (s.currency) state.currency = s.currency; if (s.unitRate) state.unitRate = s.unitRate; document.getElementById('refresh-interval').value = refreshInterval / 1000; document.getElementById('currency-select').value = state.currency; document.getElementById('unit-rate').value = state.unitRate; } catch (e) {} }
+function openModal(id) { document.getElementById(id).classList.add('open'); if (id === 'system-status-modal') updateSysStatus(); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+async function updateSysStatus() {
+  const set = (id, txt, cls) => { const el = document.getElementById(id); if (el) { el.textContent = txt; el.className = 'stbadge ' + cls; } };
+  try {
+    const uid = (activeStreams[0]?.unit_id) || 100;
+    const res = await fetch(`${API_BASE}/api/readings/latest/?unit_id=${uid}`); if (!res.ok) throw new Error();
+    set('s-gateway', 'Connected', 'ok'); set('s-api', 'Online', 'ok'); set('s-db', 'Active', 'ok');
+    const d = await res.json();
+    if (d.timestamp) { const age = Math.floor((Date.now() - new Date(d.timestamp).getTime()) / 1000); set('s-last', age + 's ago', age < 10 ? 'ok' : age < 30 ? 'warn' : 'err'); document.getElementById('s-last-sub').textContent = new Date(d.timestamp).toLocaleTimeString('en-US', { timeZone: 'America/New_York' }); }
+  } catch (e) { set('s-gateway', 'Disconnected', 'err'); set('s-api', 'Offline', 'err'); set('s-db', 'Unknown', 'warn'); set('s-last', 'No data', 'err'); }
+}
 
-// ════════════════════════════════════════════════════════════════════════
-//  INIT
-// ════════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════
 function init() {
-  document.getElementById('date-to').value=''; document.getElementById('date-from').value='';
-  const df=document.getElementById('date-from'),dt=document.getElementById('date-to'),ab=document.getElementById('applyRangeBtn');
-  function toggleApply(){const ok=!!(df.value&&dt.value);ab.disabled=!ok;ab.style.background=ok?'#2563EB':'#a1a1ac';ab.style.opacity=ok?'1':'0.6';ab.style.cursor=ok?'pointer':'not-allowed';}
-  df.addEventListener('change',toggleApply); dt.addEventListener('change',toggleApply); toggleApply();
-
+  document.getElementById('date-to').value = ''; document.getElementById('date-from').value = '';
+  const df = document.getElementById('date-from'), dt = document.getElementById('date-to'), ab = document.getElementById('applyRangeBtn');
+  function toggleApply() { const ok = !!(df.value && dt.value); ab.disabled = !ok; ab.style.background = ok ? '#2563EB' : '#a1a1ac'; ab.style.opacity = ok ? '1' : '0.6'; ab.style.cursor = ok ? 'pointer' : 'not-allowed'; }
+  df.addEventListener('change', toggleApply); dt.addEventListener('change', toggleApply); toggleApply();
   loadSettings();
-
-  // Init chart infrastructure before device loads
-  requestAnimationFrame(()=>{
+  requestAnimationFrame(() => {
     createYAxisChart();
     createMainChart([], {});
     attachChartInteractions();
-    showChartEmpty(true,'Select a device from the navbar');
+    showChartEmpty(true, 'Select a device from the navbar');
   });
-
-  // Load navbar devices — this triggers auto-select of first device
   loadNavbarDevices();
-
-  refreshTimer=setInterval(()=>{fetchLiveData();fetchRecent();},refreshInterval);
-  graphTimer=setInterval(()=>fetchGraphData(currentPeriod),60000);
-  setInterval(()=>{document.getElementById('clock-display').textContent=fmtClock()+' EST';},1000);
-
-  window.addEventListener('online',()=>reconnect());
-  window.addEventListener('offline',()=>{showBanner('offline','Network lost');document.getElementById('offline-bar').classList.add('show');});
+  refreshTimer = setInterval(() => { fetchLiveData(); fetchEnergyStats(); fetchRecent(); }, refreshInterval);
+  graphTimer = setInterval(() => fetchGraphData(currentPeriod), 60000);
+  setInterval(() => { document.getElementById('clock-display').textContent = fmtClock() + ' EST'; }, 1000);
+  window.addEventListener('online', () => reconnect());
+  window.addEventListener('offline', () => { showBanner('offline', 'Network lost'); document.getElementById('offline-bar').classList.add('show'); });
 }
 
 document.addEventListener('DOMContentLoaded', init);
-
-window.switchChart=switchChart; window.applyCustomRange=applyCustomRange; window.exportCSV=exportCSV;
-window.saveSettings=saveSettings; window.openModal=openModal; window.closeModal=closeModal;
-window.forceRefresh=forceRefresh; window.reconnect=reconnect; window.closeBanner=closeBanner;
-window.resetZoom=resetZoom; window.selectDevice=selectDevice;
+window.switchChart = switchChart; window.applyCustomRange = applyCustomRange; window.exportCSV = exportCSV;
+window.saveSettings = saveSettings; window.openModal = openModal; window.closeModal = closeModal;
+window.forceRefresh = forceRefresh; window.reconnect = reconnect; window.closeBanner = closeBanner;
+window.resetZoom = resetZoom; window.selectDevice = selectDevice;
 </script>
 </body>
 </html>

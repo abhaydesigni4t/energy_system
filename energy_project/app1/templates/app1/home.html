@@ -1,0 +1,1074 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="csrf-token" content="{{ csrf_token }}">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>3rd Rock Energy · Microgrid 2.0</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne+Mono&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --font-number:'Consolas','Arial','Roboto Mono',monospace;
+  --font-text:'Calibri','Segoe UI','Arial',sans-serif;
+  --bg:#F8FAFC;--bg2:#FFFFFF;--bg3:#FFFFFF;--bg4:#F1F5F9;
+  --surface:#F8FAFC;--surface2:#E2E8F0;
+  --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.12);
+  --text1:#0F172A;--text2:#334155;--text3:#64748B;
+  --solar:#F59E0B;--battery:#10B981;--ev:#6366F1;--load:#F43F5E;--hvac:#06B6D4;--genset:#8B5CF6;--grid:#94A3B8;
+  --r6:6px;--r8:8px;--r12:12px;--r16:16px;--r20:20px;
+  --nav-bg:#4A5568;
+  --nav-bg-hover:rgba(255,255,255,0.10);
+  --nav-border:rgba(255,255,255,0.10);
+  --nav-dropdown-bg:#3D4556;
+  --nav-text:#fbfbfb;
+  --nav-text-muted:rgba(255,255,255,0.99);
+  --color-solar:#22C55E;
+  --color-meters:#EF4444;
+  --CHART-H:300px;
+}
+body{font-family:var(--font-text);background:var(--bg);color:var(--text1);font-size:13px;font-weight:500;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+.kpi-value,#clock-display,.dt-val,td,.stbadge{font-family:var(--font-number);font-weight:600;letter-spacing:0.3px;font-feature-settings:"tnum" on,"lnum" on;}
+.kpi-value{font-size:28px;font-weight:700;line-height:1.2;letter-spacing:-0.5px;}
+#clock-display{font-size:12px;font-weight:600;letter-spacing:1px;}
+td{font-family:var(--font-number);font-size:11px;font-weight:500;}
+.kpi-label,.panel-title,.tbl-title,.modal-title,.legend-item,.chart-title,.chart-meta,.chart-tab,.dt-label,.dt-name,.topbar-title,.topbar-sub,.tbtn,.stbadge{font-family:var(--font-text);font-weight:600;letter-spacing:0.2px;}
+.kpi-label,.panel-title,.tbl-title{letter-spacing:0.5px;text-transform:uppercase;font-size:14px;font-weight:700;}
+thead th{font-family:var(--font-text);font-size:10px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;}
+.main-area{margin-left:0;flex:1;display:flex;flex-direction:column;min-height:100vh;}
+
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.topbar-left{display:flex;flex-direction:column;gap:4px;}
+.topbar-title{font-family:var(--font-text);font-size:24px;font-weight:800;background:linear-gradient(135deg,#0F172A,#3B82F6);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.topbar-sub{font-size:14px;color:#000;font-weight:600;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.tbtn{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:30px;font-size:14px;font-weight:700;font-family:var(--font-text);border:1px solid var(--border2);background:transparent;color:#000;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.tbtn:hover{background:var(--surface);}
+.tbtn.primary{background:linear-gradient(135deg,#3B82F6,#2563EB);border-color:transparent;color:#fff;}
+.tbtn.primary:hover{opacity:0.9;}
+.btn-logout{padding:10px 22px;background:linear-gradient(135deg,#ff5f5f,#ff3b3b);color:#fff;border-radius:25px;text-decoration:none;font-weight:600;display:inline-block;transition:all 0.3s ease;box-shadow:0 4px 10px rgba(255,59,59,0.3);}
+.btn-logout:hover{background:linear-gradient(135deg,#ff3b3b,#e60000);box-shadow:0 6px 14px rgba(255,59,59,0.4);transform:translateY(-1px);}
+.btn-users{padding:10px 22px;background:linear-gradient(135deg,#4a90e2,#357abd);color:#fff;border-radius:25px;text-decoration:none;font-weight:500;font-size:15px;display:inline-block;transition:all 0.3s ease;box-shadow:0 4px 10px rgba(53,122,189,0.3);}
+.btn-users:hover{background:linear-gradient(135deg,#357abd,#2c5fa3);box-shadow:0 6px 14px rgba(53,122,189,0.4);transform:translateY(-1px);}
+#clock-display{font-size:12px;color:#000;padding:5px 12px;background:var(--surface);border-radius:30px;border:1px solid var(--border);font-weight:700;}
+.online-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(16,185,129,0.12);padding:4px 12px;border-radius:30px;font-size:11px;font-weight:800;color:#0E7C46;}
+.offline-badge{background:rgba(244,63,94,0.12);color:#BE123C;}
+.reconnect-btn{background:none;border:1px solid var(--border2);border-radius:20px;padding:3px 12px;font-size:10px;font-weight:700;cursor:pointer;margin-left:4px;}
+
+.nav-bar{background:var(--nav-bg);border-bottom:1px solid var(--nav-border);padding:0 24px;position:sticky;top:64px;z-index:90;box-shadow:0 2px 8px rgba(0,0,0,0.15);}
+.nav-list{display:flex;align-items:stretch;gap:0;list-style:none;margin:0;padding:0;}
+.nav-item{position:relative;}
+.nav-link{display:flex;align-items:center;gap:6px;padding:0 18px;height:44px;color:var(--nav-text);font-size:16px;font-weight:700;font-family:var(--font-text);text-decoration:none;white-space:nowrap;cursor:pointer;transition:color 0.15s,background 0.15s;letter-spacing:0.3px;border-bottom:2px solid transparent;}
+.nav-link:hover,.nav-item:hover .nav-link{color:#fff;background:var(--nav-bg-hover);border-bottom-color:#60A5FA;}
+.nav-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.nav-link .chevron{font-size:10px;opacity:0.6;margin-left:2px;transition:transform 0.15s;}
+.nav-item:hover .nav-link .chevron{transform:rotate(180deg);}
+.nav-dropdown{position:absolute;top:100%;left:0;background:var(--nav-dropdown-bg);border:1px solid rgba(255,255,255,0.12);border-radius:0 0 12px 12px;min-width:200px;padding:6px 0;opacity:0;visibility:hidden;transform:translateY(-6px);transition:all 0.18s ease;z-index:200;box-shadow:0 16px 40px rgba(0,0,0,0.35);}
+.nav-item:hover .nav-dropdown{opacity:1;visibility:visible;transform:translateY(0);}
+.nav-dropdown-item{display:flex;align-items:center;gap:10px;padding:9px 16px;color:var(--nav-text-muted);font-size:15px;font-weight:600;font-family:var(--font-text);text-decoration:none;cursor:pointer;transition:all 0.12s;letter-spacing:0.2px;}
+.nav-dropdown-item:hover{color:#fff;background:rgba(96,165,250,0.15);padding-left:20px;}
+.nav-dropdown-item.all-option{border-bottom:1px solid rgba(255,255,255,0.12);margin-bottom:2px;color:#fff;font-weight:700;}
+.nav-dropdown-item.all-option:hover{background:rgba(96,165,250,0.25);}
+.nav-dropdown-item .dd-icon{font-size:13px;width:20px;text-align:center;}
+.nav-dropdown-empty{padding:9px 16px;color:rgba(255,255,255,0.35);font-size:12px;font-style:italic;}
+
+.home-btn{display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;font-size:28px;border-radius:50%;border:2px solid var(--border2);background:transparent;cursor:pointer;text-decoration:none;flex-shrink:0;transition:background 0.15s;}
+.home-btn:hover{background:var(--surface2);}
+.grid-event-indicator{display:none;align-items:center;gap:7px;padding:5px 14px;border-radius:20px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.45);color:#FCD34D;font-size:11px;font-weight:800;font-family:var(--font-text);letter-spacing:0.4px;white-space:nowrap;cursor:default;animation:gridEventPulse 1.8s ease-in-out infinite;}
+.grid-event-indicator.active{display:flex;}
+.grid-event-dot{width:9px;height:9px;border-radius:50%;background:#F59E0B;box-shadow:0 0 0 0 rgba(245,158,11,0.6);animation:gridDotPing 1.8s ease-in-out infinite;flex-shrink:0;}
+@keyframes gridDotPing{0%{box-shadow:0 0 0 0 rgba(245,158,11,0.7);}60%{box-shadow:0 0 0 7px rgba(245,158,11,0);}100%{box-shadow:0 0 0 0 rgba(245,158,11,0);}}
+@keyframes gridEventPulse{0%,100%{border-color:rgba(245,158,11,0.45);background:rgba(245,158,11,0.12);}50%{border-color:rgba(245,158,11,0.75);background:rgba(245,158,11,0.22);}}
+
+.content{padding:20px 24px;flex:1;display:flex;flex-direction:column;gap:18px;}
+.banner{display:none;padding:8px 24px;font-size:12px;font-weight:700;align-items:center;gap:10px;border-bottom:1px solid transparent;}
+.banner.show{display:flex;}
+.banner.offline{background:rgba(244,63,94,0.08);color:#BE123C;border-color:rgba(244,63,94,0.2);}
+.banner.reconnect{background:rgba(245,158,11,0.08);color:#B45309;border-color:rgba(245,158,11,0.2);}
+.banner.restored{background:rgba(16,185,129,0.08);color:#0E7C46;border-color:rgba(16,185,129,0.2);}
+.banner-x{margin-left:auto;background:none;border:none;cursor:pointer;color:inherit;font-size:14px;font-weight:800;}
+.offline-bar{display:none;background:rgba(244,63,94,0.07);border:1px solid rgba(244,63,94,0.2);border-radius:var(--r8);padding:10px 16px;font-size:12px;color:#BE123C;align-items:center;gap:10px;font-weight:700;margin-bottom:8px;}
+.offline-bar.show{display:flex;}
+.rbtn{background:rgba(244,63,94,0.12);border:1px solid rgba(244,63,94,0.25);border-radius:20px;padding:3px 12px;color:#BE123C;font-size:10px;cursor:pointer;font-weight:800;margin-left:auto;}
+
+.savings-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.savings-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r12);padding:16px 18px;position:relative;overflow:hidden;transition:border-color 0.2s,box-shadow 0.2s;}
+.savings-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--sc,#3B82F6);}
+.savings-card:hover{border-color:var(--border2);box-shadow:0 4px 16px rgba(0,0,0,0.06);}
+.savings-label{font-size:20px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--text1);margin-bottom:12px;}
+.savings-dollar{font-family:var(--font-number);font-size:22px;font-weight:700;color:var(--text1);line-height:1.1;letter-spacing:-0.5px;}
+.savings-tag{display:inline-flex;align-items:center;gap:4px;margin-top:8px;font-size:12px;font-weight:800;padding:2px 8px;border-radius:4px;background:rgba(16,185,129,0.1);color:#0E7C46;}
+
+.kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.kpi-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r12);padding:14px 16px;position:relative;overflow:hidden;transition:border-color 0.2s;}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--kpi-c,#3B82F6);}
+.kpi-card:hover{border-color:var(--border2);}
+.kpi-label{font-size:20px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#000;margin-bottom:10px;}
+.kpi-value{font-family:var(--font-number);font-size:28px;font-weight:700;color:#000;line-height:1.2;margin-bottom:6px;letter-spacing:-0.5px;}
+.kpi-unit{font-size:15px;color:#000;font-weight:600;}
+.kpi-badge{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:800;padding:2px 8px;border-radius:4px;margin-top:6px;}
+.kpi-badge.ok{background:rgba(16,185,129,0.12);color:#0E7C46;}
+.kpi-badge.stale{background:rgba(245,158,11,0.12);color:#B45309;}
+.kpi-badge.offline{background:rgba(244,63,94,0.12);color:#BE123C;}
+
+.energy-period-tile{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r12);padding:14px 16px;position:relative;overflow:hidden;transition:border-color 0.2s;}
+.energy-period-tile::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:#10B981;}
+.energy-period-tile:hover{border-color:var(--border2);}
+.energy-period-label{font-size:20px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#000;margin-bottom:10px;}
+.energy-period-value{font-family:var(--font-number);font-size:28px;font-weight:700;color:#000;line-height:1.2;margin-bottom:6px;letter-spacing:-0.5px;}
+.energy-period-unit{font-size:13px;color:#000;font-weight:600;}
+.energy-period-badge{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:800;padding:2px 8px;border-radius:4px;margin-top:6px;background:rgba(16,185,129,0.12);color:#0E7C46;}
+
+/* ── METER TOGGLES ROW ── */
+.meter-toggles-panel{background:#0C0F1A;border:1px solid rgba(255,255,255,0.07);border-radius:var(--r12);padding:12px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.meter-toggles-label{font-family:var(--font-text);font-size:12px;font-weight:800;color:rgba(255,255,255,0.5);letter-spacing:0.8px;text-transform:uppercase;white-space:nowrap;margin-right:4px;}
+.meter-toggle-btn{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;font-family:var(--font-text);cursor:pointer;border:1px solid transparent;transition:all 0.18s;white-space:nowrap;user-select:none;}
+.meter-toggle-btn.active{opacity:1;border-color:rgba(255,255,255,0.15);}
+.meter-toggle-btn.inactive{opacity:0.32;filter:grayscale(0.6);border-color:rgba(255,255,255,0.06);}
+.meter-toggle-btn .mt-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.meter-toggle-btn .mt-cat{font-size:9px;opacity:0.6;margin-left:2px;}
+.toggle-all-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:800;font-family:var(--font-text);cursor:pointer;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.7);transition:all 0.15s;white-space:nowrap;}
+.toggle-all-btn:hover{background:rgba(255,255,255,0.12);color:#fff;}
+
+.chart-panel{background:#0C0F1A;border:1px solid rgba(255,255,255,0.07);border-radius:var(--r20);overflow:hidden;}
+.chart-panel .chart-header{padding:18px 22px 14px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+.chart-panel .chart-title{font-family:var(--font-text);font-size:16px;font-weight:800;color:#F0F4FF;letter-spacing:-0.2px;display:flex;align-items:center;gap:8px;}
+
+.chart-header{padding:18px 22px 14px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;}
+.chart-header > div:first-child{flex:1;min-width:280px;width:100%;}
+.chart-header > div:last-child{display:flex;flex-direction:column;align-items:flex-end;gap:10px;flex-wrap:wrap;}
+.der-selector-row{display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap;width:100%;}
+.der-select{background:#111624;border:1px solid rgba(255,255,255,0.2);border-radius:10px;padding:10px 14px;font-size:14px;color:#fff;font-family:var(--font-text);font-weight:600;outline:none;cursor:pointer;min-width:240px;max-width:320px;width:100%;transition:all 0.2s ease;}
+.der-select:hover{border-color:#3B82F6;}
+.der-select:focus{border-color:#3B82F6;box-shadow:0 0 0 3px rgba(59,130,246,0.15);}
+.der-select option{background:#111624;color:#fff;}
+.der-select optgroup{background:#111624;color:rgba(255,255,255,0.5);font-size:11px;font-weight:700;text-transform:uppercase;}
+
+.chart-panel .chart-tabs{display:flex;background:#111624;border-radius:10px;padding:4px;gap:4px;border:1px solid rgba(255,255,255,0.07);flex-wrap:wrap;justify-content:center;}
+.chart-panel .chart-tab{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;min-width:80px;text-align:center;font-family:var(--font-text);background:transparent;border:none;color:#fff;cursor:pointer;transition:all 0.15s;}
+.chart-panel .chart-tab:hover{color:#fff;}
+.chart-panel .chart-tab.on{background:#2563EB;color:#fff;font-weight:800;}
+.chart-panel .date-inputs{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;width:100%;}
+.chart-panel .date-in{background:#111624;border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:8px 10px;font-size:13px;color:#fff;min-width:140px;width:auto;font-family:var(--font-number);outline:none;font-weight:600;}
+.chart-panel .date-in:focus{border-color:#3B82F6;}
+.chart-panel .date-in::-webkit-calendar-picker-indicator{filter:invert(0.7);cursor:pointer;width:12px;}
+.chart-panel .date-sep{font-size:14px;color:rgba(255,255,255,0.4);font-weight:600;}
+.chart-panel .apply-btn{padding:8px 16px;border-radius:8px;background:#2563EB;border:none;color:#fff;font-size:13px;font-weight:800;font-family:var(--font-text);cursor:pointer;white-space:nowrap;}
+.chart-panel .apply-btn:hover{background:#1D4ED8;}
+.chart-panel .reset-zoom-btn{padding:5px 14px;border-radius:8px;background:rgba(245,158,11,0.18);border:1px solid rgba(245,158,11,0.45);color:#FCD34D;font-size:13px;font-weight:800;font-family:var(--font-text);cursor:pointer;transition:all 0.15s;display:none;white-space:nowrap;}
+.chart-panel .reset-zoom-btn:hover{background:rgba(245,158,11,0.3);}
+.chart-panel .reset-zoom-btn.visible{display:inline-flex;align-items:center;gap:5px;}
+
+.chart-panel .legend-row{padding:10px 22px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;gap:14px;flex-wrap:wrap;align-items:center;}
+.chart-panel .legend-item{display:flex;align-items:center;gap:6px;font-size:14px;color:rgba(255,255,255,0.7);cursor:pointer;padding:3px 8px;border-radius:6px;transition:background 0.15s;font-weight:600;font-family:var(--font-text);}
+.chart-panel .legend-item:hover{background:rgba(255,255,255,0.08);}
+.chart-panel .legend-item.hidden{opacity:0.3;}
+.chart-panel .legend-dot{width:10px;height:3px;border-radius:2px;flex-shrink:0;}
+
+.chart-body{display:flex;flex-direction:row;height:var(--CHART-H);overflow:hidden;position:relative;touch-action:none;user-select:none;}
+.yaxis-col{width:90px;flex-shrink:0;height:100%;background:#0C0F1A;border-right:1px solid rgba(255,255,255,0.07);position:relative;z-index:5;overflow:visible;margin-left:0;}
+.yaxis-col canvas{display:block;}
+.graph-col{flex:1;height:100%;overflow-x:auto;overflow-y:hidden;cursor:crosshair;position:relative;}
+.graph-col::-webkit-scrollbar{height:5px;}
+.graph-col::-webkit-scrollbar-track{background:rgba(255,255,255,0.49);}
+.graph-col::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.79);border-radius:3px;}
+.graph-col::-webkit-scrollbar-thumb:hover{background:#fff;}
+.graph-inner{height:100%;min-width:100%;position:relative;}
+.graph-inner canvas{display:block;}
+.chart-panel .zoom-hint{font-size:12px;color:#fff;display:flex;align-items:center;gap:8px;padding:6px 22px 8px;font-weight:500;}
+.drag-zoom-overlay{position:absolute;top:0;height:100%;background:rgba(37,99,235,0.18);border-left:2px solid rgba(96,165,250,0.8);border-right:2px solid rgba(96,165,250,0.8);pointer-events:none;z-index:11;display:none;}
+.crosshair-v{position:absolute;top:0;bottom:0;width:1px;background:rgba(96,165,250,0.5);pointer-events:none;display:none;z-index:10;}
+.crosshair-h{position:absolute;left:0;right:0;height:1px;background:rgba(96,165,250,0.3);pointer-events:none;display:none;z-index:10;}
+.floating-tooltip{position:absolute;background:#1A2035;border:1px solid rgba(255,255,255,0.88);border-radius:10px;padding:10px 14px;min-width:160px;pointer-events:none;z-index:20;opacity:0;transition:opacity 0.1s;box-shadow:0 8px 32px rgba(0,0,0,0.6);}
+.floating-tooltip.show{opacity:1;}
+.ftt-time{font-family:var(--font-number);font-size:10px;color:#fff;margin-bottom:7px;font-weight:600;}
+.ftt-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:3px;}
+.ftt-name{display:flex;align-items:center;gap:5px;font-size:10px;color:rgba(255,255,255,0.65);font-weight:600;}
+.ftt-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.ftt-val{font-family:var(--font-number);font-size:11px;color:#F0F4FF;font-weight:700;}
+.chart-empty{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(7,9,15,0.9);backdrop-filter:blur(4px);z-index:5;}
+.chart-empty.show{display:flex;}
+
+.graph-loading-overlay{
+  position:absolute;inset:0;display:none;flex-direction:column;
+  align-items:center;justify-content:center;gap:12px;
+  background:rgba(7,9,15,0.82);backdrop-filter:blur(3px);
+  z-index:15;border-radius:0;
+  animation:glFadeIn 0.25s ease;
+}
+.graph-loading-overlay.show{display:flex;}
+.glo-spinner{
+  width:36px;height:36px;border-radius:50%;
+  border:3px solid rgba(96,165,250,0.18);
+  border-top-color:#60A5FA;
+  animation:spin 0.75s linear infinite;
+  flex-shrink:0;
+}
+.glo-msg{
+  font-size:14px;font-weight:700;color:#E2E8F0;
+  letter-spacing:0.3px;text-align:center;padding:0 24px;
+  font-family:var(--font-text);
+}
+@keyframes glFadeIn{from{opacity:0;}to{opacity:1;}}
+
+.chart-empty .ce-icon{font-size:28px;opacity:0.4;}
+.chart-empty .ce-msg{font-size:12px;color:rgba(255,255,255,0.4);font-weight:600;}
+
+.graph-status-pill{display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:800;padding:4px 12px;border-radius:20px;margin-left:8px;letter-spacing:0.2px;}
+.graph-status-pill.loading{background:rgba(59,130,246,0.15);color:#60A5FA;}
+.graph-status-pill.live{background:rgba(16,185,129,0.15);color:#10B981;}
+.graph-status-pill.nodata{background:rgba(245,158,11,0.15);color:#F59E0B;}
+.spin{display:inline-block;width:8px;height:8px;border:1.5px solid rgba(96,165,250,0.4);border-top-color:#60A5FA;border-radius:50%;animation:spin 0.6s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+.raw-data-panel{background:#0C0F1A;border:1px solid rgba(255,255,255,0.07);border-radius:var(--r20);overflow:hidden;}
+.raw-data-header{padding:14px 22px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.raw-data-title{font-family:var(--font-text);font-size:18px;font-weight:800;color:#F0F4FF;display:flex;align-items:center;gap:8px;}
+.raw-der-label{font-size:11px;font-weight:700;font-family:var(--font-text);padding:3px 10px;border-radius:20px;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.3);color:#60A5FA;}
+.raw-update-time{font-family:var(--font-number);font-size:14px;color:rgba(255,255,255,1);font-weight:600;}
+.raw-data-scroll{padding:16px 22px;overflow-y:auto;max-height:260px;}
+.raw-data-scroll::-webkit-scrollbar{width:4px;}
+.raw-data-scroll::-webkit-scrollbar-track{background:rgba(255,255,255,0.02);}
+.raw-data-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.12);border-radius:2px;}
+.raw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;}
+.raw-card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:var(--r12);padding:12px 14px;transition:border-color 0.2s,background 0.2s;}
+.raw-card:hover{background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.12);}
+.raw-card-label{font-size:14px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;color:#fff;margin-bottom:6px;font-family:var(--font-text);}
+.raw-card-value{font-family:var(--font-number);font-size:22px;font-weight:700;color:#F0F4FF;line-height:1.1;letter-spacing:-0.3px;}
+.raw-card-unit{font-size:12px;color:#fff;font-weight:600;margin-left:3px;font-family:var(--font-text);}
+.raw-card-bar{height:3px;border-radius:2px;margin-top:8px;background:rgba(255,255,255,0.08);overflow:hidden;}
+.raw-card-bar-fill{height:100%;border-radius:2px;transition:width 0.6s ease;}
+.raw-card-timestamp{font-size:12px;color:#fff;margin-top:4px;font-family:var(--font-number);font-weight:600;}
+.raw-card-cat{font-size:10px;font-weight:700;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;}
+
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);z-index:500;display:none;align-items:center;justify-content:center;padding:20px;}
+.overlay.open{display:flex;}
+.modal{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r20);padding:24px;max-width:400px;width:100%;}
+.modal-title{font-size:15px;font-weight:800;color:#000;margin-bottom:20px;}
+.fg{margin-bottom:14px;}
+.flb{font-size:10px;font-weight:800;color:#000;text-transform:uppercase;display:block;margin-bottom:6px;}
+.fi{width:100%;padding:9px 12px;border-radius:var(--r8);border:1px solid var(--border2);background:var(--surface);color:#000;font-family:var(--font-text);font-size:12px;outline:none;font-weight:600;}
+.modal-acts{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;}
+.sys-item{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);}
+.sys-item-left{display:flex;align-items:center;gap:10px;}
+.sys-icon{width:28px;height:28px;border-radius:8px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:12px;}
+.sys-name{font-size:12px;font-weight:800;color:#000;}
+.sys-sub{font-size:10px;color:#000;font-weight:600;}
+.drill-tooltip{position:fixed;background:#1A2035;border:1px solid rgba(255,255,255,0.12);border-radius:var(--r12);padding:12px 16px;min-width:180px;pointer-events:none;z-index:999;opacity:0;transition:opacity 0.15s;box-shadow:0 8px 32px rgba(0,0,0,0.5);}
+.drill-tooltip.show{opacity:1;}
+.section-divider{display:flex;align-items:center;gap:12px;margin:4px 0 2px;}
+.section-divider span{font-size:18px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--text1);white-space:nowrap;}
+.section-divider::before,.section-divider::after{content:'';flex:1;height:1px;background:var(--border);}
+
+@media(max-width:1100px){.kpi-strip{grid-template-columns:repeat(2,1fr);}.savings-strip{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:900px){.kpi-strip{grid-template-columns:repeat(2,1fr);}.savings-strip{grid-template-columns:repeat(2,1fr);}.raw-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:768px){.chart-header{padding:16px;gap:16px;}.chart-title{font-size:15px;flex-wrap:wrap;}.der-selector-row{flex-direction:column;align-items:stretch;}.der-select{width:100%;min-width:100%;max-width:100%;font-size:13px;}.chart-panel .chart-tabs{width:100%;}.chart-panel .chart-tab{flex:1;min-width:auto;font-size:12px;padding:8px 10px;}.chart-panel .date-inputs{flex-direction:column;align-items:stretch;width:100%;}.chart-panel .date-in,.chart-panel .apply-btn{width:100%;}.chart-panel .date-sep{display:none;}.chart-body{height:240px;}.meter-toggles-panel{gap:6px;}}
+@media(max-width:700px){.nav-list{overflow-x:auto;}.nav-link{padding:0 12px;font-size:11px;}}
+@media(max-width:600px){.kpi-strip{grid-template-columns:1fr 1fr;}.savings-strip{grid-template-columns:1fr 1fr;}.chart-body{height:220px;}.raw-grid{grid-template-columns:1fr 1fr;}}
+@media(max-width:480px){.chart-header{padding:14px;}.chart-title{font-size:14px;}.chart-body{height:220px;}.chart-panel .legend-row{padding:10px 14px;gap:8px;}.chart-panel .legend-item{font-size:11px;}}
+</style>
+</head>
+<body>
+<div class="layout">
+<div class="main-area">
+
+<header class="topbar">
+  <div style="display:flex;align-items:center;gap:12px;flex:1;">
+    <a href="{% url 'home' %}" class="home-btn" title="Home">🏠</a>
+    <div class="topbar-left">
+      <div class="topbar-title">3rd Rock Energy System</div>
+      <div class="topbar-sub">
+        <div style="display:inline-flex;align-items:center;gap:10px;margin-left:8px;">
+          <span id="online-status-badge" class="online-badge">🟢 Online</span>
+          <span id="clock-display">--:--:-- EST</span>
+          <button class="reconnect-btn" onclick="reconnect()">⟳ Reconnect</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    {% if user.is_admin_or_superadmin %}
+      <a href="{% url 'user_list' %}" class="btn-users">User Management</a>
+      <a href="{% url 'company_list' %}" class="btn-users" style="background:linear-gradient(135deg,#7C3AED,#6D28D9);box-shadow:0 4px 10px rgba(124,58,237,0.3);">DER Management</a>
+    {% endif %}
+    <button class="tbtn" onclick="openModal('system-status-modal')">📡 Status</button>
+    <button class="tbtn primary" onclick="openModal('settings-modal')">⚙ Settings</button>
+    <a href="{% url 'logout' %}" class="btn-logout">Logout</a>
+  </div>
+</header>
+
+<nav class="nav-bar">
+  <ul class="nav-list" id="main-nav-list">
+    <li class="nav-item" style="padding:0 18px;display:flex;align-items:center;">
+      <span style="color:rgba(255,255,255,0.4);font-size:13px;">Loading devices…</span>
+    </li>
+    <li style="margin-left:auto;display:flex;align-items:center;padding-right:2px;">
+      <div class="grid-event-indicator" id="gridEventIndicator">
+        <div class="grid-event-dot"></div>⚡ Grid Event — EMS Override Active
+      </div>
+    </li>
+  </ul>
+</nav>
+
+<div class="banner" id="banner"><span id="banner-msg">—</span><button class="banner-x" onclick="closeBanner()">✕</button></div>
+
+<div class="content">
+  <div class="offline-bar" id="offline-bar">⚠ Offline — showing cached data. <button class="rbtn" onclick="reconnect()">↺ Reconnect</button></div>
+
+  <div class="section-divider"><span>Financial Performance</span></div>
+  <div class="savings-strip">
+    <div class="savings-card" style="--sc:#10B981"><div class="savings-label">Today</div><div class="savings-dollar">$15.50</div><div class="savings-tag">↑ Today</div></div>
+    <div class="savings-card" style="--sc:#3B82F6"><div class="savings-label">This Month</div><div class="savings-dollar">$181.02</div><div class="savings-tag">↑ Month</div></div>
+    <div class="savings-card" style="--sc:#F59E0B"><div class="savings-label">This Year</div><div class="savings-dollar">$1,585.62</div><div class="savings-tag">↑ Year</div></div>
+    <div class="savings-card" style="--sc:#8B5CF6"><div class="savings-label">Lifetime</div><div class="savings-dollar">$21,736.03</div><div class="savings-tag">↑ All Time</div></div>
+  </div>
+
+  <!-- ── METER TOGGLE CONTROLS (NEW) ── -->
+  <div class="meter-toggles-panel" id="meterTogglesPanel">
+    <span class="meter-toggles-label">Meters:</span>
+    <button class="toggle-all-btn" id="toggleAllBtn" onclick="toggleAllMeters()">Hide All</button>
+    <!-- Populated dynamically -->
+  </div>
+
+  <div class="chart-panel">
+    <div class="chart-header">
+      <div style="flex:1;min-width:0;">
+        <div class="chart-title">
+          Showing <span id="chart-showing-label" style="color:#60A5FA;font-weight:900;margin-left:4px;">All Meters</span>
+          <span class="graph-status-pill loading" id="gpill"><span class="spin"></span> Loading</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+          <button class="reset-zoom-btn" id="resetZoomBtn" onclick="resetZoom()">↺ Reset Zoom</button>
+          <div class="chart-tabs">
+            <button class="chart-tab on" onclick="switchChart('today')">Today</button>
+            <button class="chart-tab" onclick="switchChart('week')">Week</button>
+            <button class="chart-tab" onclick="switchChart('month')">Month</button>
+          </div>
+        </div>
+        <div class="date-inputs">
+          <input type="date" class="date-in" id="date-from">
+          <span class="date-sep">–</span>
+          <input type="date" class="date-in" id="date-to">
+          <button class="apply-btn" id="applyRangeBtn" onclick="applyCustomRange()" disabled>Apply</button>
+        </div>
+      </div>
+    </div>
+    <div class="legend-row" id="legend-row"></div>
+    <div class="zoom-hint">🖱️ Point – Click – Drag to zoom into any region</div>
+
+    <div class="chart-body" id="chartBody">
+      <div class="yaxis-col" id="yaxisCol">
+        <canvas id="yAxisChart"></canvas>
+      </div>
+      <div class="graph-col" id="graphCol">
+        <div class="graph-inner" id="graphInner">
+          <canvas id="lineChart" role="img" aria-label="Multi-stream microgrid data chart"></canvas>
+          <div class="drag-zoom-overlay" id="dragZoomOverlay"></div>
+        </div>
+        <div class="graph-loading-overlay" id="graphLoadingOverlay">
+          <div class="glo-spinner"></div>
+          <div class="glo-msg" id="graphLoadingMsg">⚡ Charging up your energy insights...</div>
+        </div>
+        <div class="crosshair-v" id="crosshairV"></div>
+        <div class="crosshair-h" id="crosshairH"></div>
+        <div class="floating-tooltip" id="floatingTooltip"></div>
+        <div class="chart-empty" id="chart-empty">
+          <div class="ce-icon">📊</div>
+          <div class="ce-msg">No data for this period</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="raw-data-panel">
+    <div class="raw-data-header">
+      <div class="raw-data-title">
+        📡 Current Status of all DERs
+        <span class="raw-der-label" id="rawDERLabel">All DERs</span>
+      </div>
+      <div class="raw-update-time" id="rawUpdateTime">—</div>
+    </div>
+    <div class="raw-data-scroll">
+      <div class="raw-grid" id="rawGrid"></div>
+    </div>
+  </div>
+
+</div>
+</div>
+</div>
+
+<div class="drill-tooltip" id="drill-tooltip"></div>
+
+<div class="overlay" id="settings-modal" onclick="if(event.target===this)closeModal('settings-modal')">
+  <div class="modal">
+    <div class="modal-title">Preferences</div>
+    <div class="fg"><label class="flb">Refresh Interval (sec)</label><input type="number" class="fi" id="refresh-interval" value="3" min="2" max="60"></div>
+    <div class="fg"><label class="flb">Currency</label><select class="fi" id="currency-select"><option value="$">USD ($)</option><option value="€">EUR (€)</option><option value="£">GBP (£)</option><option value="₹" selected>INR (₹)</option></select></div>
+    <div class="fg"><label class="flb">Rate per kWh</label><input type="number" class="fi" id="unit-rate" value="0.14" step="0.01"></div>
+    <div class="modal-acts"><button class="tbtn" onclick="closeModal('settings-modal')">Cancel</button><button class="tbtn primary" onclick="saveSettings()">Save Settings</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="system-status-modal" onclick="if(event.target===this)closeModal('system-status-modal')">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-title">System Status</div>
+    <div id="sys-grid">
+      <div class="sys-item"><div class="sys-item-left"><div class="sys-icon">🌐</div><div><div class="sys-name">Gateway</div><div class="sys-sub">Modbus TCP connection</div></div></div><span class="stbadge" id="s-gateway">--</span></div>
+      <div class="sys-item"><div class="sys-item-left"><div class="sys-icon">📡</div><div><div class="sys-name">API Server</div><div class="sys-sub">Django backend</div></div></div><span class="stbadge" id="s-api">--</span></div>
+      <div class="sys-item"><div class="sys-item-left"><div class="sys-icon">💾</div><div><div class="sys-name">Database</div><div class="sys-sub">Data persistence</div></div></div><span class="stbadge" id="s-db">--</span></div>
+      <div class="sys-item"><div class="sys-item-left"><div class="sys-icon">⚡</div><div><div class="sys-name">Last Reading</div><div class="sys-sub" id="s-last-sub">—</div></div></div><span class="stbadge" id="s-last">--</span></div>
+    </div>
+    <div class="modal-acts"><button class="tbtn primary" onclick="closeModal('system-status-modal')">Close</button></div>
+  </div>
+</div>
+
+<script>
+const CHART_H = 300;
+let availableDevices = [];
+
+const API_BASE = window.location.origin;
+const COLOR_SOLAR  = '#22C55E';
+const COLOR_METERS = '#EF4444';
+const CATEGORY_COLORS = {
+  'Meters':'#EF4444','Solar Generation':'#22C55E','Battery Power':'#FFFF00',
+  'EV Charging':'#BD00FF','Building Load':'#FF4500','HVAC':'#00FFFF','Genset':'#F08080',
+};
+const CATEGORY_ICONS = {
+  'Meters':'🌐','Solar Generation':'☀️','Battery Power':'🔋',
+  'EV Charging':'🔌','Building Load':'🏢','HVAC':'❄️','Genset':'⚙️',
+};
+
+let mainChart = null, yAxisChart = null;
+let currentPeriod = 'today', refreshTimer = null, graphTimer = null;
+let refreshInterval = 3000, interactionsAttached = false, allLabels = [], allData = {};
+let state = { currency: '₹', unitRate: 0.14 };
+let paramVisible = {}, activeParams = [];
+let isZoomed = false, zoomedStartIdx = 0, zoomedEndIdx = 0;
+let dragZoom = { active: false, startX: 0, startDataIdx: -1, endDataIdx: -1 };
+const MIN_PX_PER_POINT = 8, MAX_PX_PER_POINT = 40, CANVAS_MAX_PX = 16000;
+let isRendering = false, zoomRafId = null;
+
+// ── ALL_METERS_FLAT is DYNAMIC — built from DB devices after API load ──
+// Populated by buildMetersFromDevices(). Empty until devices are fetched.
+let ALL_METERS_FLAT = [];
+
+// meterEnabled: tracks which meters are toggled on (all enabled by default)
+let meterEnabled = {};
+
+// Returns only the currently-enabled meters
+function getEnabledMeters() {
+  return ALL_METERS_FLAT.filter(m => meterEnabled[m.id]);
+}
+
+// Per-category color palettes (index cycles if many devices in same category)
+const CATEGORY_COLOR_PALETTES = {
+  'Meters':           ['#EF4444','#F87171','#FCA5A5'],
+  'Solar Generation': ['#22C55E','#4ADE80','#86EFAC'],
+  'Battery Power':    ['#FFFF00','#FDE047','#FEF08A'],
+  'EV Charging':      ['#BD00FF','#A855F7','#C084FC'],
+  'Building Load':    ['#FF4500','#F97316','#FB923C'],
+  'HVAC':             ['#00FFFF','#22D3EE','#67E8F9'],
+  'Genset':           ['#F08080','#FB923C','#FCA5A5'],
+};
+
+// Default simFns per category (used for raw-data preview when no real value yet)
+const CATEGORY_SIM_FNS = {
+  'Meters':           (t,i)=>5+Math.sin(t/10800+i)*3+Math.random()*0.5,
+  'Solar Generation': (t,i)=>Math.max(0,8*Math.sin((t%86400)/86400*Math.PI+i*0.2)+Math.random()*0.5),
+  'Battery Power':    (t,i)=>Math.sin(t/3600+i)*4+Math.random()*0.3,
+  'EV Charging':      (t,i)=>Math.max(0,3.5+Math.sin(t/1800+i)*1.2+Math.random()*0.4),
+  'Building Load':    (t,i)=>Math.max(0,12+Math.sin(t/7200+i)*4+Math.random()*0.8),
+  'HVAC':             (t,i)=>Math.max(0,4+Math.sin(t/5400+i)*2+Math.random()*0.3),
+  'Genset':           ()=>0,
+};
+
+// Build ALL_METERS_FLAT from the availableDevices list returned by the API.
+// Each DB device becomes exactly one meter entry. No device = nothing shown.
+function buildMetersFromDevices(grouped) {
+  ALL_METERS_FLAT = [];
+  const catCounters = {}; // track index within each category for color cycling
+  const ALL_CATS = ['Meters','Solar Generation','Battery Power','EV Charging','Building Load','HVAC','Genset'];
+  ALL_CATS.forEach(cat => {
+    const devices = grouped[cat] || [];
+    devices.forEach((dev, idx) => {
+      catCounters[cat] = (catCounters[cat] || 0);
+      const palette = CATEGORY_COLOR_PALETTES[cat] || ['#94A3B8'];
+      const color = palette[catCounters[cat] % palette.length];
+      catCounters[cat]++;
+      const simBase = CATEGORY_SIM_FNS[cat] || (()=>0);
+      ALL_METERS_FLAT.push({
+        id:       `unit_${dev.unit_id}`,
+        label:    dev.display_name,
+        unit:     'kW',
+        color:    color,
+        category: cat,
+        unit_id:  dev.unit_id,
+        simFn:    (t) => simBase(t, idx),
+      });
+    });
+  });
+  // Reset meterEnabled — all on by default
+  meterEnabled = {};
+  ALL_METERS_FLAT.forEach(m => { meterEnabled[m.id] = true; });
+}
+
+// ── DER_REGISTRY kept for backward compat / nav ──
+const DER_REGISTRY = {
+  all_meters:  { label:'All Meters',        color:COLOR_METERS,  category:'Meters',           isSolar:false, params:[{id:'grid',label:'Grid Power',unit:'kW',color:COLOR_METERS,simFn:(t)=>5+Math.sin(t/10800)*3+Math.random()*0.5},{id:'grid2',label:'Grid Power 2',unit:'kW',color:'#F87171',simFn:(t)=>4+Math.sin(t/9000)*2+Math.random()*0.4}]},
+  all_solar:   { label:'All Solar',         color:COLOR_SOLAR,   category:'Solar Generation', isSolar:true,  params:[{id:'sol1',label:'Solar Gen 1',unit:'kW',color:COLOR_SOLAR,simFn:(t)=>Math.max(0,8*Math.sin((t%86400)/86400*Math.PI)+Math.random()*0.5)},{id:'sol2',label:'Solar Gen 2',unit:'kW',color:'#4ADE80',simFn:(t)=>Math.max(0,6*Math.sin((t%86400)/86400*Math.PI)+Math.random()*0.3)}]},
+  all_battery: { label:'All Battery',       color:'#FFFF00',     category:'Battery Power',    isSolar:false, params:[{id:'bat1',label:'Battery 1',unit:'kW',color:'#FFFF00',simFn:(t)=>Math.sin(t/3600)*4+Math.random()*0.3},{id:'bat2',label:'Battery 2',unit:'kW',color:'#FDE047',simFn:(t)=>Math.sin(t/4200)*3.5+Math.random()*0.3}]},
+  all_ev:      { label:'All Chargers',      color:'#BD00FF',     category:'EV Charging',      isSolar:false, params:[{id:'ev1',label:'EV Charger 1',unit:'kW',color:'#BD00FF',simFn:(t)=>Math.max(0,3.5+Math.sin(t/1800)*1.2+Math.random()*0.4)},{id:'ev2',label:'EV Charger 2',unit:'kW',color:'#A855F7',simFn:(t)=>Math.max(0,7+Math.sin(t/2400)*2+Math.random()*0.4)}]},
+  all_load:    { label:'All Building Load', color:'#FF4500',     category:'Building Load',    isSolar:false, params:[{id:'load1',label:'Building Load 1',unit:'kW',color:'#FF4500',simFn:(t)=>Math.max(0,12+Math.sin(t/7200)*4+Math.random()*0.8)},{id:'load2',label:'Building Load 2',unit:'kW',color:'#F97316',simFn:(t)=>Math.max(0,8+Math.sin(t/6000)*3+Math.random()*0.6)}]},
+  all_hvac:    { label:'All HVAC',          color:'#00FFFF',     category:'HVAC',             isSolar:false, params:[{id:'hvac1',label:'HVAC 1',unit:'kW',color:'#00FFFF',simFn:(t)=>Math.max(0,4+Math.sin(t/5400)*2+Math.random()*0.3)},{id:'hvac2',label:'HVAC 2',unit:'kW',color:'#22D3EE',simFn:(t)=>Math.max(0,3.5+Math.sin(t/4800)*1.8+Math.random()*0.3)}]},
+  all_genset:  { label:'All Genset',        color:'#F08080',     category:'Genset',           isSolar:false, params:[{id:'gen1',label:'Genset 1',unit:'kW',color:'#F08080',simFn:()=>0},{id:'gen2',label:'Genset 2',unit:'kW',color:'#FB923C',simFn:()=>0}]},
+  grid1:   {label:'Grid/Main Meter',        color:COLOR_METERS, category:'Meters',           isSolar:false, params:[{id:'grid_power',label:'Grid Power',unit:'kW',color:COLOR_METERS,simFn:(t)=>5+Math.sin(t/10800)*3+Math.random()*0.5}]},
+  grid2:   {label:'Grid Power 2',           color:COLOR_METERS, category:'Meters',           isSolar:false, params:[{id:'g2_power',label:'Active Power',unit:'kW',color:COLOR_METERS,simFn:(t)=>4+Math.sin(t/9000)*2+Math.random()*0.4}]},
+  solar1:  {label:'Solar Generation 1',    color:COLOR_SOLAR,  category:'Solar Generation', isSolar:true,  params:[{id:'sol1_power',label:'Solar Output',unit:'kW',color:COLOR_SOLAR,simFn:(t)=>Math.max(0,8*Math.sin((t%86400)/86400*Math.PI)+Math.random()*0.5)}]},
+  solar2:  {label:'Solar Generation 2',    color:COLOR_SOLAR,  category:'Solar Generation', isSolar:true,  params:[{id:'sol2_power',label:'Solar Output',unit:'kW',color:COLOR_SOLAR,simFn:(t)=>Math.max(0,6*Math.sin((t%86400)/86400*Math.PI)+Math.random()*0.3)}]},
+  battery1:{label:'Battery — Container 1', color:'#10B981',    category:'Battery Power',    isSolar:false, params:[{id:'bat1_power',label:'Charge/Discharge',unit:'kW',color:'#10B981',simFn:(t)=>Math.sin(t/3600)*4+Math.random()*0.3}]},
+  battery2:{label:'Battery — Container 2', color:'#059669',    category:'Battery Power',    isSolar:false, params:[{id:'bat2_power',label:'Charge/Discharge',unit:'kW',color:'#059669',simFn:(t)=>Math.sin(t/4200)*3.5+Math.random()*0.3}]},
+  ev1:     {label:'EV Charger 1',          color:'#6366F1',    category:'EV Charging',      isSolar:false, params:[{id:'ev1_power',label:'Charge Power',unit:'kW',color:'#6366F1',simFn:(t)=>Math.max(0,3.5+Math.sin(t/1800)*1.2+Math.random()*0.4)}]},
+  ev2:     {label:'EV Charger 2',          color:'#4F46E5',    category:'EV Charging',      isSolar:false, params:[{id:'ev2_power',label:'Charge Power',unit:'kW',color:'#4F46E5',simFn:(t)=>Math.max(0,7+Math.sin(t/2400)*2+Math.random()*0.4)}]},
+  load1:   {label:'Building Load 1',       color:'#F43F5E',    category:'Building Load',    isSolar:false, params:[{id:'load1_power',label:'Active Power',unit:'kW',color:'#F43F5E',simFn:(t)=>Math.max(0,12+Math.sin(t/7200)*4+Math.random()*0.8)}]},
+  load2:   {label:'Building Load 2',       color:'#E11D48',    category:'Building Load',    isSolar:false, params:[{id:'load2_power',label:'Active Power',unit:'kW',color:'#E11D48',simFn:(t)=>Math.max(0,8+Math.sin(t/6000)*3+Math.random()*0.6)}]},
+  hvac1:   {label:'HVAC — Thermostat 1',   color:'#06B6D4',    category:'HVAC',             isSolar:false, params:[{id:'hvac1_power',label:'HVAC Power',unit:'kW',color:'#06B6D4',simFn:(t)=>Math.max(0,4+Math.sin(t/5400)*2+Math.random()*0.3)}]},
+  hvac2:   {label:'HVAC — Thermostat 2',   color:'#0891B2',    category:'HVAC',             isSolar:false, params:[{id:'hvac2_power',label:'HVAC Power',unit:'kW',color:'#0891B2',simFn:(t)=>Math.max(0,3.5+Math.sin(t/4800)*1.8+Math.random()*0.3)}]},
+  genset1: {label:'Genset 1',              color:'#8B5CF6',    category:'Genset',           isSolar:false, params:[{id:'gen1_power',label:'Output Power',unit:'kW',color:'#8B5CF6',simFn:()=>0}]},
+  genset2: {label:'Genset 2',              color:'#7C3AED',    category:'Genset',           isSolar:false, params:[{id:'gen2_power',label:'Output Power',unit:'kW',color:'#7C3AED',simFn:()=>0}]},
+};
+
+// ── METER TOGGLE UI ──
+function buildMeterToggles() {
+  const panel = document.getElementById('meterTogglesPanel');
+  // Remove old buttons (keep label + toggle-all-btn)
+  Array.from(panel.querySelectorAll('.meter-toggle-btn')).forEach(el => el.remove());
+
+  ALL_METERS_FLAT.forEach(m => {
+    const btn = document.createElement('button');
+    btn.className = 'meter-toggle-btn ' + (meterEnabled[m.id] ? 'active' : 'inactive');
+    btn.id = 'mtbtn-' + m.id;
+    btn.style.background = meterEnabled[m.id]
+      ? `rgba(${hexToRgb(m.color)}, 0.18)`
+      : 'rgba(255,255,255,0.04)';
+    btn.style.color = meterEnabled[m.id] ? m.color : 'rgba(255,255,255,0.35)';
+    btn.innerHTML = `<div class="mt-dot" style="background:${m.color}"></div>${m.label}<span class="mt-cat">${CATEGORY_ICONS[m.category]||''}</span>`;
+    btn.onclick = () => toggleMeter(m.id);
+    panel.appendChild(btn);
+  });
+  updateToggleAllBtn();
+}
+
+function hexToRgb(hex) {
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  return `${r},${g},${b}`;
+}
+
+function updateToggleAllBtn() {
+  const allOn = ALL_METERS_FLAT.every(m => meterEnabled[m.id]);
+  const btn = document.getElementById('toggleAllBtn');
+  if (btn) btn.textContent = allOn ? 'Hide All' : 'Show All';
+}
+
+function toggleAllMeters() {
+  const allOn = ALL_METERS_FLAT.every(m => meterEnabled[m.id]);
+  ALL_METERS_FLAT.forEach(m => { meterEnabled[m.id] = !allOn; });
+  buildMeterToggles();
+  syncAllAfterToggle();
+}
+
+function toggleMeter(meterId) {
+  meterEnabled[meterId] = !meterEnabled[meterId];
+
+  // Update toggle button style
+  const btn = document.getElementById('mtbtn-' + meterId);
+  const m = ALL_METERS_FLAT.find(x => x.id === meterId);
+  if (btn && m) {
+    btn.className = 'meter-toggle-btn ' + (meterEnabled[meterId] ? 'active' : 'inactive');
+    btn.style.background = meterEnabled[meterId]
+      ? `rgba(${hexToRgb(m.color)}, 0.18)`
+      : 'rgba(255,255,255,0.04)';
+    btn.style.color = meterEnabled[meterId] ? m.color : 'rgba(255,255,255,0.35)';
+  }
+  updateToggleAllBtn();
+  syncAllAfterToggle();
+}
+
+// Sync chart datasets visibility + legend + raw grid after any toggle change
+function syncAllAfterToggle() {
+  const enabled = getEnabledMeters();
+
+  // Update chart-showing label
+  const label = enabled.length === ALL_METERS_FLAT.length
+    ? 'All Meters'
+    : enabled.length === 0
+      ? 'None'
+      : `${enabled.length} Meter${enabled.length > 1 ? 's' : ''}`;
+  document.getElementById('chart-showing-label').textContent = label;
+  document.getElementById('rawDERLabel').textContent = enabled.length === ALL_METERS_FLAT.length ? 'All DERs' : label;
+
+  // Update chart dataset visibility
+  if (mainChart) {
+    activeParams.forEach((p, i) => {
+      const ds = mainChart.data.datasets[i];
+      if (ds) ds.hidden = !meterEnabled[p.id];
+    });
+    mainChart.update();
+    syncYAxis();
+  }
+
+  // Update legend items
+  activeParams.forEach(p => {
+    const leg = document.getElementById(`leg-${p.id}`);
+    if (leg) leg.classList.toggle('hidden', !meterEnabled[p.id]);
+  });
+
+  // Update raw data panel
+  updateRawDataFromEnabled();
+}
+
+// ── Canvas sizing ──
+function applyCanvasSize(canvas, w) { if (!canvas) return; canvas.width = w; canvas.height = CHART_H; canvas.style.width = w + 'px'; canvas.style.height = CHART_H + 'px'; }
+function resizeMainChart(newW) { if (!mainChart) return; applyCanvasSize(mainChart.canvas, newW); mainChart.resize(newW, CHART_H); }
+function syncYAxis() {
+  if (!mainChart || !yAxisChart) return;
+  try { const ys = mainChart.scales.y; if (!ys) return; yAxisChart.options.scales.y.min = ys.min; yAxisChart.options.scales.y.max = ys.max; applyCanvasSize(yAxisChart.canvas, 90); yAxisChart.resize(90, CHART_H); yAxisChart.update('none'); } catch (e) {}
+}
+function getGraphColWidth() { const col = document.getElementById('graphCol'); return (col && col.clientWidth > 0) ? col.clientWidth : 800; }
+function calcCanvasWidth(n, fit) { const w = getGraphColWidth(); if (!n) return w; if (fit) return w; return Math.max(w, Math.min(n * MIN_PX_PER_POINT, n * MAX_PX_PER_POINT)); }
+
+function createYAxisChart() {
+  const canvas = document.getElementById('yAxisChart'); if (!canvas) return;
+  if (yAxisChart) { yAxisChart.destroy(); yAxisChart = null; }
+  applyCanvasSize(canvas, 90);
+  yAxisChart = new Chart(canvas.getContext('2d'), { type: 'line', data: { labels: [''], datasets: [{ data: [0], borderColor: 'transparent', pointRadius: 0 }] }, options: { responsive: false, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false }, tooltip: { enabled: false } }, layout: { padding: { top: 4, bottom: 0, left: 0, right: 2 } }, scales: { x: { display: false }, y: { position: 'left', grid: { color: 'rgba(255,255,255,0.06)', drawBorder: false }, ticks: { color: '#fff', font: { size: 9 }, callback: v => v % 1 === 0 ? v + ' kW' : v.toFixed(1) + ' kW', maxTicksLimit: 7, padding: 4 }, afterFit(scale) { scale.width = 88; }, beginAtZero: true, border: { display: false } } } } });
+}
+
+function createChart(labels, data) {
+  const params = activeParams.length ? activeParams : ALL_METERS_FLAT;
+  const canvas = document.getElementById('lineChart'), inner = document.getElementById('graphInner');
+  if (!canvas || !inner) return;
+  if (mainChart) { mainChart.destroy(); mainChart = null; }
+  const canvasW = Math.min(calcCanvasWidth(labels.length, true), CANVAS_MAX_PX);
+  inner.style.width = canvasW + 'px'; applyCanvasSize(canvas, canvasW);
+  const showPts = labels.length <= 120;
+  mainChart = new Chart(canvas.getContext('2d'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: params.map(p => ({
+        label: p.label,
+        data: data[p.id] || [],
+        borderColor: p.color,
+        backgroundColor: 'transparent',
+        borderWidth: 1.5,
+        pointRadius: showPts ? 2.5 : 0,
+        pointHoverRadius: 5,
+        pointBackgroundColor: p.color,
+        fill: false,
+        tension: 0.35,
+        hidden: !meterEnabled[p.id],  // respect toggle state
+        spanGaps: false
+      }))
+    },
+    options: {
+      responsive: false, maintainAspectRatio: false, animation: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      layout: { padding: { top: 4, bottom: 0, left: 0, right: 4 } },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#fff', font: { size: 10 }, maxRotation: 45, maxTicksLimit: Math.max(2, Math.floor(canvasW / 65)) } },
+        y: { display: false, grid: { color: 'rgba(255,255,255,0.06)' }, ticks: { color: '#fff', callback: v => v.toFixed(1) + ' kW' }, beginAtZero: true }
+      }
+    }
+  });
+  requestAnimationFrame(syncYAxis);
+}
+
+function applyView() {
+  const params = activeParams.length ? activeParams : ALL_METERS_FLAT;
+  if (!mainChart || !allLabels.length) return;
+  const TRAIL = isZoomed ? 0 : 5; let dispLabels, dispData;
+  if (isZoomed) {
+    const si = Math.max(0, Math.min(zoomedStartIdx, allLabels.length - 2)), ei = Math.max(si + 1, Math.min(zoomedEndIdx, allLabels.length - 1));
+    dispLabels = allLabels.slice(si, ei + 1); dispData = {};
+    params.forEach(p => { dispData[p.id] = (allData[p.id] || []).slice(si, ei + 1); });
+  } else { dispLabels = allLabels; dispData = allData; }
+  const paddedLabels = TRAIL > 0 ? [...dispLabels, ...Array(TRAIL).fill('')] : dispLabels;
+  const rawW = isZoomed ? Math.max(getGraphColWidth(), dispLabels.length * 20) : calcCanvasWidth(paddedLabels.length, true);
+  const canvasW = Math.min(rawW, CANVAS_MAX_PX), maxRenderPts = Math.floor(canvasW / 2);
+  let renderLabels = paddedLabels, renderData = {};
+  params.forEach(p => { const src = dispData[p.id] || []; renderData[p.id] = TRAIL > 0 ? [...src, ...Array(TRAIL).fill(null)] : src; });
+  if (paddedLabels.length > maxRenderPts && maxRenderPts > 10) {
+    const step = Math.ceil(paddedLabels.length / maxRenderPts);
+    renderLabels = paddedLabels.filter((_, i) => i % step === 0);
+    params.forEach(p => { renderData[p.id] = renderData[p.id].filter((_, i) => i % step === 0); });
+  }
+  const inner = document.getElementById('graphInner'), col = document.getElementById('graphCol'), savedScroll = col ? col.scrollLeft : 0;
+  inner.style.width = canvasW + 'px'; const showPts = renderLabels.length <= 120;
+  mainChart.data.labels = renderLabels;
+  params.forEach((p, i) => {
+    mainChart.data.datasets[i].data = renderData[p.id] || [];
+    mainChart.data.datasets[i].pointRadius = showPts ? 2.5 : 0;
+    mainChart.data.datasets[i].hidden = !meterEnabled[p.id];
+  });
+  mainChart.options.scales.x.ticks.maxTicksLimit = Math.max(2, Math.floor(canvasW / 65));
+  resizeMainChart(canvasW); mainChart.update('none');
+  requestAnimationFrame(() => { if (col && isZoomed) col.scrollLeft = savedScroll; syncYAxis(); });
+}
+
+function setResetZoomVisible(v) { document.getElementById('resetZoomBtn')?.classList.toggle('visible', v); }
+function pixelToDataIndex(absX) { if (!mainChart || !allLabels.length) return -1; const inner = document.getElementById('graphInner'), ratio = Math.max(0, Math.min(1, absX / inner.offsetWidth)); return isZoomed ? Math.round(zoomedStartIdx + ratio * (zoomedEndIdx - zoomedStartIdx)) : Math.round(ratio * (allLabels.length - 1)); }
+function resetZoom() { isZoomed = false; setResetZoomVisible(false); const col = document.getElementById('graphCol'), inner = document.getElementById('graphInner'); inner.style.width = getGraphColWidth() + 'px'; if (col) col.scrollLeft = 0; applyView(); }
+
+function attachChartInteractions() {
+  if (interactionsAttached) return; interactionsAttached = true;
+  const col = document.getElementById('graphCol'); if (!col) return;
+  let lastPinch = null;
+  col.addEventListener('touchstart', e => { if (e.touches.length === 2) lastPinch = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); }, { passive: true });
+  col.addEventListener('touchmove', e => { if (e.touches.length !== 2 || lastPinch === null) return; const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY), factor = lastPinch / d; lastPinch = d; const inner = document.getElementById('graphInner'), curW = inner.offsetWidth, newW = Math.max(getGraphColWidth(), curW * (2 - factor)); if (Math.abs(newW - curW) > 2) { isZoomed = true; setResetZoomVisible(true); } inner.style.width = newW + 'px'; scheduleZoomRedraw(newW); }, { passive: true });
+  col.addEventListener('touchend', () => { lastPinch = null; }, { passive: true });
+  col.addEventListener('wheel', e => { if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return; const ok = e.ctrlKey || e.metaKey || Math.abs(e.deltaY) > 50; if (!ok) return; e.preventDefault(); const inner = document.getElementById('graphInner'), curW = inner.offsetWidth, factor = e.deltaY < 0 ? 1.15 : (1 / 1.15), newW = Math.max(getGraphColWidth(), Math.min(allLabels.length * MAX_PX_PER_POINT, curW * factor)); if (newW === curW) return; isZoomed = true; setResetZoomVisible(true); const rect = col.getBoundingClientRect(), relX = (e.clientX - rect.left + col.scrollLeft) / curW; inner.style.width = newW + 'px'; col.scrollLeft = relX * newW - (e.clientX - rect.left); scheduleZoomRedraw(newW); }, { passive: false });
+  const overlay = document.getElementById('dragZoomOverlay');
+  col.addEventListener('mousedown', e => { if (e.button !== 0) return; const rect = col.getBoundingClientRect(), absX = e.clientX - rect.left + col.scrollLeft; dragZoom.active = true; dragZoom.startX = absX; dragZoom.startDataIdx = pixelToDataIndex(absX); dragZoom.endDataIdx = dragZoom.startDataIdx; dragZoom._startClientX = e.clientX; dragZoom._startClientY = e.clientY; overlay.style.cssText = `display:none;left:${absX}px;width:0;top:0;height:100%;`; });
+  col.addEventListener('mousemove', e => {
+    const rect = col.getBoundingClientRect(), x = e.clientX - rect.left, y = e.clientY - rect.top, absX = x + col.scrollLeft;
+    if (dragZoom.active) { const dx = Math.abs(e.clientX - dragZoom._startClientX), dy = Math.abs(e.clientY - dragZoom._startClientY); if (dx > 8 && dx > dy * 1.5) { const l = Math.min(dragZoom.startX, absX), w = Math.abs(absX - dragZoom.startX); overlay.style.display = 'block'; overlay.style.left = l + 'px'; overlay.style.width = w + 'px'; dragZoom.endDataIdx = pixelToDataIndex(absX); dragZoom._isDragging = true; } updateCrosshair(null, null, -1); return; }
+    if (!mainChart) return;
+    const cnt = (mainChart.data.labels || []).length;
+    if (cnt > 0) { const inner = document.getElementById('graphInner'), ratio = Math.max(0, Math.min(1, absX / inner.offsetWidth)); updateCrosshair(x, y, Math.round(ratio * (cnt - 1))); }
+  });
+  col.addEventListener('mouseup', e => {
+    if (!dragZoom.active) return; dragZoom.active = false; overlay.style.display = 'none';
+    if (!dragZoom._isDragging) { dragZoom._isDragging = false; return; } dragZoom._isDragging = false;
+    const rect = col.getBoundingClientRect(), absX = e.clientX - rect.left + col.scrollLeft, endIdx = pixelToDataIndex(absX), si = Math.min(dragZoom.startDataIdx, endIdx), ei = Math.max(dragZoom.startDataIdx, endIdx);
+    if (ei - si < 4) return;
+    isZoomed = true; zoomedStartIdx = si; zoomedEndIdx = ei; setResetZoomVisible(true);
+    const params = activeParams.length ? activeParams : ALL_METERS_FLAT;
+    const sliceLabels = allLabels.slice(si, ei + 1), sliceData = {};
+    params.forEach(p => { sliceData[p.id] = (allData[p.id] || []).slice(si, ei + 1); });
+    const zoomW = Math.min(Math.max(getGraphColWidth(), sliceLabels.length * 20), CANVAS_MAX_PX), maxPts = Math.floor(zoomW / 2);
+    let rL = sliceLabels, rD = sliceData;
+    if (sliceLabels.length > maxPts && maxPts > 10) { const step = Math.ceil(sliceLabels.length / maxPts); rL = sliceLabels.filter((_, i) => i % step === 0); params.forEach(p => { rD[p.id] = (sliceData[p.id] || []).filter((_, i) => i % step === 0); }); }
+    const inner = document.getElementById('graphInner'); inner.style.width = zoomW + 'px';
+    mainChart.data.labels = rL;
+    params.forEach((p, i) => { mainChart.data.datasets[i].data = rD[p.id] || []; mainChart.data.datasets[i].pointRadius = rL.length <= 120 ? 2.5 : 0; });
+    mainChart.options.scales.x.ticks.maxTicksLimit = Math.max(2, Math.floor(zoomW / 65));
+    resizeMainChart(zoomW); mainChart.update('none');
+    requestAnimationFrame(() => { syncYAxis(); col.scrollLeft = 0; });
+  });
+  col.addEventListener('mouseleave', () => { if (dragZoom.active) { dragZoom.active = false; overlay.style.display = 'none'; } updateCrosshair(null, null, -1); });
+}
+
+function scheduleZoomRedraw(newW) {
+  if (zoomRafId) cancelAnimationFrame(zoomRafId);
+  zoomRafId = requestAnimationFrame(() => {
+    if (!mainChart || isRendering) { zoomRafId = null; return; }
+    isRendering = true;
+    const params = activeParams.length ? activeParams : ALL_METERS_FLAT;
+    const pts = allLabels.length, showPts = (newW / (pts || 1)) > 10, maxPts = Math.floor(newW / 2);
+    if (mainChart.options.scales?.x) mainChart.options.scales.x.ticks.maxTicksLimit = Math.max(2, Math.floor(newW / 65));
+    if (pts > maxPts && maxPts > 10) {
+      const step = Math.ceil(pts / maxPts);
+      mainChart.data.labels = allLabels.filter((_, i) => i % step === 0);
+      params.forEach((p, i) => { if (!mainChart.data.datasets[i]) return; mainChart.data.datasets[i].data = (allData[p.id] || []).filter((_, i2) => i2 % step === 0); mainChart.data.datasets[i].pointRadius = showPts ? 3 : 0; });
+    } else {
+      mainChart.data.labels = allLabels;
+      params.forEach((p, i) => { if (!mainChart.data.datasets[i]) return; mainChart.data.datasets[i].data = allData[p.id] || []; mainChart.data.datasets[i].pointRadius = showPts ? 3 : 0; });
+    }
+    resizeMainChart(newW); mainChart.update('none');
+    requestAnimationFrame(() => { syncYAxis(); isRendering = false; }); zoomRafId = null;
+  });
+}
+
+function updateCrosshair(x, y, idx) {
+  const params = activeParams.length ? activeParams : ALL_METERS_FLAT;
+  const cv = document.getElementById('crosshairV'), ch = document.getElementById('crosshairH'), ft = document.getElementById('floatingTooltip'), col = document.getElementById('graphCol');
+  if (x === null) { cv.style.display = 'none'; ch.style.display = 'none'; ft.classList.remove('show'); return; }
+  cv.style.cssText = `display:block;left:${x}px;top:0;height:100%;`;
+  ch.style.cssText = `display:block;top:${y}px;left:0;width:${col.clientWidth}px;`;
+  if (mainChart && idx >= 0 && mainChart.data.labels[idx]) {
+    let html = `<div class="ftt-time">${mainChart.data.labels[idx]}</div>`;
+    params.forEach((p, i) => {
+      if (!meterEnabled[p.id]) return;
+      const v = mainChart.data.datasets[i]?.data?.[idx];
+      if (v != null) html += `<div class="ftt-row"><div class="ftt-name"><div class="ftt-dot" style="background:${p.color}"></div>${p.label}</div><div class="ftt-val">${parseFloat(v).toFixed(2)} ${p.unit}</div></div>`;
+    });
+    ft.innerHTML = html; ft.classList.add('show');
+    const fw = ft.offsetWidth || 180, fh = ft.offsetHeight || 80, aw = col.clientWidth, ah = col.clientHeight;
+    let lx = x + 12; if (lx + fw > aw - 4) lx = x - fw - 12;
+    let ty = y - fh - 12; if (ty < 4) ty = y + 12;
+    ft.style.left = Math.max(4, Math.min(lx, aw - fw - 4)) + 'px'; ft.style.top = Math.max(4, Math.min(ty, ah - fh - 4)) + 'px';
+  }
+}
+
+function padTodayLabels(rawLabels, rawDataMap) {
+  if (!rawLabels.length) return { paddedLabels: [], paddedData: {} };
+  const toMin = hhmm => { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m; }, fmMin = m => String(Math.floor(m / 60) % 24).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+  const end = toMin(rawLabels[rawLabels.length - 1]); const full = []; for (let i = 0; i <= end; i++) full.push(fmMin(i));
+  const paddedData = {}; Object.keys(rawDataMap).forEach(id => { const map = {}; rawLabels.forEach((l, i) => { map[l] = rawDataMap[id][i]; }); paddedData[id] = full.map(l => map[l] ?? null); });
+  return { paddedLabels: full, paddedData };
+}
+
+const LOADING_MESSAGES = [
+  '⚡ Charging up your energy insights...',
+  '📡 Receiving live meter signals...',
+  '📊 Turning data into decisions...',
+  '🔍 Discovering hidden energy trends...',
+  '🚀 Launching your dashboard...',
+  '💡 Illuminating your energy story...',
+  '📈 Crafting powerful visualizations...',
+  '🌍 Tracking every watt that matters...',
+];
+function showGraphLoading(show) {
+  const overlay = document.getElementById('graphLoadingOverlay');
+  const msg     = document.getElementById('graphLoadingMsg');
+  if (!overlay) return;
+  if (show) {
+    msg.textContent = LOADING_MESSAGES[Math.floor(Math.random() * LOADING_MESSAGES.length)];
+    overlay.classList.add('show');
+  } else {
+    overlay.classList.remove('show');
+  }
+}
+
+// ── MAIN: fetch graph data for all DB meters ──
+async function fetchGraphData(period = 'today', fromDate = null, toDate = null) {
+  if (!ALL_METERS_FLAT.length) { showChartEmpty(true); setGPill('nodata', 'No devices'); return; }
+  showGraphLoading(true);
+  setGPill('loading', 'Loading…'); showChartEmpty(false);
+  // activeParams = all DB meters (visibility handled per meterEnabled toggle)
+  activeParams = ALL_METERS_FLAT.map(m => ({ ...m }));
+
+  try {
+    const results = await Promise.all(ALL_METERS_FLAT.map(m => {
+      let url = `${API_BASE}/api/readings/graph/?unit_id=${m.unit_id}&period=${period}`;
+      if (fromDate && toDate) url = `${API_BASE}/api/readings/graph/?unit_id=${m.unit_id}&from=${fromDate}&to=${toDate}`;
+      return fetch(url).then(r => r.ok ? r.json() : { labels: [], values: [] }).catch(() => ({ labels: [], values: [] }));
+    }));
+
+    // Master labels = longest label set returned
+    let masterLabels = [];
+    results.forEach(r => { if ((r.labels || []).length > masterLabels.length) masterLabels = r.labels; });
+
+    if (!masterLabels.length) { showChartEmpty(true); setGPill('nodata', 'No data'); showGraphLoading(false);  return; }
+
+    const rawMultiData = {};
+    ALL_METERS_FLAT.forEach((m, i) => {
+      const map = {}; (results[i].labels || []).forEach((l, j) => { map[l] = results[i].values[j]; });
+      rawMultiData[m.id] = masterLabels.map(l => { const v = map[l]; return v != null ? Math.max(0, parseFloat((+v).toFixed(3))) : null; });
+    });
+
+    let finalLabels, finalData;
+    if (period === 'today') { const { paddedLabels, paddedData } = padTodayLabels(masterLabels, rawMultiData); finalLabels = paddedLabels; finalData = paddedData; }
+    else { finalLabels = masterLabels; finalData = rawMultiData; }
+
+    allLabels = finalLabels; allData = finalData;
+    buildLegendAll(); rebuildChart(finalLabels, finalData);
+    setGPill('live', `${masterLabels.length} pts`);
+    showGraphLoading(false);
+  } catch (e) {
+    console.error(e);
+    showChartEmpty(true);
+    setGPill('nodata', 'Error');
+    showGraphLoading(false);
+  }
+}
+
+
+function rebuildChart(labels, data) {
+  if (mainChart) { mainChart.destroy(); mainChart = null; }
+  createChart(labels, data);
+  attachChartInteractions();
+  applyView();
+  updateRawDataFromEnabled();
+}
+
+// Build legend for all meters
+function buildLegendAll() {
+  const row = document.getElementById('legend-row'); row.innerHTML = '';
+  ALL_METERS_FLAT.forEach(m => {
+    const el = document.createElement('div');
+    el.className = 'legend-item' + (meterEnabled[m.id] ? '' : ' hidden');
+    el.id = `leg-${m.id}`;
+    el.innerHTML = `<div class="legend-dot" style="background:${m.color}"></div>${m.label} <span style="font-size:10px;opacity:0.5;margin-left:2px;">${m.unit}</span>`;
+    el.onclick = () => {
+      toggleMeter(m.id);
+    };
+    row.appendChild(el);
+  });
+}
+
+// Render raw status cards only for enabled meters, fetching latest values from API
+async function updateRawDataFromEnabled() {
+  const grid = document.getElementById('rawGrid'); if (!grid) return;
+  const enabled = getEnabledMeters();
+  if (!enabled.length) {
+    grid.innerHTML = '<div style="color:rgba(255,255,255,0.35);font-size:13px;padding:8px;">No meters selected.</div>';
+    document.getElementById('rawUpdateTime').textContent = '—';
+    return;
+  }
+  // Fetch latest reading for each enabled meter in parallel
+  const latestResults = await Promise.all(enabled.map(m =>
+    fetch(`${API_BASE}/api/readings/latest/?unit_id=${m.unit_id}`)
+      .then(r => r.ok ? r.json() : null)
+      .catch(() => null)
+  ));
+  grid.innerHTML = enabled.map((m, i) => {
+    const d = latestResults[i];
+    const val = d && d.power_kw != null ? parseFloat(d.power_kw) : null;
+    const displayVal = val == null ? '—' : (Math.abs(val) < 10 ? val.toFixed(2) : val.toFixed(1));
+    const isNeg = val != null && val < 0;
+    const ts = d && d.timestamp ? new Date(d.timestamp).toLocaleTimeString('en-US',{timeZone:'America/New_York',hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '—';
+    const statusCls = d && d.status === 'online' ? '#10B981' : d && d.status === 'stale' ? '#F59E0B' : '#94A3B8';
+    return `<div class="raw-card">
+      <div class="raw-card-cat">${CATEGORY_ICONS[m.category] || ''} ${m.category}</div>
+      <div class="raw-card-label">${m.label}</div>
+      <div class="raw-card-value"><span style="color:${isNeg ? '#F87171' : m.color}">${displayVal}</span><span class="raw-card-unit">${m.unit}</span></div>
+      <div class="raw-card-bar"><div class="raw-card-bar-fill" style="width:${val != null ? Math.min(100, Math.abs(val) * 5) : 0}%;background:${m.color};"></div></div>
+      <div class="raw-card-timestamp" style="color:${statusCls}">${d ? (d.status || '—') : '—'} · ${ts}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('rawUpdateTime').textContent = 'Updated ' + new Date().toLocaleTimeString();
+}
+
+// Kept for backward compat (nav dropdown calls)
+function updateRawData(cfg) { updateRawDataFromEnabled(); }
+
+async function fetchLiveData() {
+  try {
+    const res = await fetch(`${API_BASE}/api/readings/latest/?unit_id=100`); if (!res.ok) throw new Error();
+    const d = await res.json();
+    if (d.status === 'online' || d.status === 'stale') { setOnlineStatus('online'); document.getElementById('offline-bar').classList.remove('show'); }
+    else { setOnlineStatus('offline'); document.getElementById('offline-bar').classList.add('show'); }
+  } catch (e) { setOnlineStatus('offline'); document.getElementById('offline-bar').classList.add('show'); }
+}
+
+async function fetchEnergyStats() {
+  try {
+    const summaryRes = await fetch(`${API_BASE}/api/readings/summary/?unit_id=100`);
+    const latestRes = await fetch(`${API_BASE}/api/readings/latest/?unit_id=100`);
+    if (summaryRes.ok) { const s = await summaryRes.json(); const w = document.getElementById('v-week'), m = document.getElementById('v-month'); if (w) w.textContent = (+s.week_kwh || 0).toFixed(1); if (m) m.textContent = (+s.month_kwh || 0).toFixed(1); const yr = document.getElementById('v-year'); if (yr && s.month_kwh != null) yr.textContent = (+s.month_kwh * 12).toFixed(1); }
+    if (latestRes.ok) { const d = await latestRes.json(); const lt = document.getElementById('v-lifetime'), pe = document.getElementById('v-period'); if (lt && d.energy_today_kwh != null) lt.textContent = (+d.energy_today_kwh).toFixed(1); if (pe && d.energy_today_kwh != null) pe.textContent = (+d.energy_today_kwh).toFixed(1); }
+  } catch (e) {}
+}
+
+// Legacy buildLegend kept for any direct calls
+function buildLegend(cfg) { buildLegendAll(); }
+
+async function loadNavbarDevices() {
+  try {
+    const res = await fetch(`${API_BASE}/api/devices/by-category/`); if (!res.ok) throw new Error();
+    const grouped = await res.json();
+
+    // ── STEP 1: Build the live meters list from DB devices only ──
+    availableDevices = [];
+    Object.entries(grouped).forEach(([cat, devices]) => {
+      devices.forEach(dev => { availableDevices.push({ ...dev, category: cat }); });
+    });
+    buildMetersFromDevices(grouped); // populates ALL_METERS_FLAT & meterEnabled from DB
+
+    // ── STEP 2: Build nav bar ──
+    const navList = document.getElementById('main-nav-list'), gridEventLi = navList.querySelector('li:last-child');
+    navList.innerHTML = '';
+    const ALL_CATS = ['Meters', 'Solar Generation', 'Battery Power', 'EV Charging', 'Building Load', 'HVAC', 'Genset'];
+    ALL_CATS.forEach(cat => {
+      const devices = grouped[cat] || [], color = CATEGORY_COLORS[cat] || '#aaa', icon = CATEGORY_ICONS[cat] || '📡';
+      const li = document.createElement('li'); li.className = 'nav-item';
+      li.innerHTML = `<a class="nav-link"><div class="nav-dot" style="background:${color}"></div>${cat}<span class="chevron">▼</span></a><div class="nav-dropdown"></div>`;
+      const dd = li.querySelector('.nav-dropdown');
+      if (devices.length) {
+        const allA = document.createElement('a'); allA.className = 'nav-dropdown-item all-option'; allA.innerHTML = `<span class="dd-icon">${icon}</span><strong>All ${cat}</strong>`; allA.onclick = () => { window.location.href = "{% url 'energy_dashboard_v2' %}#all_" + encodeURIComponent(cat); }; dd.appendChild(allA);
+        devices.forEach(dev => { const a = document.createElement('a'); a.className = 'nav-dropdown-item'; a.innerHTML = `<span class="dd-icon">${icon}</span>${dev.display_name}${dev.location ? '<span style="font-size:10px;opacity:0.5;margin-left:6px;">' + dev.location + '</span>' : ''}`; a.onclick = () => { window.location.href = "{% url 'energy_dashboard_v2' %}#unit_" + dev.unit_id; }; dd.appendChild(a); });
+      } else {
+        const empty = document.createElement('div'); empty.className = 'nav-dropdown-empty'; empty.textContent = 'No devices added yet'; dd.appendChild(empty);
+      }
+      navList.appendChild(li);
+    });
+    if (gridEventLi) navList.appendChild(gridEventLi);
+    else { const el = document.createElement('li'); el.style.cssText = 'margin-left:auto;display:flex;align-items:center;padding-right:2px;'; el.innerHTML = '<div class="grid-event-indicator" id="gridEventIndicator"><div class="grid-event-dot"></div>⚡ Grid Event — EMS Override Active</div>'; navList.appendChild(el); }
+
+    // ── STEP 3: Build toggle UI then fetch graph ──
+    if (ALL_METERS_FLAT.length === 0) {
+      // No devices in DB at all
+      buildMeterToggles();
+      document.getElementById('chart-showing-label').textContent = 'No devices';
+      document.getElementById('rawDERLabel').textContent = 'No devices added';
+      document.getElementById('rawGrid').innerHTML = '<div style="color:rgba(255,255,255,0.4);font-size:13px;padding:8px 0;">No devices have been added yet. Go to DER Management to add meters.</div>';
+      showChartEmpty(true);
+      setGPill('nodata', 'No devices');
+      return;
+    }
+    buildMeterToggles();
+    document.getElementById('chart-showing-label').textContent = `All Meters (${ALL_METERS_FLAT.length})`;
+    fetchGraphData('today');
+
+  } catch (e) {
+    console.error('loadNavbarDevices error:', e);
+    document.getElementById('main-nav-list').innerHTML = '<li style="padding:0 18px;display:flex;align-items:center;"><span style="color:rgba(255,100,100,0.7);font-size:13px;">Failed to load devices</span></li>';
+    // No devices loaded — show empty state, do NOT show static meters
+    ALL_METERS_FLAT = [];
+    meterEnabled = {};
+    buildMeterToggles();
+    showChartEmpty(true);
+    setGPill('nodata', 'Load failed');
+    document.getElementById('rawGrid').innerHTML = '<div style="color:rgba(255,255,255,0.4);font-size:13px;padding:8px 0;">Could not load devices. Check connection.</div>';
+  }
+}
+
+function fmtClock() { return new Date().toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true }); }
+function setOnlineStatus(s) { const b = document.getElementById('online-status-badge'); if (s === 'online') { b.innerHTML = '🟢 Online'; b.className = 'online-badge'; } else { b.innerHTML = '🔴 Offline'; b.className = 'online-badge offline-badge'; } }
+function setGPill(type, label) { const el = document.getElementById('gpill'); el.className = 'graph-status-pill ' + type; el.innerHTML = type === 'loading' ? `<span class="spin"></span> ${label}` : label; }
+function showChartEmpty(show) { document.getElementById('chart-empty').classList.toggle('show', show); }
+function showBanner(cls, msg) { const b = document.getElementById('banner'); b.className = 'banner show ' + cls; document.getElementById('banner-msg').textContent = msg; setTimeout(() => { if (b.classList.contains('show')) closeBanner(); }, 4000); }
+function closeBanner() { document.getElementById('banner').className = 'banner'; }
+function forceRefresh() { fetchLiveData(); fetchEnergyStats(); fetchGraphData(currentPeriod); showBanner('restored', 'Manual refresh done'); }
+function reconnect() { setOnlineStatus('online'); fetchLiveData().then(() => document.getElementById('offline-bar').classList.remove('show')); fetchEnergyStats(); if (ALL_METERS_FLAT.length) fetchGraphData(currentPeriod); showBanner('restored', 'Reconnected'); }
+function switchChart(period) { currentPeriod = period; document.querySelectorAll('.chart-tab').forEach(t => t.classList.toggle('on', t.textContent.toLowerCase() === period)); isZoomed = false; setResetZoomVisible(false); fetchGraphData(period); }
+function applyCustomRange() { const f = document.getElementById('date-from').value, t = document.getElementById('date-to').value; if (!f || !t) { showBanner('reconnect', 'Select both dates'); return; } if (f > t) { showBanner('reconnect', 'Start must be before end'); return; } document.querySelectorAll('.chart-tab').forEach(t => t.classList.remove('on')); currentPeriod = 'custom'; isZoomed = false; setResetZoomVisible(false); fetchGraphData('custom', f, t); }
+function saveSettings() { const iv = parseInt(document.getElementById('refresh-interval').value) || 5; state.currency = document.getElementById('currency-select').value; state.unitRate = parseFloat(document.getElementById('unit-rate').value) || 0.14; refreshInterval = Math.max(2, Math.min(60, iv)) * 1000; if (refreshTimer) clearInterval(refreshTimer); refreshTimer = setInterval(() => { fetchLiveData(); fetchEnergyStats(); }, refreshInterval); localStorage.setItem('mgSettings', JSON.stringify({ refreshInterval, currency: state.currency, unitRate: state.unitRate })); closeModal('settings-modal'); showBanner('restored', 'Settings saved'); }
+function loadSettings() { try { const s = JSON.parse(localStorage.getItem('mgSettings') || '{}'); if (s.refreshInterval) refreshInterval = s.refreshInterval; if (s.currency) state.currency = s.currency; if (s.unitRate) state.unitRate = s.unitRate; document.getElementById('refresh-interval').value = refreshInterval / 1000; document.getElementById('currency-select').value = state.currency; document.getElementById('unit-rate').value = state.unitRate; } catch (e) {} }
+function openModal(id) { document.getElementById(id).classList.add('open'); if (id === 'system-status-modal') updateSysStatus(); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+async function updateSysStatus() { const set = (id, txt, cls) => { const el = document.getElementById(id); if (el) { el.textContent = txt; el.className = 'stbadge ' + cls; } }; try { const res = await fetch(`${API_BASE}/api/readings/latest/?unit_id=100`); if (!res.ok) throw new Error(); set('s-gateway', 'Connected', 'ok'); set('s-api', 'Online', 'ok'); set('s-db', 'Active', 'ok'); const d = await res.json(); if (d.timestamp) { const age = Math.floor((Date.now() - new Date(d.timestamp).getTime()) / 1000); set('s-last', age + 's ago', age < 10 ? 'ok' : age < 30 ? 'warn' : 'err'); document.getElementById('s-last-sub').textContent = new Date(d.timestamp).toLocaleTimeString('en-US', { timeZone: 'America/New_York' }); } } catch (e) { set('s-gateway', 'Disconnected', 'err'); set('s-api', 'Offline', 'err'); set('s-db', 'Unknown', 'warn'); set('s-last', 'No data', 'err'); } }
+function showGridEvent(active) { const el = document.getElementById('gridEventIndicator'); if (el) el.classList.toggle('active', active); }
+
+function init() {
+  document.getElementById('date-to').value = ''; document.getElementById('date-from').value = '';
+  const df = document.getElementById('date-from'), dt = document.getElementById('date-to'), ab = document.getElementById('applyRangeBtn');
+  function toggleApply() { const ok = !!(df.value && dt.value); ab.disabled = !ok; ab.style.background = ok ? '#2563EB' : '#a1a1ac'; ab.style.opacity = ok ? '1' : '0.6'; ab.style.cursor = ok ? 'pointer' : 'not-allowed'; }
+  df.addEventListener('change', toggleApply); dt.addEventListener('change', toggleApply); toggleApply();
+  loadSettings();
+
+  requestAnimationFrame(() => {
+    createYAxisChart();
+    createChart([], {});
+    attachChartInteractions();
+    fetchLiveData();
+    fetchEnergyStats();
+  });
+
+  // loadNavbarDevices fetches DB devices, calls buildMetersFromDevices,
+  // then buildMeterToggles, then fetchGraphData — all in the right order.
+  loadNavbarDevices();
+
+  refreshTimer = setInterval(() => { fetchLiveData(); fetchEnergyStats(); }, refreshInterval);
+  graphTimer = setInterval(() => { if (ALL_METERS_FLAT.length) fetchGraphData(currentPeriod); }, 60000);
+  setInterval(() => { document.getElementById('clock-display').textContent = fmtClock() + ' EST'; }, 1000);
+  window.addEventListener('online', () => reconnect());
+  window.addEventListener('offline', () => { showBanner('offline', 'Network lost'); document.getElementById('offline-bar').classList.add('show'); });
+  document.addEventListener('click', e => { if (!e.target.closest('#lineChart')) document.getElementById('drill-tooltip').classList.remove('show'); });
+}
+
+document.addEventListener('DOMContentLoaded', init);
+window.switchChart = switchChart; window.applyCustomRange = applyCustomRange;
+window.saveSettings = saveSettings; window.openModal = openModal; window.closeModal = closeModal;
+window.forceRefresh = forceRefresh; window.reconnect = reconnect; window.closeBanner = closeBanner;
+window.resetZoom = resetZoom; window.showGridEvent = showGridEvent;
+window.toggleMeter = toggleMeter; window.toggleAllMeters = toggleAllMeters;
+</script>
+</body>
+</html>
