@@ -1,164 +1,18 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Add User · 3rd Rock Energy</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne+Mono&display=swap" rel="stylesheet">
+{% extends "app1/base.html" %}
+{% load static %}
+
+{% block title %}Add Person · 3rd Rock Energy{% endblock %}
+
+{% block extra_css %}
 <style>
-*{margin:0;padding:0;box-sizing:border-box;}
-:root{
-  --font-text:'Calibri','Segoe UI','Arial',sans-serif;
-  --font-mono:'Syne Mono',monospace;
-  --bg:#F8FAFC;--bg2:#FFFFFF;--surface:#F1F5F9;--surface2:#E2E8F0;
-  --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.14);
-  --text1:#0F172A;--text2:#334155;--text3:#64748B;
-  --accent:#3B82F6;--accent2:#2563EB;--error:#F43F5E;
-}
-body{font-family:var(--font-text);background:var(--bg);color:var(--text1);font-size:13px;-webkit-font-smoothing:antialiased;min-height:100vh;}
-.topbar{
-    background:#4A5568;
-    padding:0 20px;
-    min-height:70px;
-    display:flex;
-    align-items:center;
-    gap:16px;
-    position:sticky;
-    top:0;
-    z-index:100;
-    box-shadow:0 2px 10px rgba(0,0,0,0.08);
-}
-
-.topbar-left{
-    display:flex;
-    align-items:center;
-    gap:14px;
-}
-
-.topbar-brand{
-    font-size:22px;
-    font-weight:800;
-    color:#fff;
-    letter-spacing:-0.3px;
-    white-space:nowrap;
-}
-
-.topbar-actions{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    margin-left: auto;
-}
-
-.nav-btn{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap:7px;
-    padding:10px 18px;
-    border-radius:12px;
-    border:none;
-    background:rgba(255,255,255,0.12);
-    color:#fff;
-    font-size:13px;
-    font-weight:700;
-    text-decoration:none;
-    transition:all 0.2s ease;
-    backdrop-filter:blur(6px);
-    white-space:nowrap;
-}
-
-.nav-btn:hover{
-    background:rgba(255,255,255,0.22);
-    transform:translateY(-1px);
-}
-
-.nav-btn.accent{
-    background:#2563EB;
-    color:#fff;
-}
-
-.nav-btn.accent:hover{
-    background:#1D4ED8;
-}
-
-.nav-btn.green{
-    background:#10B981;
-    color:#fff;
-}
-
-.nav-btn.green:hover{
-    background:#059669;
-}
-
-.nav-btn.orange{
-    background:#F59E0B;
-    color:#fff;
-}
-
-.nav-btn.orange:hover{
-    background:#D97706;
-}
-
-.nav-btn.danger{
-    background:#EF4444;
-    color:#fff;
-}
-
-.nav-btn.danger:hover{
-    background:#DC2626;
-}
-
-.tbtn{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap:5px;
-    padding:6px 14px;
-    border-radius:30px;
-    font-size:14px;
-    font-weight:700;
-    border:1px solid var(--border2);
-    background:transparent;
-    color:#000;
-    cursor:pointer;
-    transition:all 0.15s;
-    white-space:nowrap;
-    text-decoration:none;
-}
-
-.tbtn:hover{
-    background:var(--surface);
-}
-
-.tbtn.primary{
-    background:linear-gradient(135deg,#3B82F6,#2563EB);
-    border-color:transparent;
-    color:#fff;
-}
-
-.home-btn{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  width:52px;
-  height:52px;
-  font-size:28px;
-  border-radius:50%;
-  border:2px solid var(--border2);
-  background:transparent;
-  cursor:pointer;
-  text-decoration:none;
-  flex-shrink:0;
-  transition:background 0.15s;
-}
-.home-btn:hover{
-  background:var(--surface2);
-}
-
-.back-btn{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:var(--text3);text-decoration:none;padding:6px 12px;border-radius:8px;border:1px solid var(--border2);transition:all 0.15s;}
-.back-btn:hover{background:var(--surface);color:var(--text1);}
-.content{padding:28px;max-width:600px;margin:0 auto;}
+.checkbox-list{display:flex;flex-direction:column;gap:10px;max-height:260px;overflow-y:auto;padding:12px 14px;background:var(--bg);border:1px solid var(--border2);border-radius:10px;scrollbar-width:thin;}
+.checkbox-list::-webkit-scrollbar{width:8px;}
+.checkbox-list::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px;}
+.checkbox-list::-webkit-scrollbar-thumb:hover{background:var(--text3);}
+.ms-count{font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px;}
+.checkbox-item label{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;color:var(--text1);cursor:pointer;}
+.checkbox-item input[type=checkbox]{width:16px;height:16px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;}
+.content-wrap{padding:28px;max-width:600px;margin:0 auto;}
 .page-heading{font-size:22px;font-weight:800;letter-spacing:-0.4px;margin-bottom:6px;}
 .page-sub{font-size:12px;color:var(--text3);margin-bottom:28px;font-weight:500;}
 .form-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;}
@@ -166,50 +20,37 @@ body{font-family:var(--font-text);background:var(--bg);color:var(--text1);font-s
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
 .fg{margin-bottom:18px;}
 .flb{display:block;font-size:11px;font-weight:700;color:var(--text2);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px;}
-.flb .req{color:var(--error);}
-.auth-input{width:100%;padding:10px 14px;background:var(--surface);border:1px solid var(--border2);border-radius:10px;color:var(--text1);font-family:var(--font-text);font-size:13px;font-weight:600;outline:none;transition:border-color 0.15s,box-shadow 0.15s;}
+.flb .req{color:var(--red);}
+.auth-input{width:100%;padding:10px 14px;background:var(--bg);border:1px solid var(--border2);border-radius:10px;color:var(--text1);font-family:var(--font);font-size:13px;font-weight:600;outline:none;transition:border-color 0.15s,box-shadow 0.15s;}
 .auth-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,130,246,0.10);}
-.auth-input::placeholder{color:var(--text3);font-weight:400;}
 select.auth-input{cursor:pointer;}
-.field-errors li{font-size:11px;color:var(--error);list-style:none;margin-top:4px;}
+.field-errors li{font-size:11px;color:var(--red);list-style:none;margin-top:4px;}
 .hint{font-size:11px;color:var(--text3);margin-top:5px;font-weight:400;}
 .form-error{background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.2);border-radius:10px;padding:10px 14px;font-size:12px;color:#9F1239;margin-bottom:20px;}
 .form-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:24px;padding-top:18px;border-top:1px solid var(--border);}
-.cancel-btn{padding:10px 20px;background:transparent;border:1px solid var(--border2);border-radius:10px;color:var(--text2);font-family:var(--font-text);font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;}
-.cancel-btn:hover{background:var(--surface);}
-.submit-btn{padding:10px 24px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:10px;color:#fff;font-family:var(--font-text);font-size:13px;font-weight:700;cursor:pointer;transition:opacity 0.15s;}
+.cancel-btn{padding:10px 20px;background:transparent;border:1px solid var(--border2);border-radius:10px;color:var(--text2);font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;}
+.cancel-btn:hover{background:var(--bg);}
+.submit-btn{padding:10px 24px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:10px;color:#fff;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;transition:opacity 0.15s;}
 .submit-btn:hover{opacity:0.88;}
-.role-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px;}
-.role-card{border:2px solid var(--border);border-radius:10px;padding:12px;cursor:pointer;transition:all 0.15s;text-align:center;}
-.role-card:hover{border-color:rgba(59,130,246,0.4);}
-.role-card input{display:none;}
-.role-card.selected{border-color:var(--accent);background:rgba(59,130,246,0.05);}
-.role-icon{font-size:18px;margin-bottom:6px;}
-.role-name{font-size:12px;font-weight:800;color:var(--text1);}
-.role-desc{font-size:10px;color:var(--text3);margin-top:2px;}
-@media(max-width:500px){.form-row{grid-template-columns:1fr;}.role-cards{grid-template-columns:1fr;}}
+.ms-selected-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
+.ms-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);color:var(--accent);font-size:12px;font-weight:700;}
+.ms-chip button{background:none;border:none;color:inherit;cursor:pointer;font-size:11px;padding:0;line-height:1;}
+@media(max-width:500px){.form-row{grid-template-columns:1fr;}}
 </style>
-</head>
-<body>
+{% endblock %}
 
+{% block breadcrumb %}
+<a href="{% url 'home' %}">Home</a>
+<span class="sep">/</span>
+<a href="{% url 'user_list' %}">Personnel Management</a>
+<span class="sep">/</span>
+<span class="current">Add Person</span>
+{% endblock %}
 
-<header class="topbar">
-  <div class="topbar-left">
-    <a href="{% url 'home' %}" class="home-btn" title="Home">🏠</a>
-    <div class="topbar-brand">3rd Rock Energy System</div>
-  </div>
-  <div class="topbar-actions">
-   {% if user.is_admin_or_superadmin %}
-    <a href="{% url 'company_list' %}" class="nav-btn">← Device Management</a>
-    <a href="{% url 'user_list' %}" class="nav-btn">👥 User Management </a>
-    {% endif %}
-    <a href="{% url 'logout' %}" class="nav-btn danger">Logout</a>
-  </div>
-</header>
-
-<div class="content">
-  <div class="page-heading">Create User Account</div>
-  <div class="page-sub">Fill in the details to create a new user account</div>
+{% block content %}
+<div class="content-wrap">
+  <div class="page-heading">Create Personnel Account</div>
+  <div class="page-sub">Fill in the details to add a new person</div>
 
   {% if form.non_field_errors %}
     <div class="form-error">⚠ {{ form.non_field_errors|join:", " }}</div>
@@ -234,29 +75,15 @@ select.auth-input{cursor:pointer;}
       </div>
 
       <div class="fg">
-        <label class="flb">Username <span class="req">*</span></label>
-        {{ form.username }}
-        {% if form.username.errors %}<ul class="field-errors">{% for e in form.username.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
-      </div>
-
-      <div class="fg">
         <label class="flb">Email Address</label>
         {{ form.email }}
         {% if form.email.errors %}<ul class="field-errors">{% for e in form.email.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
       </div>
 
-      <div class="section-title" style="margin-top:8px;">Password</div>
-      <div class="form-row">
-        <div class="fg">
-          <label class="flb">Password <span class="req">*</span></label>
-          {{ form.password1 }}
-          {% if form.password1.errors %}<ul class="field-errors">{% for e in form.password1.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
-        </div>
-        <div class="fg">
-          <label class="flb">Confirm <span class="req">*</span></label>
-          {{ form.password2 }}
-          {% if form.password2.errors %}<ul class="field-errors">{% for e in form.password2.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
-        </div>
+      <div class="fg">
+        <label class="flb">Phone Number</label>
+        {{ form.phone }}
+        {% if form.phone.errors %}<ul class="field-errors">{% for e in form.phone.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
       </div>
 
       <div class="section-title" style="margin-top:8px;">Role & Access</div>
@@ -266,19 +93,74 @@ select.auth-input{cursor:pointer;}
         {% if form.role.errors %}<ul class="field-errors">{% for e in form.role.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
       </div>
 
-      <div class="fg">
-        <label class="flb">Unit IDs</label>
-        {{ form.unit_ids_input }}
-        <div class="hint">{{ form.unit_ids_input.help_text }}</div>
-        {% if form.unit_ids_input.errors %}<ul class="field-errors">{% for e in form.unit_ids_input.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
-      </div>
+      {% if form.companies %}
+  <div class="fg">
+    <label class="flb">Microgrids</label>
+    <div class="ms-selected-chips" id="ms-chips"></div>
+    <input type="text" class="auth-input" id="ms-search" placeholder="🔍 Search microgrids…" style="margin-bottom:8px;">
+    <div class="ms-count" id="ms-count"></div>
+    <div class="checkbox-list" id="ms-list">
+      {% for checkbox in form.companies %}
+        <div class="checkbox-item" data-label="{{ checkbox.choice_label|lower }}">{{ checkbox }}</div>
+      {% endfor %}
+    </div>
+    <div class="hint">
+      {% if request.user.role == 'superadmin' %}
+        Check all microgrids this person should have access to. List scrolls if there are many.
+      {% else %}
+        Check the microgrids this person should have access to. Only your own microgrids are shown.
+      {% endif %}
+    </div>
+    {% if form.companies.errors %}<ul class="field-errors">{% for e in form.companies.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+  </div>
+{% endif %}
+
 
       <div class="form-actions">
         <a href="{% url 'user_list' %}" class="cancel-btn">Cancel</a>
-        <button type="submit" class="submit-btn">Create User →</button>
+        <button type="submit" class="submit-btn">Create Person →</button>
       </div>
     </form>
   </div>
 </div>
-</body>
-</html>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  const list = document.getElementById('ms-list');
+  const search = document.getElementById('ms-search');
+  const chipsWrap = document.getElementById('ms-chips');
+  const countLabel = document.getElementById('ms-count');
+  if (!list) return;
+
+  function renderChips() {
+    chipsWrap.innerHTML = '';
+    const checked = list.querySelectorAll('input[type=checkbox]:checked');
+    checked.forEach(cb => {
+      const label = cb.closest('.checkbox-item').dataset.label;
+      const chip = document.createElement('span');
+      chip.className = 'ms-chip';
+      chip.textContent = label;
+      const x = document.createElement('button');
+      x.type = 'button';
+      x.textContent = '✕';
+      x.onclick = () => { cb.checked = false; renderChips(); };
+      chip.appendChild(x);
+      chipsWrap.appendChild(chip);
+    });
+    countLabel.textContent = checked.length + ' selected';
+  }
+
+  list.addEventListener('change', renderChips);
+  search.addEventListener('input', function () {
+    const q = this.value.toLowerCase().trim();
+    list.querySelectorAll('.checkbox-item').forEach(item => {
+      item.style.display = !q || item.dataset.label.includes(q) ? '' : 'none';
+    });
+  });
+
+  renderChips();
+})();
+</script>
+{% endblock %}

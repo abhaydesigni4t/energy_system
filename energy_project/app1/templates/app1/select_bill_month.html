@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generate Bill · {{ device.get_display_name }}</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#F8FAFC;--bg2:#fff;--border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.14);
+  --text1:#0F172A;--text2:#334155;--text3:#64748B;
+  --accent:#0EA5E9;--accent2:#0284C7;
+  --r10:10px;--r14:14px;--r18:18px;
+  --font:'Space Grotesk',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text1);font-size:14px;-webkit-font-smoothing:antialiased;min-height:100vh;}
+
+/* TOPBAR */
+.topbar{
+  background:#4A5568;padding:0 20px;min-height:64px;
+  display:flex;align-items:center;gap:14px;
+  position:sticky;top:0;z-index:100;
+  box-shadow:0 2px 10px rgba(0,0,0,0.08);
+}
+.topbar-brand{font-size:18px;font-weight:800;color:#fff;letter-spacing:-0.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.home-btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:40px;height:40px;font-size:20px;border-radius:50%;
+  border:2px solid rgba(255,255,255,0.18);background:transparent;
+  color:#fff;text-decoration:none;flex-shrink:0;transition:background 0.15s,transform 0.15s;
+}
+.home-btn:hover{background:rgba(255,255,255,0.12);transform:translateX(-2px);}
+.home-btn:active{transform:scale(0.94);}
+
+/* PAGE */
+.page{
+  min-height:calc(100vh - 64px);
+  display:flex;align-items:flex-start;justify-content:center;
+  padding:40px 16px;
+}
+
+.wrap{
+  width:100%;max-width:440px;
+  background:var(--bg2);border:1px solid var(--border);border-radius:var(--r18);
+  padding:28px;
+  box-shadow:0 4px 24px rgba(15,23,42,0.06);
+  animation:fadeUp .35s ease both;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+.icon-badge{
+  width:48px;height:48px;border-radius:14px;
+  background:linear-gradient(135deg,#0EA5E9,#0284C7);
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;margin-bottom:14px;
+  box-shadow:0 6px 16px rgba(14,165,233,0.28);
+}
+
+h2{font-size:20px;font-weight:800;letter-spacing:-0.3px;margin-bottom:4px;}
+.sub{color:var(--text3);font-size:13px;font-weight:600;margin-bottom:4px;}
+.sub .uid{font-family:var(--mono);color:var(--text2);}
+.divider{height:1px;background:var(--border);margin:18px 0 20px;}
+
+.err{
+  background:#FEE2E2;color:#B91C1C;padding:11px 14px;border-radius:var(--r10);
+  margin-bottom:16px;font-size:13px;font-weight:600;
+  display:flex;align-items:center;gap:8px;
+}
+
+.field{margin-bottom:20px;}
+label{
+  display:block;font-size:11px;font-weight:800;text-transform:uppercase;
+  letter-spacing:0.5px;color:var(--text3);margin-bottom:8px;
+}
+
+.select-wrap{position:relative;}
+select{
+  width:100%;padding:13px 40px 13px 14px;border-radius:var(--r10);
+  border:1.5px solid var(--border2);font-size:14px;font-family:inherit;
+  font-weight:600;color:var(--text1);background:var(--bg2);
+  appearance:none;-webkit-appearance:none;cursor:pointer;
+  transition:border-color 0.15s,box-shadow 0.15s;
+}
+select:hover{border-color:var(--accent);}
+select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px rgba(14,165,233,0.12);}
+.select-wrap::after{
+  content:'▾';position:absolute;right:14px;top:50%;transform:translateY(-50%);
+  color:var(--text3);font-size:13px;pointer-events:none;
+}
+
+button{
+  width:100%;padding:14px;border:none;border-radius:var(--r10);
+  background:linear-gradient(135deg,#0EA5E9,#0284C7);
+  color:#fff;font-weight:800;font-size:14px;font-family:inherit;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+  box-shadow:0 6px 16px rgba(14,165,233,0.28);
+  transition:transform 0.15s,box-shadow 0.15s,opacity 0.15s;
+}
+button:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(14,165,233,0.34);}
+button:active{transform:translateY(0);}
+button:disabled{opacity:0.7;cursor:wait;transform:none;}
+
+.spinner{
+  width:15px;height:15px;border:2px solid rgba(255,255,255,0.4);
+  border-top-color:#fff;border-radius:50%;
+  animation:spin .7s linear infinite;display:none;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+button.loading .spinner{display:inline-block;}
+button.loading .btn-label{opacity:0.85;}
+
+.hint{margin-top:14px;font-size:11.5px;color:var(--text3);text-align:center;line-height:1.5;}
+
+/* RESPONSIVE */
+@media(max-width:480px){
+  .topbar{padding:0 14px;min-height:58px;}
+  .topbar-brand{font-size:16px;}
+  .home-btn{width:36px;height:36px;font-size:18px;}
+  .page{padding:24px 12px;align-items:stretch;}
+  .wrap{max-width:100%;padding:22px 18px;border-radius:var(--r14);}
+  .icon-badge{width:42px;height:42px;font-size:19px;border-radius:12px;}
+  h2{font-size:18px;}
+  select,button{padding:12px 14px;font-size:13.5px;}
+  select{padding-right:38px;}
+}
+@media(max-width:360px){
+  .wrap{padding:18px 14px;}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <a href="{% url 'device_detail' device.pk %}" class="home-btn" title="Back to DER">←</a>
+  <div class="topbar-brand">3rd Rock Energy System</div>
+</header>
+
+<div class="page">
+  <div class="wrap">
+    <div class="icon-badge">🧾</div>
+    <h2>Generate Bill</h2>
+    <div class="sub">{{ device.get_display_name }} — Unit <span class="uid">{{ device.unit_id }}</span></div>
+
+    <div class="divider"></div>
+
+    {% if error %}
+      <div class="err">⚠️ {{ error }}</div>
+    {% endif %}
+
+    <form id="billForm" method="get" action="{% url 'generate_bill' device.pk %}">
+      <div class="field">
+        <label for="period">Billing Month</label>
+        <div class="select-wrap">
+          <select name="period" id="period" required>
+            {% for m in months %}<option value="{{ m.value }}">{{ m.label }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <button type="submit" id="submitBtn">
+        <span class="spinner"></span>
+        <span class="btn-label">⬇ Download PDF Bill</span>
+      </button>
+      <div class="hint">The PDF will open or download automatically once ready.</div>
+    </form>
+  </div>
+</div>
+
+<script>
+document.getElementById('billForm').addEventListener('submit', function(){
+  const btn = document.getElementById('submitBtn');
+  btn.classList.add('loading');
+  btn.disabled = true;
+  btn.querySelector('.btn-label').textContent = 'Generating…';
+  setTimeout(()=>{
+    btn.classList.remove('loading');
+    btn.disabled = false;
+    btn.querySelector('.btn-label').textContent = '⬇ Download PDF Bill';
+  }, 4000);
+});
+</script>
+</body>
+</html>

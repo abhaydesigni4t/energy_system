@@ -1,0 +1,144 @@
+{% extends "app1/base.html" %}
+{% load static %}
+
+{% block title %}Customer Management · 3rd Rock Energy{% endblock %}
+
+{% block extra_css %}
+<style>
+.page-header{padding:22px 28px 0;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+.page-title{font-size:28px;font-weight:800;color:#0F172A;letter-spacing:-0.5px;}
+.page-sub{margin-top:6px;font-size:14px;color:#64748B;font-weight:500;}
+.nav-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 16px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);color:var(--text1);font-size:13px;font-weight:700;text-decoration:none;transition:all 0.2s ease;white-space:nowrap;}
+.nav-btn:hover{background:var(--bg);}
+.nav-btn.accent{background:var(--accent);color:#fff;border-color:transparent;}
+.stats-row{display:flex;gap:12px;padding:20px 28px 0;flex-wrap:wrap;}
+.stat-pill{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r12);padding:12px 18px;display:flex;align-items:center;gap:10px;}
+.stat-icon{font-size:18px;}
+.stat-val{font-size:20px;font-weight:700;color:var(--text1);}
+.stat-lbl{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;}
+.content{padding:20px 28px 40px;}
+.search-row{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.search-input{flex:1;min-width:220px;padding:9px 14px;border-radius:var(--r8);border:1px solid var(--border2);background:var(--bg2);color:var(--text1);font-family:var(--font);font-size:13px;font-weight:500;outline:none;}
+.search-input:focus{border-color:var(--accent);}
+.customer-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;}
+.customer-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r16);overflow:hidden;transition:box-shadow 0.2s,border-color 0.2s;}
+.customer-card:hover{border-color:var(--accent);box-shadow:0 4px 20px rgba(37,99,235,0.1);}
+.cc-accent-bar{height:4px;background:linear-gradient(90deg,var(--accent),#7C3AED);}
+.cc-body{padding:18px 20px 16px;}
+.cc-name{font-size:17px;font-weight:800;color:var(--text1);margin-bottom:4px;letter-spacing:-0.2px;}
+.cc-location{font-size:12px;color:var(--text3);font-weight:600;display:flex;align-items:center;gap:5px;margin-bottom:12px;}
+.cc-desc{font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:14px;}
+.cc-stats{display:flex;gap:16px;padding:12px 20px;border-top:1px solid var(--border);background:var(--bg);}
+.cc-stat{display:flex;align-items:center;gap:6px;}
+.cc-stat-val{font-size:15px;font-weight:700;color:var(--text1);}
+.cc-stat-lbl{font-size:11px;color:var(--text3);font-weight:600;}
+.cc-actions{display:flex;gap:6px;padding:10px 20px;border-top:1px solid var(--border);}
+.cc-btn{flex:1;padding:7px 0;border-radius:var(--r8);font-size:11px;font-weight:700;font-family:var(--font);border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;text-align:center;text-decoration:none;display:inline-block;}
+.cc-btn:hover{background:var(--bg);border-color:#aaa;}
+.cc-btn.primary{background:var(--accent);color:#fff;border-color:transparent;}
+.cc-btn.primary:hover{background:var(--accent2);}
+.cc-btn.red{color:var(--red);border-color:rgba(244,63,94,0.3);}
+.empty-state{text-align:center;padding:60px 20px;}
+.empty-icon{font-size:48px;margin-bottom:16px;}
+.empty-title{font-size:20px;font-weight:800;color:var(--text1);margin-bottom:8px;}
+.empty-sub{font-size:14px;color:var(--text3);max-width:360px;margin:0 auto 24px;}
+.messages{padding:0 28px 10px;}
+.msg{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:var(--r8);font-size:13px;font-weight:600;margin-bottom:6px;}
+.msg.success{background:rgba(16,185,129,0.1);color:#065F46;border:1px solid rgba(16,185,129,0.25);}
+.msg.error{background:rgba(244,63,94,0.1);color:#9F1239;border:1px solid rgba(244,63,94,0.25);}
+@media(max-width:600px){.customer-grid{grid-template-columns:1fr;}.page-header{flex-direction:column;align-items:flex-start;}}
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{% url 'home' %}">Home</a>
+<span class="sep">/</span>
+<span class="current">Customer Management</span>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">🏢 Customer Management</div>
+    <div class="page-sub">Manage customers and their microgrid sites</div>
+  </div>
+  {% if user.role == 'superadmin' %}
+  <a href="{% url 'add_customer' %}" class="nav-btn accent">+ Add Customer</a>
+  {% endif %}
+</div>
+
+<div class="stats-row">
+  <div class="stat-pill">
+    <span class="stat-icon">🏢</span>
+    <div><div class="stat-val">{{ customers.count }}</div><div class="stat-lbl">Customers</div></div>
+  </div>
+</div>
+
+{% if messages %}
+<div class="messages" style="margin-top:14px;">
+  {% for message in messages %}<div class="msg {{ message.tags }}">{{ message }}</div>{% endfor %}
+</div>
+{% endif %}
+
+<div class="content">
+  <div class="search-row">
+    <input type="text" class="search-input" id="search-input" placeholder="🔍  Search customers…" oninput="filterCards()">
+  </div>
+
+  {% if customers %}
+    <div class="customer-grid" id="customer-grid">
+      {% for customer in customers %}
+      <div class="customer-card-wrapper" data-name="{{ customer.name|lower }}">
+        <div class="customer-card">
+          <div class="cc-accent-bar"></div>
+          <div class="cc-body">
+            <div class="cc-name">{{ customer.name }}</div>
+            {% if customer.location %}
+              <div class="cc-location">📍 {{ customer.location }}</div>
+            {% else %}
+              <div class="cc-location" style="opacity:0.4;">No location set</div>
+            {% endif %}
+            {% if customer.description %}<div class="cc-desc">{{ customer.description }}</div>{% endif %}
+          </div>
+          <div class="cc-stats">
+            <div class="cc-stat">
+              <div class="cc-stat-val">{{ customer.get_microgrid_count }}</div>
+              <div class="cc-stat-lbl">Microgrids</div>
+            </div>
+            <div class="cc-stat">
+              <div class="cc-stat-val">{{ customer.get_device_count }}</div>
+              <div class="cc-stat-lbl">DERs</div>
+            </div>
+          </div>
+          <div class="cc-actions">
+            <a href="{% url 'customer_detail' customer.pk %}" class="cc-btn primary">View Sites</a>
+            {% if user.role == 'superadmin' %}
+              <a href="{% url 'edit_customer' customer.pk %}" class="cc-btn">Edit</a>
+              <a href="{% url 'delete_customer' customer.pk %}" class="cc-btn red">Delete</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">🏢</div>
+      <div class="empty-title">No customers yet</div>
+      <div class="empty-sub">Add your first customer to start organizing microgrid sites.</div>
+      {% if user.role == 'superadmin' %}<a href="{% url 'add_customer' %}" class="nav-btn accent">+ Add First Customer</a>{% endif %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function filterCards() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  document.querySelectorAll('.customer-card-wrapper').forEach(el => {
+    el.style.display = el.dataset.name.includes(q) ? '' : 'none';
+  });
+}
+</script>
+{% endblock %}

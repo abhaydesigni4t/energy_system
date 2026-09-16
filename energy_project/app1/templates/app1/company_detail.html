@@ -1,181 +1,29 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{ company.name }} · 3rd Rock Energy</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% extends "app1/base.html" %}
+{% load static %}
+
+{% block title %}{{ company.name }} · 3rd Rock Energy{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-*{margin:0;padding:0;box-sizing:border-box;}
-:root{
-  --bg:#F8FAFC;--bg2:#fff;--border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.14);
-  --text1:#0F172A;--text2:#334155;--text3:#64748B;
-  --accent:#2563EB;--accent2:#1D4ED8;--green:#10B981;--red:#F43F5E;--amber:#F59E0B;
-  --r8:8px;--r12:12px;--r16:16px;--r20:20px;
-  --font:'Calibri','Segoe UI','Arial',sans-serif;
-}
-body{font-family:var(--font);background:var(--bg);color:var(--text1);font-size:14px;-webkit-font-smoothing:antialiased;}
-
-/* TOPBAR */
-.topbar{
-    background:#4A5568;
-    padding:0 20px;
-    min-height:70px;
-    display:flex;
-    align-items:center;
-    gap:16px;
-    position:sticky;
-    top:0;
-    z-index:100;
-    box-shadow:0 2px 10px rgba(0,0,0,0.08);
-}
-
-.topbar-left{
-    display:flex;
-    align-items:center;
-    gap:14px;
-}
-
-.topbar-brand{
-    font-size:22px;
-    font-weight:800;
-    color:#fff;
-    letter-spacing:-0.3px;
-    white-space:nowrap;
-}
-
-.topbar-actions{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    margin-left: auto;
-}
-
-.nav-btn{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap:7px;
-    padding:10px 18px;
-    border-radius:12px;
-    border:none;
-    background:rgba(255,255,255,0.12);
-    color:#fff;
-    font-size:13px;
-    font-weight:700;
-    text-decoration:none;
-    transition:all 0.2s ease;
-    backdrop-filter:blur(6px);
-    white-space:nowrap;
-}
-
-.nav-btn:hover{
-    background:rgba(255,255,255,0.22);
-    transform:translateY(-1px);
-}
-
-.nav-btn.accent{
-    background:#2563EB;
-    color:#fff;
-}
-
-.nav-btn.accent:hover{
-    background:#1D4ED8;
-}
-
-.nav-btn.green{
-    background:#10B981;
-    color:#fff;
-}
-
-.nav-btn.green:hover{
-    background:#059669;
-}
-
-.nav-btn.orange{
-    background:#F59E0B;
-    color:#fff;
-}
-
-.nav-btn.orange:hover{
-    background:#D97706;
-}
-
-.nav-btn.danger{
-    background:#EF4444;
-    color:#fff;
-}
-
-.nav-btn.danger:hover{
-    background:#DC2626;
-}
-
-.tbtn{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap:5px;
-    padding:6px 14px;
-    border-radius:30px;
-    font-size:14px;
-    font-weight:700;
-    border:1px solid var(--border2);
-    background:transparent;
-    color:#000;
-    cursor:pointer;
-    transition:all 0.15s;
-    white-space:nowrap;
-    text-decoration:none;
-}
-
-.tbtn:hover{
-    background:var(--surface);
-}
-
-.tbtn.primary{
-    background:linear-gradient(135deg,#3B82F6,#2563EB);
-    border-color:transparent;
-    color:#fff;
-}
-
-.home-btn{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  width:52px;
-  height:52px;
-  font-size:28px;
-  border-radius:50%;
-  border:2px solid var(--border2);
-  background:transparent;
-  cursor:pointer;
-  text-decoration:none;
-  flex-shrink:0;
-  transition:background 0.15s;
-}
-.home-btn:hover{
-  background:var(--surface2);
-}
-
-
-/* PAGE HEADER */
+:root{ --mono:'JetBrains Mono',monospace; --green:#10B981; --amber:#F59E0B; }
 .page-header{padding:20px 28px 0;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;}
-.company-name{font-size:30px;font-weight:800;letter-spacing:-0.5px;color:var(--text1);}
+.company-name{font-size:28px;font-weight:800;letter-spacing:-0.5px;color:var(--text1);}
 .company-meta{display:flex;flex-wrap:wrap;gap:14px;margin-top:8px;}
 .meta-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text3);font-weight:600;}
 .header-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;}
+.nav-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 16px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);color:var(--text1);font-size:13px;font-weight:700;text-decoration:none;transition:all 0.2s ease;white-space:nowrap;}
+.nav-btn:hover{background:var(--bg);}
+.nav-btn.accent{background:var(--accent);color:#fff;border-color:transparent;}
+.nav-btn.orange{background:var(--amber);color:#fff;border-color:transparent;}
+.nav-btn.danger{background:var(--red);color:#fff;border-color:transparent;}
 
-/* CONTENT */
 .content{padding:20px 28px 60px;}
-
-/* MESSAGES */
 .messages{padding:0 28px 0;margin-top:12px;}
 .msg{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:var(--r8);font-size:13px;font-weight:600;margin-bottom:6px;}
 .msg.success{background:rgba(16,185,129,0.1);color:#065F46;border:1px solid rgba(16,185,129,0.25);}
 .msg.error{background:rgba(244,63,94,0.1);color:#9F1239;border:1px solid rgba(244,63,94,0.25);}
 
-/* DEVICE GRID */
 .section-title{font-size:15px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:var(--text2);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;}
 .device-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:28px;}
 
@@ -190,7 +38,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text1);font-size:1
 .dc-status.offline{background:rgba(244,63,94,0.1);color:#BE123C;}
 .dc-status.stale{background:rgba(245,158,11,0.1);color:#B45309;}
 
-/* KPI mini */
 .dc-kpis{display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid var(--border);}
 .dc-kpi{padding:10px 16px;border-right:1px solid var(--border);}
 .dc-kpi:last-child,.dc-kpi:nth-child(2){border-right:none;}
@@ -205,35 +52,24 @@ body{font-family:var(--font);background:var(--bg);color:var(--text1);font-size:1
 .dc-btn.primary:hover{background:var(--accent2);}
 .dc-btn.red{color:var(--red);border-color:rgba(244,63,94,0.3);}
 
-/* ASSIGNED USERS */
 .user-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:30px;background:var(--bg);border:1px solid var(--border2);font-size:11px;font-weight:700;color:var(--text2);}
 
-/* EMPTY */
 .empty-box{background:var(--bg2);border:2px dashed var(--border2);border-radius:var(--r16);padding:40px;text-align:center;color:var(--text3);}
 .empty-box .ei{font-size:32px;margin-bottom:12px;}
 .empty-box .et{font-size:15px;font-weight:700;margin-bottom:6px;color:var(--text2);}
 .empty-box .es{font-size:13px;margin-bottom:18px;}
 </style>
-</head>
-<body>
+{% endblock %}
 
+{% block breadcrumb %}
+<a href="{% url 'home' %}">Home</a>
+<span class="sep">/</span>
+<a href="{% url 'company_list' %}">Microgrid Management</a>
+<span class="sep">/</span>
+<span class="current">{{ company.name }}</span>
+{% endblock %}
 
-<header class="topbar">
-  <div class="topbar-left">
-    <a href="{% url 'home' %}" class="home-btn" title="Home">🏠</a>
-    <div class="topbar-brand">3rd Rock Energy System</div>
-  </div>
-  <div class="topbar-actions">
-   {% if user.is_admin_or_superadmin %}
-    <a href="{% url 'company_list' %}" class="nav-btn">← Device Management</a>
-    <a href="{% url 'user_list' %}" class="nav-btn">👥 User Management </a>
-    <a href="{% url 'company_list' %}" class="nav-btn">🏢 Companies</a>
-    {% endif %}
-    <a href="{% url 'logout' %}" class="nav-btn danger">Logout</a>
-  </div>
-</header>
-
-
+{% block content %}
 {% if messages %}
 <div class="messages" style="margin-top:12px;">
   {% for message in messages %}
@@ -249,23 +85,25 @@ body{font-family:var(--font);background:var(--bg);color:var(--text1);font-size:1
       {% if company.location %}<div class="meta-item">📍 {{ company.location }}</div>{% endif %}
       {% if company.contact_email %}<div class="meta-item">✉ {{ company.contact_email }}</div>{% endif %}
       {% if company.contact_phone %}<div class="meta-item">📞 {{ company.contact_phone }}</div>{% endif %}
-      <div class="meta-item">⚡ {{ device_data|length }} device{{ device_data|length|pluralize }}</div>
+      <div class="meta-item">⚡ {{ device_data|length }} DER{{ device_data|length|pluralize }}</div>
     </div>
     {% if company.description %}
       <div style="margin-top:10px;font-size:13px;color:var(--text3);max-width:600px;">{{ company.description }}</div>
     {% endif %}
   </div>
+  {% if user.role == 'superadmin' %}
   <div class="header-actions">
-    <a href="{% url 'add_device' %}" class="nav-btn accent">+ Add Device</a>
-    <a href="{% url 'edit_company' company.pk %}" class="nav-btn orange">Edit Company</a>
+    <a href="{% url 'add_device' %}?company_id={{ company.pk }}" class="nav-btn accent">+ Add DER</a>
+    <a href="{% url 'edit_company' company.pk %}" class="nav-btn orange">Edit Microgrid</a>
     <a href="{% url 'delete_company' company.pk %}" class="nav-btn danger">Delete</a>
   </div>
+  {% endif %}
 </div>
 
 <div class="content" style="margin-top:20px;">
 
   <div class="section-title">
-    <span>⚡ Devices ({{ device_data|length }})</span>
+    <span>⚡ DERS ({{ device_data|length }})</span>
   </div>
 
   {% if device_data %}
@@ -308,7 +146,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text1);font-size:1
           </div>
         </div>
         {% else %}
-        <div style="padding:14px 18px;font-size:12px;color:var(--text3);border-top:1px solid var(--border);">No readings yet for this device.</div>
+        <div style="padding:14px 18px;font-size:12px;color:var(--text3);border-top:1px solid var(--border);">No readings yet for this DER.</div>
         {% endif %}
 
         {% if device.assigned_users.all %}
@@ -319,10 +157,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text1);font-size:1
         </div>
         {% endif %}
 
-        <div class="dc-actions">
+       <div class="dc-actions">
           <a href="{% url 'device_detail' device.pk %}" class="dc-btn primary">View</a>
-          <a href="{% url 'edit_device' device.pk %}" class="dc-btn">Edit</a>
-          <a href="{% url 'delete_device' device.pk %}" class="dc-btn red">Remove</a>
+          {% if user.role == 'superadmin' %}
+            <a href="{% url 'edit_device' device.pk %}" class="dc-btn">Edit</a>
+            <a href="{% url 'delete_device' device.pk %}" class="dc-btn red">Remove</a>
+          {% endif %}
         </div>
       </div>
       {% endwith %}
@@ -331,15 +171,18 @@ body{font-family:var(--font);background:var(--bg);color:var(--text1);font-size:1
   {% else %}
     <div class="empty-box">
       <div class="ei">⚡</div>
-      <div class="et">No devices assigned</div>
-      <div class="es">Add devices to this company to start monitoring energy data.</div>
-      <a href="{% url 'add_device' %}" class="nav-btn accent">+ Add First Device</a>
+      <div class="et">No DERs assigned</div>
+      <div class="es">Add DERs to this company to start monitoring energy data.</div>
+      {% if user.role == 'superadmin' %}
+        <a href="{% url 'add_device' %}?company_id={{ company.pk }}" class="nav-btn accent">+ Add First DER</a>
+      {% endif %}
     </div>
   {% endif %}
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-// Live polling for all devices on this page
 const unitIds = [{% for item in device_data %}{{ item.device.unit_id }}{% if not forloop.last %},{% endif %}{% endfor %}];
 const API_BASE = window.location.origin;
 
@@ -367,5 +210,4 @@ function pollAll() { unitIds.forEach(id => pollDevice(id)); }
 pollAll();
 setInterval(pollAll, 5000);
 </script>
-</body>
-</html>
+{% endblock %}

@@ -1,37 +1,23 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{ device.get_display_name }} · 3rd Rock Energy</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+{% extends "app1/base.html" %}
+{% load static %}
+
+{% block title %}{{ device.get_display_name }} · 3rd Rock Energy{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;}
-:root{
-  --bg:#F8FAFC;--bg2:#fff;--border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.14);
-  --text1:#0F172A;--text2:#334155;--text3:#64748B;
-  --accent:#2563EB;--accent2:#1D4ED8;--green:#10B981;--red:#F43F5E;--amber:#F59E0B;
-  --r8:8px;--r12:12px;--r16:16px;--r20:20px;
-  --font:'Space Grotesk',sans-serif;--mono:'JetBrains Mono',monospace;
-}
-body{font-family:var(--font);background:var(--bg);color:var(--text1);font-size:14px;-webkit-font-smoothing:antialiased;}
-.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
-.topbar-brand{font-size:18px;font-weight:800;background:linear-gradient(135deg,#0F172A,#3B82F6);-webkit-background-clip:text;background-clip:text;color:transparent;}
-.nav-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:30px;font-size:12px;font-weight:700;font-family:var(--font);border:1px solid var(--border2);background:transparent;color:var(--text1);cursor:pointer;text-decoration:none;transition:all 0.15s;}
-.nav-btn:hover{background:var(--bg);}
-.nav-btn.accent{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-color:transparent;}
-.nav-btn.danger{background:linear-gradient(135deg,#ff5f5f,#ff3b3b);color:#fff;border-color:transparent;}
-.nav-btn.warn{background:linear-gradient(135deg,#F59E0B,#D97706);color:#fff;border-color:transparent;}
-.breadcrumb{padding:16px 28px 0;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text3);font-weight:600;}
-.breadcrumb a{color:var(--accent);text-decoration:none;font-weight:700;}
+:root{ --mono:'JetBrains Mono',monospace; --green:#10B981; --amber:#F59E0B; }
 .page-header{padding:20px 28px 0;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;}
-.device-title{font-size:28px;font-weight:800;letter-spacing:-0.5px;}
+.device-title{font-size:26px;font-weight:800;letter-spacing:-0.5px;}
 .device-meta{display:flex;flex-wrap:wrap;gap:14px;margin-top:8px;}
 .meta-item{font-size:12px;color:var(--text3);font-weight:600;}
 .content{padding:20px 28px 60px;}
+.nav-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 16px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);color:var(--text1);font-size:13px;font-weight:700;text-decoration:none;transition:all 0.2s ease;white-space:nowrap;}
+.nav-btn:hover{background:var(--bg);}
+.nav-btn.orange{background:var(--amber);color:#fff;border-color:transparent;}
+.nav-btn.danger{background:var(--red);color:#fff;border-color:transparent;}
 
-/* KPI STRIP */
 .kpi-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px;}
 .kpi-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r12);padding:16px 18px;position:relative;overflow:hidden;}
 .kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--kpi-c,var(--accent));}
@@ -43,7 +29,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text1);font-size:1
 .kpi-badge.stale{background:rgba(245,158,11,0.12);color:#B45309;}
 .kpi-badge.offline{background:rgba(244,63,94,0.12);color:#BE123C;}
 
-/* CHART PANEL — dark */
 .chart-panel{background:#0C0F1A;border:1px solid rgba(255,255,255,0.07);border-radius:var(--r20);overflow:hidden;margin-bottom:20px;}
 .chart-header{padding:18px 22px 14px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
 .chart-title{font-size:15px;font-weight:800;color:#F0F4FF;}
@@ -53,7 +38,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text1);font-size:1
 .chart-wrap{padding:14px 22px 18px;height:260px;}
 .chart-wrap canvas{height:100%!important;width:100%!important;}
 
-/* DETAILS CARD */
 .info-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r16);padding:20px 22px;margin-bottom:20px;}
 .info-title{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);margin-bottom:14px;}
 .info-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;}
@@ -61,7 +45,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text1);font-size:1
 .info-item .iv{font-size:14px;font-weight:700;color:var(--text1);}
 .user-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:30px;background:var(--bg);border:1px solid var(--border2);font-size:12px;font-weight:700;color:var(--text2);margin:2px;}
 
-/* Category badge */
 .cat-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;}
 .cat-Meters{background:rgba(239,68,68,0.1);color:#B91C1C;}
 .cat-Solar{background:rgba(34,197,94,0.12);color:#166534;}
@@ -71,7 +54,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text1);font-size:1
 .cat-HVAC{background:rgba(0,255,255,0.1);color:#155E75;}
 .cat-Genset{background:rgba(240,128,128,0.15);color:#9F1239;}
 
-/* STATUS */
 .status-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:30px;font-size:12px;font-weight:800;}
 .status-pill.online{background:rgba(16,185,129,0.12);color:#0E7C46;}
 .status-pill.offline{background:rgba(244,63,94,0.1);color:#BE123C;}
@@ -80,25 +62,21 @@ body{font-family:var(--font);background:var(--bg);color:var(--text1);font-size:1
 @media(max-width:900px){.kpi-strip{grid-template-columns:repeat(3,1fr);}}
 @media(max-width:600px){.kpi-strip{grid-template-columns:repeat(2,1fr);}.chart-wrap{height:200px;}}
 </style>
-</head>
-<body>
-<header class="topbar">
-  <div class="topbar-brand">3rd Rock Energy System</div>
-  <nav style="display:flex;gap:8px;flex-wrap:wrap;">
-    <a href="{% url 'energy_dashboard_v2' %}" class="nav-btn">📊 Dashboard</a>
-    <a href="{% url 'company_list' %}" class="nav-btn">🏢 Companies</a>
-    {% if user.is_admin_or_superadmin %}<a href="{% url 'user_list' %}" class="nav-btn">👥 Users</a>{% endif %}
-    <a href="{% url 'logout' %}" class="nav-btn danger">Logout</a>
-  </nav>
-</header>
+{% endblock %}
 
-<div class="breadcrumb">
-  <a href="{% url 'energy_dashboard_v2' %}">Dashboard</a> <span>›</span>
-  <a href="{% url 'company_list' %}">Device Management</a> <span>›</span>
-  {% if device.company %}<a href="{% url 'company_detail' device.company.pk %}">{{ device.company.name }}</a> <span>›</span>{% endif %}
-  <span>{{ device.get_display_name }}</span>
-</div>
+{% block breadcrumb %}
+<a href="{% url 'home' %}">Home</a>
+<span class="sep">/</span>
+<a href="{% url 'company_list' %}">Microgrid Management</a>
+{% if device.company %}
+<span class="sep">/</span>
+<a href="{% url 'company_detail' device.company.pk %}">{{ device.company.name }}</a>
+{% endif %}
+<span class="sep">/</span>
+<span class="current">{{ device.get_display_name }}</span>
+{% endblock %}
 
+{% block content %}
 <div class="page-header">
   <div>
     <div class="device-title">⚡ {{ device.get_display_name }}</div>
@@ -111,16 +89,16 @@ body{font-family:var(--font);background:var(--bg);color:var(--text1);font-size:1
       </span>
     </div>
   </div>
-  {% if user.is_admin_or_superadmin %}
-  <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <a href="{% url 'edit_device' device.pk %}" class="nav-btn warn">Edit Device</a>
+ <div style="display:flex;gap:8px;flex-wrap:wrap;">
+  <a href="{% url 'select_bill_month' device.pk %}" class="nav-btn" style="background:#0EA5E9;color:#fff;border-color:transparent;">🧾 Generate Bill</a>
+  {% if user.role == 'superadmin' %}
+    <a href="{% url 'edit_device' device.pk %}" class="nav-btn orange">Edit DER</a>
     <a href="{% url 'delete_device' device.pk %}" class="nav-btn danger">Delete</a>
-  </div>
   {% endif %}
+</div>
 </div>
 
 <div class="content" style="margin-top:20px;">
-  <!-- KPI STRIP -->
   <div class="kpi-strip">
     <div class="kpi-card" style="--kpi-c:#10B981">
       <div class="kpi-label">Energy</div>
@@ -154,7 +132,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text1);font-size:1
     </div>
   </div>
 
-  <!-- CHART -->
   <div class="chart-panel">
     <div class="chart-header">
       <div class="chart-title">Power Trend · Unit {{ device.unit_id }}</div>
@@ -167,9 +144,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text1);font-size:1
     <div class="chart-wrap"><canvas id="deviceChart"></canvas></div>
   </div>
 
-  <!-- DEVICE INFO -->
   <div class="info-card">
-    <div class="info-title">Device Information</div>
+    <div class="info-title">DER Information</div>
     <div class="info-grid">
       <div class="info-item">
         <div class="il">Unit ID</div>
@@ -203,14 +179,41 @@ body{font-family:var(--font);background:var(--bg);color:var(--text1);font-size:1
         <div class="il">Cost per kWh</div>
         <div class="iv">
           {% if device.per_unit_cost %}
-            ${{ device.per_unit_cost }}
+            ${{ device.per_unit_cost|floatformat:3 }}
           {% else %}
             <span style="color:var(--text3);font-style:italic;">Using global rate</span>
           {% endif %}
         </div>
       </div>
       <div class="info-item">
-        <div class="il">Company</div>
+        <div class="il">Bill Offset</div>
+        <div class="iv" style="font-family:var(--mono);">{{ device.odometer_offset|floatformat:3 }} kWh</div>
+      </div>
+
+      <div class="info-item">
+        <div class="il">Escalator</div>
+        <div class="iv">{% if device.escalator %}{{ device.escalator|floatformat:3 }}%{% else %}—{% endif %}</div>
+      </div>
+      <div class="info-item">
+        <div class="il">Effective Date</div>
+        <div class="iv">{{ device.effective_date|date:"N j, Y"|default:"—" }}</div>
+      </div>
+      <div class="info-item">
+        <div class="il">Bill Offset Date &amp; Time</div>
+        <div class="iv">{{ device.odometer_offset_datetime|date:"N j, Y, g:i a"|default:"—" }}</div>
+      </div>
+
+      <div class="info-item">
+        <div class="il">GATS Offset</div>
+        <div class="iv" style="font-family:var(--mono);">{{ device.gats_offset|floatformat:3 }} kWh</div>
+      </div>
+      <div class="info-item">
+        <div class="il">GATS Offset Date &amp; Time</div>
+        <div class="iv">{{ device.gats_offset_datetime|date:"N j, Y, g:i a"|default:"—" }}</div>
+      </div>
+
+      <div class="info-item">
+        <div class="il">Microgrid</div>
         <div class="iv">{% if device.company %}<a href="{% url 'company_detail' device.company.pk %}" style="color:var(--accent);text-decoration:none;font-weight:700;">{{ device.company.name }}</a>{% else %}—{% endif %}</div>
       </div>
       <div class="info-item">
@@ -234,7 +237,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text1);font-size:1
     {% endif %}
     {% if device.assigned_users.all %}
     <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
-      <div class="il" style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.4px;color:var(--text3);margin-bottom:8px;">Assigned Users</div>
+      <div class="il" style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.4px;color:var(--text3);margin-bottom:8px;">Assigned Persons</div>
       <div>
         {% for u in device.assigned_users.all %}
           <span class="user-chip">👤 {{ u.username }} <span style="color:var(--text3);font-weight:500;">({{ u.role }})</span></span>
@@ -244,9 +247,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text1);font-size:1
     {% endif %}
   </div>
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-const UNIT_ID = {{ device.unit_id }};
+const UNIT_ID = "{{ device.unit_id|escapejs }}";
 const API_BASE = window.location.origin;
 let chart = null;
 
@@ -302,5 +307,4 @@ fetchGraph('today');
 setInterval(fetchLive, 5000);
 setInterval(()=>fetchGraph('today'), 30000);
 </script>
-</body>
-</html>
+{% endblock %}

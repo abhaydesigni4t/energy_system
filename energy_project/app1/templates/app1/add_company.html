@@ -1,163 +1,10 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Add Company · 3rd Rock Energy</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+{% extends "app1/base.html" %}
+{% load static %}
+
+{% block title %}Add Microgrid · 3rd Rock Energy{% endblock %}
+
+{% block extra_css %}
 <style>
-*{margin:0;padding:0;box-sizing:border-box;}
-:root{
-  --bg:#F8FAFC;--bg2:#fff;--border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.14);
-  --text1:#0F172A;--text2:#334155;--text3:#64748B;
-  --accent:#2563EB;--accent2:#1D4ED8;--red:#F43F5E;
-  --r8:8px;--r12:12px;--r16:16px;--font:'Calibri','Segoe UI','Arial',sans-serif;
-}
-body{font-family:var(--font);background:var(--bg);color:var(--text1);font-size:14px;-webkit-font-smoothing:antialiased;}
-/* TOPBAR */
-.topbar{
-    background:#4A5568;
-    padding:0 20px;
-    min-height:70px;
-    display:flex;
-    align-items:center;
-    gap:16px;
-    position:sticky;
-    top:0;
-    z-index:100;
-    box-shadow:0 2px 10px rgba(0,0,0,0.08);
-}
-
-.topbar-left{
-    display:flex;
-    align-items:center;
-    gap:14px;
-}
-
-.topbar-brand{
-    font-size:22px;
-    font-weight:800;
-    color:#fff;
-    letter-spacing:-0.3px;
-    white-space:nowrap;
-}
-
-.topbar-actions{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    margin-left: auto;
-}
-
-.nav-btn{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap:7px;
-    padding:10px 18px;
-    border-radius:12px;
-    border:none;
-    background:rgba(255,255,255,0.12);
-    color:#fff;
-    font-size:13px;
-    font-weight:700;
-    text-decoration:none;
-    transition:all 0.2s ease;
-    backdrop-filter:blur(6px);
-    white-space:nowrap;
-}
-
-.nav-btn:hover{
-    background:rgba(255,255,255,0.22);
-    transform:translateY(-1px);
-}
-
-.nav-btn.accent{
-    background:#2563EB;
-    color:#fff;
-}
-
-.nav-btn.accent:hover{
-    background:#1D4ED8;
-}
-
-.nav-btn.green{
-    background:#10B981;
-    color:#fff;
-}
-
-.nav-btn.green:hover{
-    background:#059669;
-}
-
-.nav-btn.orange{
-    background:#F59E0B;
-    color:#fff;
-}
-
-.nav-btn.orange:hover{
-    background:#D97706;
-}
-
-.nav-btn.danger{
-    background:#EF4444;
-    color:#fff;
-}
-
-.nav-btn.danger:hover{
-    background:#DC2626;
-}
-
-.tbtn{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap:5px;
-    padding:6px 14px;
-    border-radius:30px;
-    font-size:14px;
-    font-weight:700;
-    border:1px solid var(--border2);
-    background:transparent;
-    color:#000;
-    cursor:pointer;
-    transition:all 0.15s;
-    white-space:nowrap;
-    text-decoration:none;
-}
-
-.tbtn:hover{
-    background:var(--surface);
-}
-
-.tbtn.primary{
-    background:linear-gradient(135deg,#3B82F6,#2563EB);
-    border-color:transparent;
-    color:#fff;
-}
-
-.home-btn{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  width:52px;
-  height:52px;
-  font-size:28px;
-  border-radius:50%;
-  border:2px solid var(--border2);
-  background:transparent;
-  cursor:pointer;
-  text-decoration:none;
-  flex-shrink:0;
-  transition:background 0.15s;
-}
-.home-btn:hover{
-  background:var(--surface2);
-}
-
-
-.breadcrumb{padding:16px 28px 0;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text3);font-weight:600;}
-.breadcrumb a{color:var(--accent);text-decoration:none;font-weight:700;}
 .page-wrap{max-width:600px;margin:28px auto;padding:0 28px 60px;}
 .form-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r16);overflow:hidden;}
 .form-card-header{padding:22px 26px 18px;border-bottom:1px solid var(--border);}
@@ -171,35 +18,60 @@ body{font-family:var(--font);background:var(--bg);color:var(--text1);font-size:1
 textarea.fi{resize:vertical;min-height:80px;}
 .form-acts{display:flex;gap:10px;justify-content:flex-end;padding-top:8px;}
 .errmsg{font-size:11px;color:var(--red);font-weight:600;margin-top:5px;}
+.field-hint{font-size:11px;color:var(--text3);margin-top:4px;}
 .required-star{color:var(--red);}
+.nav-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 16px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);color:var(--text1);font-size:13px;font-weight:700;text-decoration:none;transition:all 0.2s ease;white-space:nowrap;}
+.nav-btn:hover{background:var(--bg);}
+.nav-btn.accent{background:var(--accent);color:#fff;border-color:transparent;}
+.nav-btn.accent:hover{background:var(--accent2);}
 </style>
-</head>
-<body>
-<header class="topbar">
-  <div class="topbar-left">
-    <a href="{% url 'home' %}" class="home-btn" title="Home">🏠</a>
-    <div class="topbar-brand">3rd Rock Energy System</div>
-  </div>
-  <div class="topbar-actions">
-    <a href="{% url 'company_list' %}" class="nav-btn">← Device Management</a>
-    <a href="{% url 'logout' %}" class="nav-btn danger">Logout</a>
-  </div>
-</header>
+{% endblock %}
 
+{% block breadcrumb %}
+<a href="{% url 'home' %}">Home</a>
+<span class="sep">/</span>
+{% if preset_customer %}
+  <a href="{% url 'customer_list' %}">Customer Management</a>
+  <span class="sep">/</span>
+  <a href="{% url 'customer_detail' preset_customer.pk %}">{{ preset_customer.name }}</a>
+  <span class="sep">/</span>
+  <span class="current">Add Microgrid</span>
+{% else %}
+  <a href="{% url 'company_list' %}">Microgrid Management</a>
+  <span class="sep">/</span>
+  <span class="current">Add Microgrid</span>
+{% endif %}
+{% endblock %}
+
+{% block content %}
 <div class="page-wrap">
   <div class="form-card">
     <div class="form-card-header">
-      <div class="form-card-title">🏢 Add New Company</div>
-      <div class="form-card-sub">Create a company profile to group devices and manage access.</div>
+      <div class="form-card-title">🏢 Add New Microgrid</div>
+      <div class="form-card-sub">
+        {% if preset_customer %}
+          Adding a new site under <strong>{{ preset_customer.name }}</strong>.
+        {% else %}
+          Create a microgrid profile to group DER and manage access.
+        {% endif %}
+      </div>
     </div>
     <div class="form-body">
       <form method="post">
         {% csrf_token %}
         <div class="fg">
-          <label class="flb">Company Name <span class="required-star">*</span></label>
+          <label class="flb">Microgrid Name <span class="required-star">*</span></label>
           {{ form.name }}
           {% if form.name.errors %}<div class="errmsg">{{ form.name.errors.0 }}</div>{% endif %}
         </div>
+
+        <div class="fg">
+          <label class="flb">Customer</label>
+          {{ form.customer }}
+          <div class="field-hint">Which customer this microgrid site belongs to (e.g. Atlantic County).</div>
+          {% if form.customer.errors %}<div class="errmsg">{{ form.customer.errors.0 }}</div>{% endif %}
+        </div>
+
         <div class="fg">
           <label class="flb">Location</label>
           {{ form.location }}
@@ -218,12 +90,15 @@ textarea.fi{resize:vertical;min-height:80px;}
           {{ form.contact_phone }}
         </div>
         <div class="form-acts">
-          <a href="{% url 'company_list' %}" class="nav-btn">Cancel</a>
-          <button type="submit" class="nav-btn accent">Create Company →</button>
+          {% if preset_customer %}
+            <a href="{% url 'customer_detail' preset_customer.pk %}" class="nav-btn">Cancel</a>
+          {% else %}
+            <a href="{% url 'company_list' %}" class="nav-btn">Cancel</a>
+          {% endif %}
+          <button type="submit" class="nav-btn accent">Create Microgrid →</button>
         </div>
       </form>
     </div>
   </div>
 </div>
-</body>
-</html>
+{% endblock %}

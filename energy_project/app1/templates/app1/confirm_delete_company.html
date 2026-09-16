@@ -27,7 +27,7 @@ body{font-family:'Space Grotesk',sans-serif;background:#F8FAFC;color:#0F172A;dis
   <div class="card-title">Delete Company?</div>
   <div class="card-sub">You are about to permanently delete <span class="company-name">{{ company.name }}</span>. This action cannot be undone.</div>
   <div class="warning-box">
-    ⚡ This will NOT delete the devices assigned to this company — they will simply become unassigned.
+    ⚡ This will NOT delete the DERs assigned to this company — they will simply become unassigned.
   </div>
   <div class="btn-row">
     <a href="{% url 'company_detail' company.pk %}" class="btn">Cancel</a>

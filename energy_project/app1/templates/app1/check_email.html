@@ -1,0 +1,78 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Continue · 3rd Rock Energy</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne+Mono&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --font-text:'Space Grotesk',-apple-system,BlinkMacSystemFont,sans-serif;
+  --font-mono:'Syne Mono',monospace;
+  --bg:#0A0D14;--surface:#111624;--surface2:#1A2035;
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.14);
+  --text1:#F0F4FF;--text2:rgba(255,255,255,0.65);--text3:rgba(255,255,255,0.35);
+  --accent:#3B82F6;--accent2:#2563EB;--error:#F43F5E;
+}
+body{font-family:var(--font-text);background:var(--bg);color:var(--text1);min-height:100vh;display:flex;align-items:center;justify-content:center;}
+.bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(59,130,246,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,0.03) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;}
+.bg-glow{position:fixed;inset:0;background:radial-gradient(ellipse 60% 50% at 50% 0%,rgba(59,130,246,0.12),transparent);pointer-events:none;}
+.auth-card{position:relative;z-index:10;width:100%;max-width:420px;margin:24px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:40px;box-shadow:0 32px 80px rgba(0,0,0,0.6);}
+.auth-logo{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:32px;}
+.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,#3B82F6,#2563EB);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+.logo-name{font-size:15px;font-weight:700;color:var(--text1);letter-spacing:-0.3px;}
+.auth-logo-img{height:50px;width:auto;flex-shrink:0;}
+.logo-sub{font-size:10px;color:var(--text3);font-family:var(--font-mono);letter-spacing:1px;margin-top:1px;}
+.auth-heading{font-size:24px;font-weight:700;letter-spacing:-0.5px;margin-bottom:6px;}
+.auth-sub{font-size:13px;color:var(--text2);margin-bottom:28px;font-weight:400;}
+.fg{margin-bottom:16px;}
+.flb{display:block;font-size:11px;font-weight:700;color:var(--text2);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px;}
+.auth-input{width:100%;padding:11px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text1);font-family:var(--font-text);font-size:13px;font-weight:500;outline:none;transition:border-color 0.15s,box-shadow 0.15s;}
+.auth-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,130,246,0.12);}
+.auth-input::placeholder{color:var(--text3);}
+.submit-btn{width:100%;padding:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:10px;color:#fff;font-family:var(--font-text);font-size:14px;font-weight:700;cursor:pointer;transition:opacity 0.15s,transform 0.1s;margin-top:4px;}
+.submit-btn:hover{opacity:0.92;transform:translateY(-1px);}
+.messages{margin-bottom:20px;}
+.msg{padding:10px 14px;border-radius:10px;font-size:12px;font-weight:600;margin-bottom:6px;}
+.msg.info{background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);color:#93C5FD;}
+.msg.error{background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.2);color:#F87171;}
+.back-link{text-align:center;margin-top:20px;font-size:12px;}
+.back-link a{color:var(--accent);text-decoration:none;font-weight:600;}
+.back-link a:hover{text-decoration:underline;}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="bg-glow"></div>
+
+<div class="auth-card">
+    <div class="auth-logo">
+    <img src="{% static 'images/3rd-rock-logo-transparent.png' %}" alt="3rd Rock Energy Systems" class="auth-logo-img">
+  </div>
+
+  <h1 class="auth-heading">Let's get started</h1>
+  <p class="auth-sub">Please enter your email</p>
+
+  {% if messages %}
+    <div class="messages">
+      {% for message in messages %}<div class="msg {{ message.tags }}">{{ message }}</div>{% endfor %}
+    </div>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    <div class="fg">
+      <label class="flb">Email</label>
+      <input type="email" name="email" class="auth-input" placeholder="you@company.com" required autofocus>
+    </div>
+    <button type="submit" class="submit-btn">Continue →</button>
+  </form>
+
+  <div class="back-link">
+    <a href="{% url 'landing' %}">← Back to options</a>
+  </div>
+</div>
+</body>
+</html>

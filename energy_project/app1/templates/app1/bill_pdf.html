@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  @page {
+    size: letter;
+    margin: 0.5in 0.65in;
+  }
+  body {
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 10pt;
+    color: #000000;
+    line-height: 1.25;
+  }
+  table {
+    border-collapse: collapse;
+    page-break-inside: avoid;
+  }
+  .section-title, .remit-divider, .remit-dates, .remit-address, .customer-copy {
+    page-break-inside: avoid;
+  }
+  td {
+    vertical-align: top;
+    padding: 3px 6px 3px 0;
+    font-size: 10pt;
+  }
+  .right { text-align: right; }
+  .left  { text-align: left; }
+  .bold  { font-weight: bold; }
+
+  /* ── HEADER ── */
+  .header-label { font-weight: normal; }
+  .contact-heading { font-weight: bold; font-size: 16pt; padding-top: 18px; line-height: 1.15; text-align: right; }
+  .contact-block { padding-top: 10px; font-weight: bold; text-align: right; }
+  .logo-img { width: 130px; display: block; margin-left: auto; margin-right: 0; }
+  .logo-wrap { text-align: right; }
+
+  .section-title {
+    font-size: 22pt;
+    font-weight: bold;
+    margin: 16px 0 6px 0;
+  }
+
+  .row-border-heavy td { border-bottom: 0.75pt solid #000000; }
+  .row-border-light td { border-bottom: 0.5pt solid #000000; }
+  .row-total td { font-weight: bold; font-size: 11.5pt; border-top: 0.75pt solid #000000; border-bottom: 0.75pt solid #000000; }
+
+  .customer-copy { text-align: right; font-size: 10pt; color: #000000; margin-top: 6px; }
+
+  /* ── REMIT BLOCK ── */
+  .remit-divider {
+    text-align: center;
+    font-size: 10pt;
+    color: #000000;
+    margin: 14px 0 10px 0;
+    padding: 6px 0;
+    border-top: 0.75pt solid #000000;
+    border-bottom: 0.75pt solid #000000;
+  }
+  .remit-dates { margin-bottom: 10px; }
+  .remit-address { margin-bottom: 10px; }
+  .remit-table td { border: 0.75pt solid #000000; padding: 3px 6px; }
+  .remit-table .label-cell { background-color: #FFFFFF; }
+</style>
+</head>
+<body>
+
+  <!-- ══════════ HEADER ══════════ -->
+  <table style="width:7.0in;">
+    <tr>
+      <td style="width:4.3in;">
+        <table style="width:4.3in;">
+          <tr>
+            <td class="header-label" style="width:1.7in;">Billing Date:</td>
+            <td style="width:2.6in;">{{ billing_date_str }}</td>
+          </tr>
+          <tr>
+            <td class="header-label" style="width:1.7in;">Billing Reference #:</td>
+            <td style="width:2.6in;">{{ billing_ref }}</td>
+          </tr>
+          <tr>
+            <td class="header-label" style="width:1.7in;">Billing Period:</td>
+            <td style="width:2.6in;">{{ billing_period_label }}</td>
+          </tr>
+          <tr>
+            <td class="header-label" style="width:1.7in;">Project Physical Location:</td>
+            <td style="width:2.6in;">{{ project_location|default:"—" }}</td>
+          </tr>
+          <tr>
+            <td class="header-label" style="width:1.7in;">Invoice To:</td>
+            <td style="width:2.6in;">{{ company_name }}<br/>{{ company_address }}</td>
+          </tr>
+        </table>
+      </td>
+      <td style="width:2.7in;">
+        <div class="logo-wrap">
+          {% if logo_url %}
+            <img src="{{ logo_url }}" class="logo-img"/>
+          {% else %}
+            <span style="font-size:11pt;color:#334155;"><b>ENERGIES</b></span>
+          {% endif %}
+        </div>
+        <div class="contact-heading">For Questions</div>
+        <div class="contact-block">
+          #Contact: {{ vendor_contact_name }}<br/>
+          #Ph: {{ vendor_contact_phone }}
+        </div>
+      </td>
+    </tr>
+  </table>
+
+  <div class="section-title">Billing Data</div>
+
+  <!-- ══════════ BILLING TABLE ══════════ -->
+  <table style="width:7.0in;">
+    <tr class="row-border-heavy">
+      <td class="left" style="width:2.5in;">Meter Reading Date</td>
+      <td style="width:1.6in;">&nbsp;</td>
+      <td class="right" style="width:1.6in;">{{ billing_date_str_full }}</td>
+      <td style="width:1.3in;">&nbsp;</td>
+    </tr>
+    <tr class="row-border-light">
+      <td class="left" style="width:2.5in;">Service Date</td>
+      <td class="right" style="width:1.6in;">From</td>
+      <td class="right" style="width:1.6in;">To</td>
+      <td class="right" style="width:1.3in;">Billing Days</td>
+    </tr>
+    <tr class="row-border-light">
+      <td style="width:2.5in;">&nbsp;</td>
+      <td class="right" style="width:1.6in;">{{ service_from }}</td>
+      <td class="right" style="width:1.6in;">{{ service_to }}</td>
+      <td class="right" style="width:1.3in;">{{ billing_days }}</td>
+    </tr>
+    <tr>
+      <td class="left" style="width:2.5in;">Meter Reading</td>
+      <td class="right" style="width:1.6in;">Beginning</td>
+      <td class="right" style="width:1.6in;">End</td>
+      <td class="right" style="width:1.3in;">Net</td>
+    </tr>
+    <tr class="row-border-light">
+      <td class="left" style="width:2.5in;">Reading in kWh</td>
+      <td class="right" style="width:1.6in;">{{ beginning_fmt }}</td>
+      <td class="right" style="width:1.6in;">{{ end_fmt }}</td>
+      <td class="right" style="width:1.3in;">{{ net_kwh_fmt }}</td>
+    </tr>
+    <tr>
+      <td class="left" style="width:2.5in;">Billing Rate per kWh</td>
+      <td style="width:1.6in;">&nbsp;</td>
+      <td class="right" style="width:1.6in;">${{ rate_fmt }}</td>
+      <td style="width:1.3in;">&nbsp;</td>
+    </tr>
+    <tr>
+      <td class="left" style="width:2.5in;">({{ escalator_pct_fmt }}% annual escalator)</td>
+      <td style="width:1.6in;">&nbsp;</td>
+      <td style="width:1.6in;">&nbsp;</td>
+      <td class="right" style="width:1.3in;">${{ charges_fmt }}</td>
+    </tr>
+    <tr>
+      <td class="left" style="width:2.5in;">NJ Sales &amp; Use Tax</td>
+      <td style="width:1.6in;">&nbsp;</td>
+      <td style="width:1.6in;">&nbsp;</td>
+      <td class="right" style="width:1.3in;">${{ tax_fmt }}</td>
+    </tr>
+    <tr>
+      <td style="width:2.5in;">&nbsp;</td>
+      <td style="width:1.6in;">&nbsp;</td>
+      <td class="right bold" style="width:1.6in;">Current Period Charges</td>
+      <td class="right bold" style="width:1.3in;">${{ charges_fmt2 }}</td>
+    </tr>
+    <tr class="row-total">
+      <td style="width:2.5in;">&nbsp;</td>
+      <td style="width:1.6in;">&nbsp;</td>
+      <td class="right" style="width:1.6in;">Total Amount Due:</td>
+      <td class="right" style="width:1.3in;">${{ total_due_fmt }}</td>
+    </tr>
+  </table>
+
+  <div class="customer-copy">Customer Copy&nbsp;&nbsp;Page 1 of 1</div>
+
+  <!-- ══════════ REMIT BLOCK ══════════ -->
+  <div class="remit-divider">Please detach and remit with payment</div>
+
+  <table class="remit-dates" style="width:4.7in;">
+    <tr>
+      <td class="bold" style="width:1.0in;padding:0 6px 6px 0;">Billing Date</td>
+      <td style="width:1.2in;padding:0 6px 6px 0;">{{ billing_date_str }}</td>
+      <td class="bold" style="width:1.2in;padding:0 6px 6px 0;">Payment due by</td>
+      <td style="width:1.3in;padding:0 0 6px 0;">{{ billing_date_str }}</td>
+    </tr>
+  </table>
+
+  <div class="remit-address">
+    <b>Remit with Payment to</b><br/>{{ vendor_remit_address }}
+  </div>
+
+  <table class="remit-table" style="width:4.4in;">
+    <tr>
+      <td class="label-cell" style="width:2.2in;">Routing #</td>
+      <td style="width:2.2in;">{{ routing_number }}</td>
+    </tr>
+    <tr>
+      <td class="label-cell" style="width:2.2in;">Account #</td>
+      <td style="width:2.2in;">{{ account_number }}</td>
+    </tr>
+    <tr>
+      <td class="label-cell" style="width:2.2in;">Billing Reference #</td>
+      <td style="width:2.2in;">{{ billing_ref }}</td>
+    </tr>
+    <tr>
+      <td class="label-cell" style="width:2.2in;">Billing Period</td>
+      <td style="width:2.2in;">{{ billing_period_compact }}</td>
+    </tr>
+  </table>
+
+  <table style="width:4.7in;margin-top:10px;">
+    <tr>
+      <td class="bold" style="width:1.1in;">Amount Due</td>
+      <td style="width:1.1in;">${{ total_due_fmt }}</td>
+      <td class="bold" style="width:1.4in;">Amount Enclosed</td>
+      <td style="width:1.1in;">&nbsp;</td>
+    </tr>
+  </table>
+
+</body>
+</html>

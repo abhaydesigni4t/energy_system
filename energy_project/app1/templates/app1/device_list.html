@@ -1,176 +1,33 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>All Devices · 3rd Rock Energy</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+{% extends "app1/base.html" %}
+{% load static %}
+
+{% block title %}DER Management · 3rd Rock Energy{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-*{margin:0;padding:0;box-sizing:border-box;}
-:root{
-  --bg:#F8FAFC;--bg2:#fff;--border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.14);
-  --text1:#0F172A;--text2:#334155;--text3:#64748B;
-  --accent:#2563EB;--accent2:#1D4ED8;--green:#10B981;--red:#F43F5E;
-  --r8:8px;--r12:12px;--r16:16px;
-  --font:'Calibri','Segoe UI','Arial',sans-serif;
-
-body{font-family:var(--font);background:var(--bg);color:var(--text1);font-size:14px;-webkit-font-smoothing:antialiased;}
-/* TOPBAR */
-.topbar{
-    background:#4A5568;
-    padding:0 20px;
-    min-height:70px;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:16px;
-    flex-wrap:wrap;
-    position:sticky;
-    top:0;
-    z-index:100;
-    box-shadow:0 2px 10px rgba(0,0,0,0.08);
-}
-
-.topbar-left{
-    display:flex;
-    align-items:center;
-    gap:14px;
-    flex-wrap:wrap;
-}
-
-.topbar-brand{
-    font-size:22px;
-    font-weight:800;
-    color:#fff;
-    letter-spacing:-0.3px;
-    white-space:nowrap;
-}
-
-.topbar-actions{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    flex-wrap:wrap;
-}
-
-.nav-btn{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap:7px;
-    padding:10px 18px;
-    border-radius:12px;
-    border:none;
-    background:rgba(255,255,255,0.12);
-    color:#fff;
-    font-size:13px;
-    font-weight:700;
-    text-decoration:none;
-    transition:all 0.2s ease;
-    backdrop-filter:blur(6px);
-    white-space:nowrap;
-}
-
-.nav-btn:hover{
-    background:rgba(255,255,255,0.22);
-    transform:translateY(-1px);
-}
-
-.nav-btn.accent{
-    background:#2563EB;
-    color:#fff;
-}
-
-.nav-btn.accent:hover{
-    background:#1D4ED8;
-}
-
-.nav-btn.green{
-    background:#10B981;
-    color:#fff;
-}
-
-.nav-btn.green:hover{
-    background:#059669;
-}
-
-.nav-btn.orange{
-    background:#F59E0B;
-    color:#fff;
-}
-
-.nav-btn.orange:hover{
-    background:#D97706;
-}
-
-.nav-btn.danger{
-    background:#EF4444;
-    color:#fff;
-}
-
-.nav-btn.danger:hover{
-    background:#DC2626;
-}
-
-.tbtn{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap:5px;
-    padding:6px 14px;
-    border-radius:30px;
-    font-size:14px;
-    font-weight:700;
-    border:1px solid var(--border2);
-    background:transparent;
-    color:#000;
-    cursor:pointer;
-    transition:all 0.15s;
-    white-space:nowrap;
-    text-decoration:none;
-}
-
-.tbtn:hover{
-    background:var(--surface);
-}
-
-.tbtn.primary{
-    background:linear-gradient(135deg,#3B82F6,#2563EB);
-    border-color:transparent;
-    color:#fff;
-}
-
-.home-btn{
-    width:40px;
-    height:40px;
-    padding:0;
-    color:#fff;
-    border-color:transparent;
-    font-size:18px;
-    font-weight:800;
-}
-
+:root{ --mono:'JetBrains Mono',monospace; }
 .page-header{padding:20px 28px 0;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
-.page-title{font-size:28px;font-weight:800;letter-spacing:-0.5px;}
+.page-title{font-size:26px;font-weight:800;letter-spacing:-0.5px;}
 .content{padding:20px 28px 60px;}
+.nav-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 16px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);color:var(--text1);font-size:13px;font-weight:700;text-decoration:none;transition:all 0.2s ease;white-space:nowrap;}
+.nav-btn:hover{background:var(--bg);}
+.nav-btn.accent{background:var(--accent);color:#fff;border-color:transparent;}
 .search-row{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
 .search-input{flex:1;min-width:200px;padding:9px 14px;border-radius:var(--r8);border:1px solid var(--border2);background:var(--bg2);color:var(--text1);font-family:var(--font);font-size:13px;font-weight:500;outline:none;transition:border-color 0.15s;}
 .search-input:focus{border-color:var(--accent);}
 .filter-select{padding:9px 14px;border-radius:var(--r8);border:1px solid var(--border2);background:var(--bg2);color:var(--text1);font-family:var(--font);font-size:13px;font-weight:500;outline:none;cursor:pointer;}
 .filter-select:focus{border-color:var(--accent);}
 
-/* TABLE */
 .tbl-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r16);overflow:hidden;}
 .tbl-wrap{overflow-x:auto;}
 table{width:100%;border-collapse:collapse;}
-thead th{padding:11px 16px;text-align:left;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);border-bottom:1px solid var(--border);background:var(--bg);white-space:nowrap;}
+thead th{padding:11px 16px;text-align:left;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);border-bottom:1px solid var(--border);background:var(--bg);white-space:nowrap;}
 tbody tr{border-bottom:1px solid var(--border);transition:background 0.1s;}
 tbody tr:hover{background:rgba(37,99,235,0.03);}
 tbody tr:last-child{border-bottom:none;}
 td{padding:13px 16px;font-size:13px;color:var(--text1);font-weight:500;}
 .unit-badge{font-family:var(--mono);font-size:12px;font-weight:700;padding:3px 9px;border-radius:6px;background:var(--bg);border:1px solid var(--border2);color:var(--text2);}
-.company-link{color:var(--accent);text-decoration:none;font-weight:700;}
-.company-link:hover{text-decoration:underline;}
 .status-dot{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;}
 .status-dot.active{background:rgba(16,185,129,0.12);color:#0E7C46;}
 .status-dot.inactive{background:rgba(244,63,94,0.1);color:#BE123C;}
@@ -179,7 +36,6 @@ td{padding:13px 16px;font-size:13px;color:var(--text1);font-weight:500;}
 .act-link.red{color:var(--red);}
 .user-chips{display:flex;flex-wrap:wrap;gap:4px;}
 .uc{display:inline-block;padding:2px 8px;border-radius:20px;background:var(--bg);border:1px solid var(--border2);font-size:10px;font-weight:700;color:var(--text3);}
-/* Category badge */
 .cat-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;}
 .cat-Meters{background:rgba(239,68,68,0.1);color:#B91C1C;}
 .cat-Solar{background:rgba(34,197,94,0.12);color:#166534;}
@@ -196,33 +52,31 @@ td{padding:13px 16px;font-size:13px;color:var(--text1);font-weight:500;}
 .msg{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:var(--r8);font-size:13px;font-weight:600;margin-bottom:6px;}
 .msg.success{background:rgba(16,185,129,0.1);color:#065F46;border:1px solid rgba(16,185,129,0.25);}
 </style>
-</head>
-<body>
-<header class="topbar">
-  <div class="topbar-brand">3rd Rock Energy System</div>
-  <nav class="topbar-nav">
-    <a href="{% url 'home' %}" class="tbtn home-btn"> 🏠</a>
-    <a href="{% url 'company_list' %}" class="nav-btn">← Device Management</a>
-    <a href="{% url 'company_list' %}" class="nav-btn">🏢 Companies</a>
-    {% if user.is_admin_or_superadmin %}<a href="{% url 'user_list' %}" class="nav-btn">👥 Users</a>{% endif %}
-    <a href="{% url 'logout' %}" class="nav-btn danger">Logout</a>
-  </nav>
-</header>
+{% endblock %}
 
+{% block breadcrumb %}
+<a href="{% url 'home' %}">Home</a>
+<span class="sep">/</span>
+<span class="current">DER Management</span>
+{% endblock %}
+
+{% block content %}
 {% if messages %}
 <div class="messages" style="margin-top:12px;">
   {% for message in messages %}<div class="msg {{ message.tags }}">{{ message }}</div>{% endfor %}
 </div>
 {% endif %}
 <div class="page-header">
-  <div class="page-title">⚡ All Devices</div>
-  <a href="{% url 'add_device' %}" class="nav-btn accent">+ Add Device</a>
+  <div class="page-title">⚡ DER Management</div>
+  {% if user.role == 'superadmin' %}
+  <a href="{% url 'company_list' %}" class="nav-btn accent">+ Add DER (select a Microgrid first)</a>
+{% endif %}
 </div>
 
 <div class="content">
   <div class="search-row">
     <input type="text" class="search-input" id="search-input"
-           placeholder="🔍  Search by unit ID, category, company…"
+           placeholder="🔍  Search by unit ID, category, microgrid…"
            oninput="filterRows()">
     <select class="filter-select" id="cat-filter" onchange="filterRows()">
       <option value="">All Categories</option>
@@ -243,20 +97,23 @@ td{padding:13px 16px;font-size:13px;color:var(--text1);font-weight:500;}
         <thead>
           <tr>
             <th>Unit ID</th>
+            <th>DER Name</th>
             <th>Category</th>
             <th>Description</th>
-            <th>Company</th>
+            <th>Microgrid</th>
             <th>Location</th>
-            <th>Assigned Users</th>
+            <th>Scale</th>
+            <th>Assigned Persons</th>
             <th>Status</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           {% for device in devices %}
-          <tr data-search="{{ device.unit_id }} {{ device.device_category|lower }} {% if device.company %}{{ device.company.name|lower }}{% endif %} {{ device.location|lower }}"
+          <tr data-search="{{ device.unit_id }} {{ device.device_name|lower }} {{ device.device_category|lower }} {% if device.company %}{{ device.company.name|lower }}{% endif %} {{ device.location|lower }}"
               data-category="{{ device.device_category }}">
             <td><span class="unit-badge">{{ device.unit_id }}</span></td>
+            <td style="font-weight:700;">{{ device.get_display_name }}</td>
             <td>
               {% with cat=device.device_category %}
               {% if cat == "Meters" %}
@@ -284,12 +141,19 @@ td{padding:13px 16px;font-size:13px;color:var(--text1);font-weight:500;}
             </td>
             <td>
               {% if device.company %}
-                <a href="{% url 'company_detail' device.company.pk %}" class="company-link">{{ device.company.name }}</a>
+                <span style="font-weight:700;">{{ device.company.name }}</span>
               {% else %}
                 <span style="color:var(--text3);font-style:italic;">Unassigned</span>
               {% endif %}
             </td>
             <td style="font-size:12px;color:var(--text3);">{{ device.location|default:"—" }}</td>
+            <td>
+              {% if device.scaling_factor and device.scaling_factor != 1 %}
+                <span class="unit-badge" style="color:#B45309;border-color:rgba(245,158,11,0.4);">×{{ device.scaling_factor|floatformat:2 }}</span>
+              {% else %}
+                <span style="font-size:11px;color:var(--text3);">—</span>
+              {% endif %}
+            </td> 
             <td>
               <div class="user-chips">
                 {% for u in device.assigned_users.all %}
@@ -307,8 +171,11 @@ td{padding:13px 16px;font-size:13px;color:var(--text1);font-weight:500;}
             <td>
               {% if device.pk %}
                 <a href="{% url 'device_detail' device.pk %}" class="act-link">View</a>
-                <a href="{% url 'edit_device' device.pk %}" class="act-link">Edit</a>
-                <a href="{% url 'delete_device' device.pk %}" class="act-link red">Delete</a>
+                <a href="{% url 'select_bill_month' device.pk %}" class="act-link" style="color:#0EA5E9;">🧾 Bill</a>
+                {% if user.role == 'superadmin' %}
+                  <a href="{% url 'edit_device' device.pk %}" class="act-link">Edit</a>
+                  <a href="{% url 'delete_device' device.pk %}" class="act-link red">Delete</a>
+                {% endif %}
               {% else %}
                 <span style="font-size:11px;color:var(--text3);">—</span>
               {% endif %}
@@ -322,13 +189,17 @@ td{padding:13px 16px;font-size:13px;color:var(--text1);font-weight:500;}
   {% else %}
   <div class="empty-state">
     <div class="empty-icon">⚡</div>
-    <div class="empty-title">No devices yet</div>
-    <div class="empty-sub">Add your first device to start tracking energy data.</div>
-    <a href="{% url 'add_device' %}" class="nav-btn accent">+ Add First Device</a>
+    <div class="empty-title">No DERs yet</div>
+    <div class="empty-sub">Add your first DER to start tracking energy data.</div>
+   {% if user.role == 'superadmin' %}
+      <a href="{% url 'add_device' %}" class="nav-btn accent">+ Add First DER</a>
+    {% endif %}
   </div>
   {% endif %}
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
 function filterRows(){
   const q   = document.getElementById('search-input').value.toLowerCase();
@@ -340,5 +211,4 @@ function filterRows(){
   });
 }
 </script>
-</body>
-</html>
+{% endblock %}

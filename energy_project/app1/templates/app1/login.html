@@ -104,10 +104,10 @@ body{font-family:var(--font-text);background:var(--bg);color:var(--text1);min-he
     {% csrf_token %}
 
     <div class="fg">
-      <label class="flb" for="{{ form.username.id_for_label }}">Username</label>
-      {{ form.username }}
-      {% if form.username.errors %}
-        <ul class="field-errors">{% for e in form.username.errors %}<li>✕ {{ e }}</li>{% endfor %}</ul>
+      <label class="flb" for="{{ form.email.id_for_label }}">Email</label>
+      {{ form.email }}
+      {% if form.email.errors %}
+        <ul class="field-errors">{% for e in form.email.errors %}<li>✕ {{ e }}</li>{% endfor %}</ul>
       {% endif %}
     </div>
 

@@ -6,4 +6,5 @@ admin.site.register(HourlyAggregate)
 admin.site.register(User)   
 admin.site.register(Company)
 admin.site.register(Device)
-
+admin.site.register(BillLogo)
+admin.site.register(OTPCode)

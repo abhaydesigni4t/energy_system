@@ -1,0 +1,57 @@
+{% extends "app1/base.html" %}
+{% load static %}
+
+{% block title %}Edit {{ customer.name }} · 3rd Rock Energy{% endblock %}
+
+{% block extra_css %}
+<style>
+.page-wrap{max-width:600px;margin:28px auto;padding:0 28px 60px;}
+.form-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r16);overflow:hidden;}
+.form-card-header{padding:22px 26px 18px;border-bottom:1px solid var(--border);}
+.form-card-title{font-size:20px;font-weight:800;}
+.form-body{padding:24px 26px;}
+.fg{margin-bottom:18px;}
+.flb{display:block;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:var(--text2);margin-bottom:7px;}
+.fi{width:100%;padding:10px 14px;border-radius:var(--r8);border:1px solid var(--border2);background:var(--bg);color:var(--text1);font-size:13px;outline:none;}
+.fi:focus{border-color:var(--accent);}
+textarea.fi{resize:vertical;min-height:80px;}
+.form-acts{display:flex;gap:10px;justify-content:flex-end;padding-top:8px;}
+.nav-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 16px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);color:var(--text1);font-size:13px;font-weight:700;text-decoration:none;transition:all 0.2s ease;white-space:nowrap;}
+.nav-btn:hover{background:var(--bg);}
+.nav-btn.accent{background:var(--accent);color:#fff;border-color:transparent;}
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{% url 'home' %}">Home</a>
+<span class="sep">/</span>
+<a href="{% url 'customer_list' %}">Customer Management</a>
+<span class="sep">/</span>
+<a href="{% url 'customer_detail' customer.pk %}">{{ customer.name }}</a>
+<span class="sep">/</span>
+<span class="current">Edit</span>
+{% endblock %}
+
+{% block content %}
+<div class="page-wrap">
+  <div class="form-card">
+    <div class="form-card-header"><div class="form-card-title">✏️ Edit: {{ customer.name }}</div></div>
+    <div class="form-body">
+      <form method="post">
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="fg">
+          <label class="flb">{{ field.label }}</label>
+          {{ field }}
+          {% if field.errors %}<div style="font-size:11px;color:var(--red);margin-top:5px;font-weight:600;">{{ field.errors.0 }}</div>{% endif %}
+        </div>
+        {% endfor %}
+        <div class="form-acts">
+          <a href="{% url 'customer_detail' customer.pk %}" class="nav-btn">Cancel</a>
+          <button type="submit" class="nav-btn accent">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

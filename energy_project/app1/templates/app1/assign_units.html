@@ -166,6 +166,7 @@ body{font-family:var(--font-text);background:var(--bg);color:var(--text1);font-s
 .badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:800;padding:2px 8px;border-radius:5px;margin-top:5px;}
 .badge.superadmin{background:rgba(139,92,246,0.12);color:#7C3AED;}
 .badge.admin{background:rgba(59,130,246,0.12);color:#2563EB;}
+.badge.operator{background:rgba(168,85,247,0.12);color:#7E22CE;}
 .badge.user{background:rgba(100,116,139,0.12);color:#475569;}
 .form-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;}
 .section-title{font-size:11px;font-weight:800;letter-spacing:0.8px;text-transform:uppercase;color:var(--text3);margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--border);}
@@ -196,7 +197,7 @@ body{font-family:var(--font-text);background:var(--bg);color:var(--text1);font-s
   </div>
   <div class="topbar-actions">
    {% if user.is_admin_or_superadmin %}
-    <a href="{% url 'user_list' %}" class="nav-btn">👥 User Management </a>
+    <a href="{% url 'user_list' %}" class="nav-btn">👥 Personnel Management </a>
     {% endif %}
     <a href="{% url 'logout' %}" class="nav-btn danger">Logout</a>
   </div>

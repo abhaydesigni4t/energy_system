@@ -1,436 +1,243 @@
-Read my existing `SensorReading` model and `SensorReadingAPIView` carefully.
+this is check_email.html 
+"<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Continue · 3rd Rock Energy</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne+Mono&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --font-text:'Space Grotesk',-apple-system,BlinkMacSystemFont,sans-serif;
+  --font-mono:'Syne Mono',monospace;
+  --bg:#0A0D14;--surface:#111624;--surface2:#1A2035;
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.14);
+  --text1:#F0F4FF;--text2:rgba(255,255,255,0.65);--text3:rgba(255,255,255,0.35);
+  --accent:#3B82F6;--accent2:#2563EB;--error:#F43F5E;
+}
+body{font-family:var(--font-text);background:var(--bg);color:var(--text1);min-height:100vh;display:flex;align-items:center;justify-content:center;}
+.bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(59,130,246,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,0.03) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;}
+.bg-glow{position:fixed;inset:0;background:radial-gradient(ellipse 60% 50% at 50% 0%,rgba(59,130,246,0.12),transparent);pointer-events:none;}
+.auth-card{position:relative;z-index:10;width:100%;max-width:420px;margin:24px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:40px;box-shadow:0 32px 80px rgba(0,0,0,0.6);}
+.auth-logo{display:flex;align-items:center;gap:10px;margin-bottom:32px;}
+.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,#3B82F6,#2563EB);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+.logo-name{font-size:15px;font-weight:700;color:var(--text1);letter-spacing:-0.3px;}
+.logo-sub{font-size:10px;color:var(--text3);font-family:var(--font-mono);letter-spacing:1px;margin-top:1px;}
+.auth-heading{font-size:24px;font-weight:700;letter-spacing:-0.5px;margin-bottom:6px;}
+.auth-sub{font-size:13px;color:var(--text2);margin-bottom:28px;font-weight:400;}
+.fg{margin-bottom:16px;}
+.flb{display:block;font-size:11px;font-weight:700;color:var(--text2);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px;}
+.auth-input{width:100%;padding:11px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text1);font-family:var(--font-text);font-size:13px;font-weight:500;outline:none;transition:border-color 0.15s,box-shadow 0.15s;}
+.auth-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,130,246,0.12);}
+.auth-input::placeholder{color:var(--text3);}
+.submit-btn{width:100%;padding:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:10px;color:#fff;font-family:var(--font-text);font-size:14px;font-weight:700;cursor:pointer;transition:opacity 0.15s,transform 0.1s;margin-top:4px;}
+.submit-btn:hover{opacity:0.92;transform:translateY(-1px);}
+.messages{margin-bottom:20px;}
+.msg{padding:10px 14px;border-radius:10px;font-size:12px;font-weight:600;margin-bottom:6px;}
+.msg.info{background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);color:#93C5FD;}
+.msg.error{background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.2);color:#F87171;}
+.back-link{text-align:center;margin-top:20px;font-size:12px;}
+.back-link a{color:var(--accent);text-decoration:none;font-weight:600;}
+.back-link a:hover{text-decoration:underline;}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="bg-glow"></div>
 
-I already have a GET API that returns the latest sensor readings and decoded Modbus data. I do **not** want to modify the existing API.
+<div class="auth-card">
+  <div class="auth-logo">
+    <div class="logo-icon">⚡</div>
+    <div>
+      <div class="logo-name">3rd Rock Energy</div>
+      <div class="logo-sub">MICROGRID SYSTEM</div>
+    </div>
+  </div>
 
-I need a **new separate GET API** that allows filtering historical sensor data by a date range.
-get all data ralted to range 
-### Requirements
+  <h1 class="auth-heading">Let's get started</h1>
+  <p class="auth-sub">Please enter your email</p>
 
-1. Create a new API endpoint, for example:
+  {% if messages %}
+    <div class="messages">
+      {% for message in messages %}<div class="msg {{ message.tags }}">{{ message }}</div>{% endfor %}
+    </div>
+  {% endif %}
 
-   ```
-  /readings/filter/
-   ```
+  <form method="post">
+    {% csrf_token %}
+    <div class="fg">
+      <label class="flb">Email</label>
+      <input type="email" name="email" class="auth-input" placeholder="you@company.com" required autofocus>
+    </div>
+    <button type="submit" class="submit-btn">Continue →</button>
+  </form>
 
-2. The API should accept:
+  <div class="back-link">
+    <a href="{% url 'landing' %}">← Back to options</a>
+  </div>
+</div>
+</body>
+</html>"
 
-   * `unit_id` (optional)
-   * `start_date`
-   * `end_date`
+this is signup.html 
+"<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create Account · 3rd Rock Energy</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne+Mono&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --font-text:'Space Grotesk',-apple-system,BlinkMacSystemFont,sans-serif;
+  --font-mono:'Syne Mono',monospace;
+  --bg:#0A0D14;--surface:#111624;--surface2:#1A2035;
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.14);
+  --text1:#F0F4FF;--text2:rgba(255,255,255,0.65);--text3:rgba(255,255,255,0.35);
+  --accent:#3B82F6;--accent2:#2563EB;--success:#10B981;--error:#F43F5E;
+}
+body{font-family:var(--font-text);background:var(--bg);color:var(--text1);min-height:100vh;display:flex;align-items:center;justify-content:center;overflow-x:hidden;padding:24px 0;}
+.bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(59,130,246,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,0.03) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;}
+.bg-glow{position:fixed;inset:0;background:radial-gradient(ellipse 60% 50% at 50% 0%,rgba(16,185,129,0.10),transparent);pointer-events:none;}
+.orb{position:fixed;border-radius:50%;filter:blur(80px);pointer-events:none;animation:drift 12s ease-in-out infinite;}
+.orb1{width:400px;height:400px;background:rgba(16,185,129,0.07);top:-100px;left:-100px;animation-delay:0s;}
+.orb2{width:300px;height:300px;background:rgba(59,130,246,0.06);bottom:-100px;right:-100px;animation-delay:6s;}
+@keyframes drift{0%,100%{transform:translate(0,0) scale(1);}50%{transform:translate(20px,-15px) scale(1.04);}}
+.auth-card{position:relative;z-index:10;width:100%;max-width:460px;margin:24px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:40px;box-shadow:0 32px 80px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.05);}
+.auth-logo{display:flex;align-items:center;gap:10px;margin-bottom:32px;}
+.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,#10B981,#059669);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+.logo-name{font-size:15px;font-weight:700;color:var(--text1);letter-spacing:-0.3px;}
+.logo-sub{font-size:10px;color:var(--text3);font-family:var(--font-mono);letter-spacing:1px;margin-top:1px;}
+.auth-heading{font-size:24px;font-weight:700;letter-spacing:-0.5px;margin-bottom:6px;}
+.auth-sub{font-size:13px;color:var(--text2);margin-bottom:28px;font-weight:400;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.fg{margin-bottom:16px;}
+.flb{display:block;font-size:11px;font-weight:700;color:var(--text2);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px;}
+.auth-input{width:100%;padding:11px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text1);font-family:var(--font-text);font-size:13px;font-weight:500;outline:none;transition:border-color 0.15s,box-shadow 0.15s;}
+.auth-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,130,246,0.12);}
+.auth-input::placeholder{color:var(--text3);}
+.field-errors{margin-top:6px;}
+.field-errors li{font-size:11px;color:#F87171;list-style:none;display:flex;align-items:center;gap:4px;}
+.form-error{background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.2);border-radius:10px;padding:10px 14px;font-size:12px;color:#F87171;margin-bottom:20px;}
+.notice{background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.15);border-radius:10px;padding:10px 14px;font-size:11px;color:rgba(147,197,253,0.9);margin-bottom:22px;display:flex;align-items:flex-start;gap:8px;}
+.notice-icon{font-size:13px;flex-shrink:0;margin-top:1px;}
+.submit-btn{width:100%;padding:12px;background:linear-gradient(135deg,#10B981,#059669);border:none;border-radius:10px;color:#fff;font-family:var(--font-text);font-size:14px;font-weight:700;cursor:pointer;transition:opacity 0.15s,transform 0.1s;margin-top:4px;}
+.submit-btn:hover{opacity:0.92;transform:translateY(-1px);}
+.submit-btn:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
+.submit-btn:active{transform:translateY(0);}
+.auth-link-row{text-align:center;margin-top:20px;font-size:12px;color:var(--text3);}
+.auth-link-row a{color:var(--accent);text-decoration:none;font-weight:600;}
+.auth-link-row a:hover{text-decoration:underline;}
+@media(max-width:480px){.form-row{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="bg-glow"></div>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
 
-3. Example request:
+<div class="auth-card">
+  <div class="auth-logo">
+    <div class="logo-icon">⚡</div>
+    <div>
+      <div class="logo-name">3rd Rock Energy</div>
+      <div class="logo-sub">MICROGRID SYSTEM</div>
+    </div>
+  </div>
 
-   ```
-   GET /api/readings/filter/?unit_id=100&start_date=2026-05-01&end_date=2026-05-31
-   ```
+ <h1 class="auth-heading">Let's get started</h1>
+  <p class="auth-sub">Please enter your email.</p>
 
-4. The API should:
-    check we use est timezome 
-   * Convert the provided dates into timestamps.
-   * Filter records from the `SensorReading` model using the `timestamp` field.
-   * Return all readings between the selected dates (inclusive).
-   * Support filtering by `unit_id` if provided.
-   * Order results by timestamp ascending.
+ 
 
-5. Response should include:
+  {% if form.non_field_errors %}
+    <div class="form-error">⚠ {{ form.non_field_errors|join:", " }}</div>
+  {% endif %}
 
-   * id
-   * unit_id
-   * timestamp
-   * created_at
-   * voltage
-   * current
-   * active_power_kw
-   * reactive_power_kvar
-   * apparent_power_kva
-   * energy_today_kwh
+  <form method="post" novalidate>
+    {% csrf_token %}
 
-6. Example:
+    <div class="form-row">
+      <div class="fg">
+        <label class="flb">First Name</label>
+        {{ form.first_name }}
+        {% if form.first_name.errors %}<ul class="field-errors">{% for e in form.first_name.errors %}<li>✕ {{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+      <div class="fg">
+        <label class="flb">Last Name</label>
+        {{ form.last_name }}
+        {% if form.last_name.errors %}<ul class="field-errors">{% for e in form.last_name.errors %}<li>✕ {{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+    </div>
 
-   ```
-   GET /api/readings/filter/?unit_id=100&start_date=2026-05-01&end_date=2026-05-31
-   ```
+        <div class="fg">
+          <label class="flb">Email Address</label>
+          {{ form.email }}
+          {% if form.email.errors %}<ul class="field-errors">{% for e in form.email.errors %}<li>✕ {{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
 
-   should return all sensor readings for Unit 100 between May 1 and May 31.
+        <div class="fg">
+          <label class="flb">Phone Number</label>
+          {{ form.phone }}
+          {% if form.phone.errors %}<ul class="field-errors">{% for e in form.phone.errors %}<li>✕ {{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
 
-7. Add proper validation:
+    <button type="submit" class="submit-btn">Create Account →</button>
+  </form>
 
-   * Return 400 if `start_date` or `end_date` is missing.
-   * Return 400 if date format is invalid.
-   * Return a meaningful error message.
+  <div class="auth-link-row">
+    Already have an account? <a href="{% url 'check_email' %}">Sign in</a>
+  </div>
+  <div class="auth-link-row" style="margin-top:10px;">
+    <a href="{% url 'landing' %}">← Back to options</a>
+  </div>
+</div>
 
-8. Optimize the query because the `SensorReading` table may contain millions of records.
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const emailInput = document.getElementById('id_email');
+  const phoneInput = document.getElementById('id_phone');
+  const submitBtn = document.querySelector('.submit-btn');
 
-Provide the complete Django REST Framework APIView code, URL configuration, and example response.
+  function toggleSubmit() {
+    const hasEmail = emailInput && emailInput.value.trim().length > 0;
+    const hasPhone = phoneInput && phoneInput.value.trim().length > 0;
+    submitBtn.disabled = !(hasEmail || hasPhone);
+  }
+
+  submitBtn.disabled = true;
+  emailInput && emailInput.addEventListener('input', toggleSubmit);
+  phoneInput && phoneInput.addEventListener('input', toggleSubmit);
+  toggleSubmit();
+});
+</script>
+</body>
+</html>"
 
 
-this is models
-"class SensorReading(models.Model):
-    """
-    Stores each Modbus reading as a separate record for historical data
-    """
-    unit_id = models.PositiveIntegerField(db_index=True)
-    timestamp = models.FloatField(help_text="Unix timestamp")
-    block1_start_reg = models.PositiveIntegerField(default=40100)
-    block1_raw = models.JSONField(help_text="Raw registers from block 1")
-    block2_start_reg = models.PositiveIntegerField(default=40138)
-    block2_raw = models.JSONField(help_text="Raw registers from block 2")
-    created_at = models.DateTimeField(auto_now_add=True)
-    
-    # Cached/decoded values for faster queries
-    voltage = models.FloatField(null=True, blank=True)
-    current = models.FloatField(null=True, blank=True)
-    active_power_kw = models.FloatField(null=True, blank=True)
-    reactive_power_kvar = models.FloatField(null=True, blank=True)
-    apparent_power_kva = models.FloatField(null=True, blank=True)
-    energy_today_kwh = models.FloatField(null=True, blank=True)
-    
-    class Meta:
-        ordering = ['-timestamp']
-        indexes = [
-            models.Index(fields=['unit_id', 'timestamp']),
-            models.Index(fields=['-timestamp']),
-        ]
-    
-    def save(self, *args, **kwargs):
-        """
-        Decode all block1_raw registers and cache key values.
+Logo consistency — 
+    The same 3rd Rock logo is now used consistently across all pages and pop-ups.
 
-        Register map (block1_raw indices):
-        [0]     Phase A to Neutral voltage  (÷10 → Volts)
-        [1]     Phase B to Neutral voltage  (÷10 → Volts)
-        [2]     Phase C to Neutral voltage  (÷10 → Volts)
-        [3]     Average Line-Neutral voltage (÷10 → Volts)  ← meter's own average
-        [4]     Voltage A-B  (÷10 → Volts)
-        [5]     Voltage B-C  (÷10 → Volts)
-        [6]     Voltage C-A  (÷10 → Volts)
-        [7]     Average Line-Line voltage  (÷10 → Volts)
-        [8]     Current Phase A  (÷10 → Amps)
-        [9]     Current Phase B  (÷10 → Amps)
-        [10]    Current Phase C  (÷10 → Amps)
-        [11]    Average Current  (÷10 → Amps)  ← meter's own average
-        [12]    Demand Current   (÷10 → Amps)
-        [13]    Peak Demand Current (÷10 → Amps)
-        [14]    Neutral Current  (÷10 → Amps)
-        [15]    Frequency        (÷100 → Hz)
-        [16]    Total Power Factor  (signed 16-bit ÷ 10000 → -1.0 to +1.0)
-        [17]    Power Factor Phase A (signed 16-bit ÷ 10000)
-        [18]    Power Factor Phase B (signed 16-bit ÷ 10000)
-        [19]    Power Factor Phase C (signed 16-bit ÷ 10000)
-        [20]    Total Active Power   (signed 16-bit ÷ 10 → kW)
-        [21]    Total Reactive Power (signed 16-bit ÷ 10 → kVAR)
-        [22]    Total Apparent Power (÷10 → kVA, always positive)
+Super Admin visibility — 
+    Regular Users, Operators, and Admins can no longer see Super Admins in the Personnel list or stat cards. 
+    Only Super Admins can see other Super Admins.
 
-        block2_raw:
-        [0]     Energy low word  (32-bit combined ÷ 100 → kWh)
-        [1]     Energy high word
-        """
 
-        def to_signed_16(raw):
-            """
-            Convert unsigned 16-bit Modbus register to signed integer.
-            Modbus sends all registers as unsigned (0–65535).
-            Values above 32767 represent negative numbers in two's complement:
-                0–32767   → positive as-is
-                32768–65535 → subtract 65536 to get negative value
-            Examples:
-                raw=13    → 13       (positive, no conversion needed)
-                raw=64536 → -1000    (64536 - 65536 = -1000)
-                raw=64391 → -1145    (64391 - 65536 = -1145)
-            """
-            if raw > 32767:
-                return raw - 65536
-            return raw
+**OTP via SMS — Cost Explanation**
 
-        if self.block1_raw and len(self.block1_raw) >= 23:
-            b = self.block1_raw
+    For SMS OTP, Twilio charges based on the number of messages sent.
+    For UK phone numbers, the current rate is approximately **$0.0420 per SMS**.
 
-            # ── Voltage Phase-to-Neutral (÷10 → Volts) ───────────────────
-            # These measure voltage from each phase wire to the neutral wire.
-            # A 480V 3-phase system has ~277V phase-to-neutral (277 × √3 = 480).
-            # Your readings show ~280V L-N and ~485V L-L which is correct.
-            v_a = b[0] / 10   # Phase A to Neutral
-            v_b = b[1] / 10   # Phase B to Neutral
-            v_c = b[2] / 10   # Phase C to Neutral
+    **Estimated monthly cost:**
 
-            # Use meter's own average (reg[3]) — more accurate than manual average
-            # because the meter may apply its own filtering/rounding internally.
-            self.voltage = round(b[3] / 10, 1)
+    | Messages/month | Estimated Cost |
+    | -------------: | -------------: |
+    |            100 |          $4.20 |
+    |            500 |         $21.00 |
+    |          1,000 |         $42.00 |
 
-            # ── Current (÷10 → Amps) ──────────────────────────────────────
-            # Current flowing through each phase conductor.
-            # Use meter's own average current (reg[11]) for consistency.
-            self.current = round(b[11] / 10, 1)
+    These are the **base SMS charges**. Additional carrier fees may apply, so the final cost may be slightly higher.
 
-            # ── Active Power kW (signed, ÷10) ─────────────────────────────
-            # Real/active power = actual energy consumed per second (watts).
-            # Positive = consuming power (load), Negative = generating (solar/genset).
-            # MUST use meter's register [20] directly — NOT calculated from V×I,
-            # because V×I = apparent power (kVA), not active power (kW).
-            # Verified: raw=13 → signed=13 → 13÷10 = 1.3 kW ✅
-            self.active_power_kw = round(to_signed_16(b[20]) / 10, 2)
-
-            # ── Reactive Power kVAR (signed, ÷10) ────────────────────────
-            # Power stored/released by inductors and capacitors.
-            # Positive = inductive (motors, transformers — most common loads).
-            # Negative = capacitive (power factor correction capacitors).
-            # Verified: raw=99 → signed=99 → 9.9 kVAR ✅
-            self.reactive_power_kvar = round(to_signed_16(b[21]) / 10, 2)
-
-            # ── Apparent Power kVA (unsigned, ÷10) ────────────────────────
-            # Vector sum of kW and kVAR. Always positive.
-            # kVA = √(kW² + kVAR²)
-            # Verified: √(1.3² + 9.9²) = √(1.69 + 98.01) = √99.7 = 9.985 ≈ 9.9 kVA ✅
-            self.apparent_power_kva = round(b[22] / 10, 2)
-
-        if self.block2_raw and len(self.block2_raw) >= 2:
-            # ── Energy kWh (32-bit combined, ÷100) ────────────────────────
-            # Two 16-bit Modbus registers form one 32-bit cumulative counter.
-            # Assembly: high_word shifted left 16 bits OR'd with low_word.
-            # Example: low=6063, high=0 → (0 << 16) | 6063 = 6063
-            #          6063 ÷ 100 = 60.63 kWh ✅
-            # SCALE=100 means each count = 0.01 kWh.
-            low  = self.block2_raw[0]
-            high = self.block2_raw[1]
-            raw_32 = (high << 16) | low
-            SCALE = 100
-            self.energy_today_kwh = raw_32 / SCALE
-
-        super().save(*args, **kwargs)
-    
-    def __str__(self):
-        return f"Unit {self.unit_id} @ {datetime.fromtimestamp(self.timestamp)}"
-
-class HourlyAggregate(models.Model):
-    """
-    Pre-calculated hourly averages for graph performance
-    """
-    unit_id = models.PositiveIntegerField(db_index=True)
-    hour = models.DateTimeField(db_index=True)
-    avg_active_power_kw = models.FloatField(default=0)
-    min_active_power_kw = models.FloatField(default=0)
-    max_active_power_kw = models.FloatField(default=0)
-    total_energy_kwh = models.FloatField(default=0)
-    reading_count = models.PositiveIntegerField(default=0)
-    
-    class Meta:
-        unique_together = [['unit_id', 'hour']]
-        ordering = ['-hour']
-        "
-
-this is api 
-"class SensorReadingAPIView(APIView):
-    """
-    POST: Receive and store Modbus readings
-    GET: Retrieve readings (with optional filtering)
-    """
-    
-    def post(self, request):
-        """Store a new reading from the SBC"""
-        try:
-            # Validate required fields
-            required_fields = ['unit_id', 'timestamp', 'block1_raw', 'block2_raw']
-            for field in required_fields:
-                if field not in request.data:
-                    return Response(
-                        {"error": f"Missing required field: {field}"},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-            
-            # Prepare data for serializer
-            data = {
-                'unit_id': request.data.get('unit_id'),
-                'timestamp': request.data.get('timestamp'),
-                'block1_start_reg': request.data.get('block1_start_reg', 40100),
-                'block1_raw': request.data.get('block1_raw'),
-                'block2_start_reg': request.data.get('block2_start_reg', 40138),
-                'block2_raw': request.data.get('block2_raw'),
-            }
-            
-            serializer = SensorReadingSerializer(data=data)
-            if serializer.is_valid():
-                reading = serializer.save()
-                
-                # Trigger hourly aggregation update
-                self.update_hourly_aggregate(reading)
-                
-                return Response({
-                    "status": "success",
-                    "message": "Reading stored successfully",
-                    "id": reading.id
-                }, status=status.HTTP_201_CREATED)
-            
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            
-        except Exception as e:
-            logger.error(f"Error storing reading: {str(e)}")
-            return Response(
-                {"error": f"Internal server error: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-    
-    def update_hourly_aggregate(self, reading):
-        """Update or create hourly aggregate for this reading's hour"""
-        try:
-            # Convert unix timestamp to datetime
-            reading_time = datetime.fromtimestamp(reading.timestamp, tz=EST)
-            hour_start = reading_time.replace(minute=0, second=0, microsecond=0)
-            
-            # Get all readings in this hour
-            hour_end = hour_start + timedelta(hours=1)
-            hour_readings = SensorReading.objects.filter(
-                unit_id=reading.unit_id,
-                timestamp__gte=hour_start.timestamp(),
-                timestamp__lt=hour_end.timestamp()
-            )
-            
-            if hour_readings.exists():
-                # Calculate aggregates
-                avg_power = hour_readings.aggregate(Avg('active_power_kw'))['active_power_kw__avg'] or 0
-                min_power = hour_readings.aggregate(Min('active_power_kw'))['active_power_kw__min'] or 0
-                max_power = hour_readings.aggregate(Max('active_power_kw'))['active_power_kw__max'] or 0
-                count = hour_readings.count()
-                
-                # Energy (kWh) = average power (kW) * 1 hour
-                total_energy = avg_power * 1.0
-                
-                # Update or create aggregate
-                HourlyAggregate.objects.update_or_create(
-                    unit_id=reading.unit_id,
-                    hour=hour_start,
-                    defaults={
-                        'avg_active_power_kw': avg_power,
-                        'min_active_power_kw': min_power,
-                        'max_active_power_kw': max_power,
-                        'total_energy_kwh': total_energy,
-                        'reading_count': count,
-                    }
-                )
-        except Exception as e:
-            logger.error(f"Error updating hourly aggregate: {str(e)}")
-    
-    def get(self, request):
-        """
-        Verification endpoint — returns raw registers alongside every decoded value
-        with intermediate steps (_raw, _signed, final) so you can audit each register.
-        URL: /api/readings/?unit_id=100&limit=1
-        """
-        unit_id = request.query_params.get('unit_id')
-        limit   = int(request.query_params.get('limit', 10))
-
-        queryset = SensorReading.objects.all()
-        if unit_id:
-            queryset = queryset.filter(unit_id=unit_id)
-        queryset = queryset.order_by('-timestamp')[:limit]
-
-        def to_signed_16(raw):
-            """Two's complement unsigned→signed conversion for 16-bit Modbus registers."""
-            if raw > 32767:
-                return raw - 65536
-            return raw
-
-        results = []
-        for reading in queryset:
-            b  = reading.block1_raw or []
-            b2 = reading.block2_raw or []
-
-            def reg(idx, default=0):
-                return b[idx] if len(b) > idx else default
-
-            decoded = {
-                # ── Voltage Phase-Neutral (scale ÷10) ─────────────────────
-                "v_an_raw":     reg(0),  "v_an":     reg(0)  / 10,
-                "v_bn_raw":     reg(1),  "v_bn":     reg(1)  / 10,
-                "v_cn_raw":     reg(2),  "v_cn":     reg(2)  / 10,
-                "v_avg_ln_raw": reg(3),  "v_avg_ln": reg(3)  / 10,
-
-                # ── Voltage Line-Line (scale ÷10) ──────────────────────────
-                "v_ab_raw":     reg(4),  "v_ab":     reg(4)  / 10,
-                "v_bc_raw":     reg(5),  "v_bc":     reg(5)  / 10,
-                "v_ca_raw":     reg(6),  "v_ca":     reg(6)  / 10,
-                "v_avg_ll_raw": reg(7),  "v_avg_ll": reg(7)  / 10,
-
-                # ── Current (scale ÷10) ────────────────────────────────────
-                "i_a_raw":       reg(8),   "i_a":       reg(8)  / 10,
-                "i_b_raw":       reg(9),   "i_b":       reg(9)  / 10,
-                "i_c_raw":       reg(10),  "i_c":       reg(10) / 10,
-                "i_avg_raw":     reg(11),  "i_avg":     reg(11) / 10,
-                "i_demand_raw":  reg(12),  "i_demand":  reg(12) / 10,
-                "i_peak_raw":    reg(13),  "i_peak":    reg(13) / 10,
-                "i_neutral_raw": reg(14),  "i_neutral": reg(14) / 10,
-
-                # ── Frequency (scale ÷100) ─────────────────────────────────
-                "freq_raw": reg(15),
-                "freq_hz":  reg(15) / 100,
-
-                # ── Power Factor (signed, scale ÷10000) ───────────────────
-                # FIXED: was ÷1000, correct scale is ÷10000
-                # Proof: kW/kVA = 1.3/9.9 = 0.131
-                #        signed(-1264) ÷ 10000 = 0.1264 ✅
-                "pf_total_raw":    reg(16),
-                "pf_total_signed": to_signed_16(reg(16)),
-                "pf_total":        round(max(-1.0, min(1.0, to_signed_16(reg(16)) / 10000)), 4),
-
-                "pf_a_raw":    reg(17),
-                "pf_a_signed": to_signed_16(reg(17)),
-                "pf_a":        round(max(-1.0, min(1.0, to_signed_16(reg(17)) / 10000)), 4),
-
-                "pf_b_raw":    reg(18),
-                "pf_b_signed": to_signed_16(reg(18)),
-                "pf_b":        round(max(-1.0, min(1.0, to_signed_16(reg(18)) / 10000)), 4),
-
-                "pf_c_raw":    reg(19),
-                "pf_c_signed": to_signed_16(reg(19)),
-                "pf_c":        round(max(-1.0, min(1.0, to_signed_16(reg(19)) / 10000)), 4),
-
-                # ── Active Power (signed, scale ÷10) ──────────────────────
-                "kw_raw":    reg(20),
-                "kw_signed": to_signed_16(reg(20)),
-                "kw":        round(to_signed_16(reg(20)) / 10, 2),
-
-                # ── Reactive Power (signed, scale ÷10) ────────────────────
-                "kvar_raw":    reg(21),
-                "kvar_signed": to_signed_16(reg(21)),
-                "kvar":        round(to_signed_16(reg(21)) / 10, 2),
-
-                # ── Apparent Power (unsigned, scale ÷10) ──────────────────
-                "kva_raw": reg(22),
-                "kva":     round(reg(22) / 10, 2),
-
-                # ── Energy 32-bit (block2, scale ÷100) ────────────────────
-                "b2_low":            b2[0] if len(b2) > 0 else None,
-                "b2_high":           b2[1] if len(b2) > 1 else None,
-                "b2_combined_32bit": ((b2[1] << 16) | b2[0]) if len(b2) > 1 else None,
-                "energy_kwh":        ((b2[1] << 16) | b2[0]) / 100 if len(b2) > 1 else None,
-
-                # ── Sanity checks (computed vs meter register) ─────────────
-                # These let you instantly spot any remaining discrepancies.
-                "check_pf_from_power":   round(
-                    abs(to_signed_16(reg(20)) / reg(22)) if reg(22) else 0, 4
-                ),  # kW/kVA — should match pf_total magnitude
-                "check_kva_from_triangle": round(
-                    (
-                        (to_signed_16(reg(20)) / 10) ** 2 +
-                        (to_signed_16(reg(21)) / 10) ** 2
-                    ) ** 0.5, 2
-                ),  # √(kW²+kVAR²) — should match kva
-
-                # ── DB cached values (for comparison with live decode) ─────
-                "db_voltage":         reading.voltage,
-                "db_current":         reading.current,
-                "db_active_power_kw": reading.active_power_kw,
-                "db_reactive_kvar":   reading.reactive_power_kvar,
-                "db_apparent_kva":    reading.apparent_power_kva,
-                "db_energy_kwh":      reading.energy_today_kwh,
-            }
-
-            results.append({
-                "id":         reading.id,
-                "unit_id":    reading.unit_id,
-                "timestamp":  reading.timestamp,
-                "block1_raw": b,
-                "block2_raw": b2,
-                "decoded":    decoded,
-            })
-
-        return Response(results)"

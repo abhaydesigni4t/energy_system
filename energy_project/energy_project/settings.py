@@ -117,6 +117,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'app1', 'static'),  # Path to your app1 static folder
@@ -139,3 +141,33 @@ LOGOUT_REDIRECT_URL = '/login/'
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_HTTPONLY = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_COOKIE_AGE = 60 * 10  # 10 minutes absolute fallback, in case the browser keeps the cookie alive
+SESSION_SAVE_EVERY_REQUEST = True
+
+AUTHENTICATION_BACKENDS = [
+    'app1.backends.EmailBackend',          # email + password login (new)
+    'django.contrib.auth.backends.ModelBackend',  # keep as fallback (Django admin still uses username)
+]
+
+# ── CSRF / session hardening — check these against your deployment ──
+# If you're serving over plain HTTP (e.g. local/staging without TLS), these
+# MUST be False, or the session/csrf cookies will silently fail to persist
+# and every POST (including login) will throw "CSRF verification failed".
+# SESSION_COOKIE_SECURE = False
+# CSRF_COOKIE_SECURE = False
+
+# If you're behind a domain/proxy, make sure it's listed here (Django 4+):
+# CSRF_TRUSTED_ORIGINS = ['https://yourdomain.com']
+
+  
+
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'support3rdrock@gmail.com'
+EMAIL_HOST_PASSWORD = 'ocmagvwuvdstxigf'
+DEFAULT_FROM_EMAIL = 'support3rdrock@gmail.com'
+

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Invoice Logo · 3rd Rock Energy</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Space Grotesk',sans-serif;background:#F8FAFC;color:#0F172A;font-size:14px;}
+.page-wrap{max-width:520px;margin:60px auto;padding:0 24px;}
+.card{background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:16px;padding:28px;}
+.card h1{font-size:20px;font-weight:800;margin-bottom:18px;}
+.current-preview{margin-bottom:20px;padding:16px;background:#F8FAFC;border-radius:10px;text-align:center;}
+.current-preview img{max-width:200px;max-height:100px;}
+.fi{width:100%;padding:10px 14px;border-radius:8px;border:1px solid rgba(0,0,0,0.14);background:#F8FAFC;font-family:inherit;font-size:13px;margin-bottom:16px;}
+.btn{display:inline-block;padding:10px 20px;border-radius:10px;background:#2563EB;color:#fff;border:none;font-weight:700;font-size:13px;cursor:pointer;text-decoration:none;}
+.errmsg{color:#F43F5E;font-size:12px;margin-bottom:12px;}
+.msg{background:rgba(16,185,129,0.12);color:#0E7C46;padding:10px 14px;border-radius:8px;margin-bottom:16px;font-size:13px;font-weight:600;}
+</style>
+</head>
+<body>
+<div class="page-wrap">
+  <div class="card">
+    <h1>Invoice Logo</h1>
+    {% if messages %}
+      {% for message in messages %}<div class="msg">{{ message }}</div>{% endfor %}
+    {% endif %}
+    {% if current %}
+      <div class="current-preview">
+        <div style="font-size:11px;color:#64748B;margin-bottom:8px;font-weight:700;">CURRENT LOGO</div>
+        <img src="{{ current.logo.url }}" alt="Current bill logo">
+      </div>
+    {% endif %}
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      {{ form.logo }}
+      {% if form.logo.errors %}<div class="errmsg">{{ form.logo.errors.0 }}</div>{% endif %}
+      <button type="submit" class="btn">Upload New Logo</button>
+    </form>
+  </div>
+</div>
+</body>
+</html>

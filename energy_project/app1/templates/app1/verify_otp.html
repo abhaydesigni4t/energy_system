@@ -1,0 +1,236 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verify · 3rd Rock Energy</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne+Mono&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --font-text:'Space Grotesk',-apple-system,BlinkMacSystemFont,sans-serif;
+  --font-mono:'Syne Mono',monospace;
+  --bg:#0A0D14;--surface:#111624;--surface2:#1A2035;
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.14);
+  --text1:#F0F4FF;--text2:rgba(255,255,255,0.65);--text3:rgba(255,255,255,0.35);
+  --accent:#3B82F6;--accent2:#2563EB;--error:#F43F5E;--success:#10B981;
+}
+body{font-family:var(--font-text);background:var(--bg);color:var(--text1);min-height:100vh;display:flex;align-items:center;justify-content:center;}
+.bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(59,130,246,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,0.03) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;}
+.bg-glow{position:fixed;inset:0;background:radial-gradient(ellipse 60% 50% at 50% 0%,rgba(59,130,246,0.12),transparent);pointer-events:none;}
+.auth-card{position:relative;z-index:10;width:100%;max-width:420px;margin:24px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:40px;box-shadow:0 32px 80px rgba(0,0,0,0.6);}
+.auth-logo{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:32px;}
+.auth-logo-img{height:50px;width:auto;flex-shrink:0;}
+.logo-name{font-size:15px;font-weight:700;color:var(--text1);letter-spacing:-0.3px;}
+.logo-sub{font-size:10px;color:var(--text3);font-family:var(--font-mono);letter-spacing:1px;margin-top:1px;}
+.auth-heading{font-size:24px;font-weight:700;letter-spacing:-0.5px;margin-bottom:6px;}
+.auth-sub{font-size:13px;color:var(--text2);margin-bottom:8px;font-weight:400;}
+.auth-email{font-size:13px;color:var(--accent);font-weight:700;margin-bottom:28px;}
+.fg{margin-bottom:16px;position:relative;}
+.flb{display:block;font-size:11px;font-weight:700;color:var(--text2);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px;}
+.otp-input-wrap{position:relative;display:flex;align-items:center;}
+.otp-input{width:100%;padding:14px 48px 14px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text1);font-family:var(--font-mono);font-size:22px;font-weight:700;letter-spacing:10px;text-align:center;outline:none;transition:border-color 0.15s,box-shadow 0.15s;}
+.otp-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,130,246,0.12);}
+.otp-input::placeholder{letter-spacing:10px;color:var(--text3);}
+.otp-input.checking{border-color:var(--accent);}
+.otp-input.success{border-color:var(--success);box-shadow:0 0 0 3px rgba(16,185,129,0.15);}
+.otp-input.error{border-color:var(--error);box-shadow:0 0 0 3px rgba(244,63,94,0.15);animation:shake 0.4s ease;}
+@keyframes shake{
+  0%,100%{transform:translateX(0);}
+  20%{transform:translateX(-6px);}
+  40%{transform:translateX(6px);}
+  60%{transform:translateX(-4px);}
+  80%{transform:translateX(4px);}
+}
+
+.otp-status-icon{position:absolute;right:14px;top:50%;transform:translateY(-50%);width:24px;height:24px;display:none;align-items:center;justify-content:center;}
+.otp-status-icon.show{display:flex;animation:popIn 0.25s ease;}
+@keyframes popIn{
+  from{transform:translateY(-50%) scale(0.5);opacity:0;}
+  to{transform:translateY(-50%) scale(1);opacity:1;}
+}
+.otp-status-icon svg{width:22px;height:22px;}
+.otp-status-icon.success svg{color:var(--success);}
+.otp-status-icon.error svg{color:var(--error);}
+
+.otp-spinner{width:18px;height:18px;border:2px solid rgba(59,130,246,0.25);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;display:none;position:absolute;right:14px;top:50%;transform:translateY(-50%);}
+.otp-spinner.show{display:block;}
+@keyframes spin{to{transform:translateY(-50%) rotate(360deg);}}
+
+.otp-feedback{font-size:12px;font-weight:600;margin-top:8px;min-height:16px;display:flex;align-items:center;gap:5px;}
+.otp-feedback.success{color:var(--success);}
+.otp-feedback.error{color:var(--error);}
+
+.messages{margin-bottom:20px;}
+.msg{padding:10px 14px;border-radius:10px;font-size:12px;font-weight:600;margin-bottom:6px;}
+.msg.info{background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);color:#93C5FD;}
+.msg.error{background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.2);color:#F87171;}
+.msg.success{background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);color:#34D399;}
+.link-row{display:flex;justify-content:space-between;margin-top:20px;font-size:12px;}
+.link-row a{color:var(--accent);text-decoration:none;font-weight:600;}
+.link-row a:hover{text-decoration:underline;}
+.back-link{text-align:center;margin-top:14px;font-size:12px;}
+.back-link a{color:var(--text3);text-decoration:none;font-weight:600;}
+.back-link a:hover{color:var(--text2);text-decoration:underline;}
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="bg-glow"></div>
+
+<div class="auth-card">
+  <div class="auth-logo">
+    <img src="{% static 'images/3rd-rock-logo-transparent.png' %}" alt="3rd Rock Energy Systems" class="auth-logo-img">
+  </div>
+
+  <h1 class="auth-heading">Enter your code</h1>
+  <p class="auth-sub">We sent a 6-digit verification code to</p>
+  <p class="auth-email">{{ email }}</p>
+
+  {% if messages %}
+    <div class="messages" id="server-messages">
+      {% regroup messages by message as message_group %}
+      {% for group in message_group %}<div class="msg {{ group.list.0.tags }}">{{ group.grouper }}</div>{% endfor %}
+    </div>
+  {% endif %}
+
+  <form method="post" id="otp-form">
+    {% csrf_token %}
+    <div class="fg">
+      <label class="flb">Verification Code</label>
+      <div class="otp-input-wrap">
+        <input type="text" name="code" id="otp-input" class="otp-input" placeholder="000000" maxlength="6" inputmode="numeric" pattern="[0-9]*" required autofocus autocomplete="one-time-code">
+        <div class="otp-spinner" id="otp-spinner"></div>
+        <div class="otp-status-icon" id="otp-icon">
+          <svg id="icon-success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M20 6L9 17l-5-5"/></svg>
+          <svg id="icon-error" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </div>
+      </div>
+      <div class="otp-feedback" id="otp-feedback"></div>
+    </div>
+  </form>
+
+  <div class="link-row">
+    <form method="post" action="{% url 'resend_otp' %}" style="display:inline;" id="resend-form">
+      {% csrf_token %}
+      <button type="submit" style="background:none;border:none;padding:0;color:var(--accent);font-weight:700;font-size:12px;cursor:pointer;font-family:var(--font-text);">Resend code</button>
+    </form>
+    <a href="{% url 'use_different_email' %}">Not you? Use a different email</a>
+  </div>
+
+  <div class="back-link">
+    <a href="{% url 'landing' %}">← Back to options</a>
+  </div>
+</div>
+
+<script>
+(function () {
+  const form = document.getElementById('otp-form');
+  const input = document.getElementById('otp-input');
+  const spinner = document.getElementById('otp-spinner');
+  const icon = document.getElementById('otp-icon');
+  const iconSuccess = document.getElementById('icon-success');
+  const iconError = document.getElementById('icon-error');
+  const feedback = document.getElementById('otp-feedback');
+  const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]').value;
+
+  let verifying = false;
+
+  function resetVisualState() {
+    input.classList.remove('checking', 'success', 'error');
+    icon.classList.remove('show', 'success', 'error');
+    iconSuccess.style.display = 'none';
+    iconError.style.display = 'none';
+    spinner.classList.remove('show');
+    feedback.textContent = '';
+    feedback.className = 'otp-feedback';
+  }
+
+  function showSpinner() {
+    resetVisualState();
+    input.classList.add('checking');
+    spinner.classList.add('show');
+  }
+
+  function showSuccess() {
+    spinner.classList.remove('show');
+    input.classList.remove('checking');
+    input.classList.add('success');
+    icon.classList.add('show', 'success');
+    iconSuccess.style.display = 'block';
+    feedback.textContent = 'Verified! Redirecting…';
+    feedback.classList.add('success');
+  }
+
+  function showError(message) {
+    spinner.classList.remove('show');
+    input.classList.remove('checking');
+    input.classList.add('error');
+    icon.classList.add('show', 'error');
+    iconError.style.display = 'block';
+    feedback.textContent = message || 'Incorrect code. Please try again.';
+    feedback.classList.add('error');
+  }
+
+  async function verifyCode(code) {
+    if (verifying) return;
+    verifying = true;
+    showSpinner();
+    input.disabled = true;
+
+    try {
+      const formData = new FormData();
+      formData.append('csrfmiddlewaretoken', csrfToken);
+      formData.append('code', code);
+
+      const response = await fetch(window.location.href, {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin',
+      });
+
+      if (response.redirected) {
+        // Server issued a redirect -> OTP was correct, login succeeded.
+        showSuccess();
+        setTimeout(() => { window.location.href = response.url; }, 700);
+        return;
+      }
+
+      // No redirect -> stayed on this page -> incorrect or expired code.
+      showError('Incorrect code. Please try again.');
+      input.disabled = false;
+      input.value = '';
+      input.focus();
+    } catch (err) {
+      showError('Something went wrong. Please try again.');
+      input.disabled = false;
+      input.focus();
+    } finally {
+      verifying = false;
+    }
+  }
+
+  input.addEventListener('input', function () {
+    // Digits only.
+    this.value = this.value.replace(/[^0-9]/g, '');
+    resetVisualState();
+
+    if (this.value.length === 6) {
+      verifyCode(this.value);
+    }
+  });
+
+  // Prevent the default form submit (Enter key etc.) from double-firing —
+  // auto-verify already handles it once 6 digits are entered.
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (input.value.length === 6) {
+      verifyCode(input.value);
+    }
+  });
+})();
+</script>
+</body>
+</html>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Delete User · 3rd Rock Energy</title>
+<title>Delete Person · 3rd Rock Energy</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne+Mono&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -33,14 +33,14 @@ body{font-family:var(--font-text);background:var(--bg);color:var(--text1);min-he
 </head>
 <body>
 <header class="topbar">
-  <a href="{% url 'user_list' %}" class="back-btn">← Users</a>
-  <span class="topbar-title">Delete User</span>
+  <a href="{% url 'user_list' %}" class="back-btn">← Persons</a>
+  <span class="topbar-title">Delete Person</span>
 </header>
 <div class="content">
   <div class="confirm-card">
     <div class="warn-icon">⚠️</div>
     <h2 class="heading">Delete this account?</h2>
-    <p class="sub">This action is permanent and cannot be undone. All data associated with this user will be removed.</p>
+    <p class="sub">This action is permanent and cannot be undone. All data associated with this Person will be removed.</p>
     <div class="username-chip">@{{ target_user.username }}</div>
     <div class="actions">
       <a href="{% url 'user_list' %}" class="cancel-btn">Cancel</a>

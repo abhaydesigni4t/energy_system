@@ -1,0 +1,169 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}3rd Rock Energy{% endblock %}</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --sidebar-w:220px;
+  --sidebar-bg:#3B1E6D;
+  --sidebar-bg2:#4C2A87;
+  --sidebar-text:rgba(255,255,255,0.82);
+  --sidebar-active-bg:rgba(255,255,255,0.14);
+  --bg:#F8FAFC;--bg2:#fff;--border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.14);
+  --text1:#0F172A;--text2:#334155;--text3:#64748B;
+  --accent:#3B1E6D;--accent2:#4C2A87;
+  --green:#10B981;--red:#F43F5E;--amber:#F59E0B;
+  --r8:8px;--r12:12px;--r16:16px;--r20:20px;
+  --font:'Calibri','Segoe UI','Arial',sans-serif;
+  --mono:'JetBrains Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:var(--font);background:var(--bg);color:var(--text1);font-size:14px;-webkit-font-smoothing:antialiased;}
+a{color:inherit;}
+
+.app-shell{display:flex;min-height:100vh;}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:var(--sidebar-w);flex-shrink:0;
+  background:linear-gradient(180deg,var(--sidebar-bg),var(--sidebar-bg2));
+  display:flex;flex-direction:column;
+  position:sticky;top:0;height:100vh;overflow-y:auto;
+  z-index:200;
+}
+.sidebar-brand{padding:20px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid rgba(255,255,255,0.1);}
+.sidebar-brand-logo{max-width:100%;height:auto;max-height:60px;object-fit:contain;}
+
+.sidebar-nav{flex:1;padding:14px 12px;display:flex;flex-direction:column;gap:3px;}
+.sidebar-link{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:8px;color:var(--sidebar-text);text-decoration:none;font-size:15px;font-weight:600;transition:all 0.15s;}
+.sidebar-link:hover{background:rgba(255,255,255,0.08);color:#fff;}
+.sidebar-link.active{background:var(--sidebar-active-bg);color:#fff;font-weight:700;box-shadow:inset 3px 0 0 #fff;}
+.sidebar-link .si{font-size:14px;width:16px;text-align:center;flex-shrink:0;}
+.sidebar-section-label{font-size:12px;font-weight:800;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.8px;padding:16px 14px 6px;}
+
+.sidebar-footer{padding:14px 12px;border-top:1px solid rgba(255,255,255,0.1);display:flex;flex-direction:column;gap:3px;}
+.sidebar-back,.sidebar-logout{display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:8px;text-decoration:none;font-size:15px;font-weight:700;transition:all 0.15s;background:none;border:none;cursor:pointer;width:100%;text-align:left;font-family:var(--font);}
+.sidebar-back{color:rgba(255,255,255,0.75);}
+.sidebar-back:hover{background:rgba(255,255,255,0.08);color:#fff;}
+.sidebar-logout{color:#FCA5A5;}
+.sidebar-logout:hover{background:rgba(239,68,68,0.15);color:#fff;}
+
+/* ── MAIN COLUMN ── */
+.main-col{flex:1;min-width:0;display:flex;flex-direction:column;}
+.topbar{background:#fff;border-bottom:1px solid var(--border);padding:0 28px;min-height:52px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:90;}
+.breadcrumb{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--text3);font-weight:600;flex-wrap:wrap;}
+.breadcrumb a{color:var(--text3);text-decoration:none;}
+.breadcrumb a:hover{color:var(--accent);text-decoration:underline;}
+.breadcrumb .sep{opacity:0.4;}
+.breadcrumb .current{color:var(--text1);font-weight:700;}
+
+.page-body{flex:1;}
+
+.sidebar-toggle{display:none;background:none;border:none;font-size:20px;cursor:pointer;color:var(--text2);}
+@media(max-width:900px){
+  .sidebar{position:fixed;left:-280px;transition:left 0.2s;}
+  .sidebar.open{left:0;}
+  .sidebar-toggle{display:inline-flex;}
+}
+</style>
+{% block extra_css %}{% endblock %}
+</head>
+<body>
+
+{% if hide_chrome %}
+  {% block content_only %}{% endblock %}
+{% else %}
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+    <img src="{% static 'images/3rd-rock-logo-transparent.png' %}" alt="3rd Rock Energy" class="sidebar-brand-logo">
+    </div>
+
+    <nav class="sidebar-nav">
+       
+      <a href="{% url 'company_list' %}" class="sidebar-link {% if request.resolver_match.url_name == 'company_list' %}active{% endif %}">
+        <span class="si">🏢</span> Microgrid Management
+      </a>
+   
+
+      {% if user.is_admin_or_superadmin %}
+      <a href="{% url 'user_list' %}" class="sidebar-link {% if request.resolver_match.url_name == 'user_list' %}active{% endif %}">
+        <span class="si">👥</span> Personnel Management
+      </a>
+      {% endif %}
+
+      {% if user.role == 'superadmin' %}
+      <a href="{% url 'customer_list' %}" class="sidebar-link {% if request.resolver_match.url_name == 'customer_list' %}active{% endif %}">
+        <span class="si">🏛️</span> Customer Management
+      </a>
+      {% endif %}
+    </nav>
+
+    <div class="sidebar-footer">
+      <a href="javascript:history.back()" class="sidebar-back">
+        <span class="si">←</span> Back
+      </a>
+      <a href="{% url 'logout' %}" class="sidebar-logout">
+        <span class="si">⎋</span> Logout
+      </a>
+    </div>
+  </aside>
+
+  <div class="main-col">
+    <header class="topbar">
+      <button class="sidebar-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+      <div class="breadcrumb">
+        {% block breadcrumb %}
+          <a href="{% url 'home' %}">Home</a>
+        {% endblock %}
+      </div>
+    </header>
+
+    <div class="page-body">
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if request.user.is_authenticated %}
+<script>
+(function () {
+  var logoutUrl = "{% url 'beacon_logout' %}";
+  var internalNavigation = false;
+
+  document.addEventListener('click', function (e) {
+    var link = e.target.closest('a[href]');
+    if (link && link.href && link.href.indexOf(window.location.origin) === 0) {
+      internalNavigation = true;
+    }
+  }, true);
+
+  document.addEventListener('submit', function () {
+    internalNavigation = true;
+  }, true);
+
+  window.addEventListener('pagehide', function (e) {
+    // e.persisted is true when the browser is caching this page for
+    // back/forward restoration (bfcache) — exactly the Back-button case.
+    // Only log out on a genuine close/reload that breaks bfcache
+    // eligibility, and only if it wasn't an in-app link/form action.
+    if (!internalNavigation && !e.persisted) {
+      navigator.sendBeacon(logoutUrl, new Blob([''], { type: 'text/plain' }));
+    }
+  });
+})();
+</script>
+{% endif %}
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>
+</body>
+</html>
+</body>
+</html>

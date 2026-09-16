@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Welcome · 3rd Rock Energy</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Space Grotesk',-apple-system,sans-serif;background:#0A0D14;color:#F0F4FF;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+.card{max-width:480px;width:100%;background:#111624;border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:40px;box-shadow:0 32px 80px rgba(0,0,0,0.6);}
+.check{width:56px;height:56px;border-radius:50%;background:rgba(16,185,129,0.12);color:#10B981;font-size:28px;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;}
+h1{font-size:24px;font-weight:700;text-align:center;margin-bottom:8px;letter-spacing:-0.4px;}
+.sub{text-align:center;font-size:14px;color:rgba(255,255,255,0.55);margin-bottom:28px;}
+.notice{display:flex;gap:12px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.18);border-radius:14px;padding:16px 18px;margin-bottom:20px;}
+.notice-icon{font-size:20px;flex-shrink:0;}
+.notice-title{font-size:14px;font-weight:700;margin-bottom:3px;}
+.notice-text{font-size:13px;color:rgba(255,255,255,0.65);line-height:1.5;}
+.construction{display:flex;gap:12px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:14px;padding:16px 18px;}
+.construction-icon{font-size:20px;flex-shrink:0;}
+.construction-title{font-size:14px;font-weight:700;margin-bottom:3px;color:#FCD34D;}
+.construction-text{font-size:13px;color:rgba(255,255,255,0.6);line-height:1.5;}
+.continue-btn{
+  display:block;text-align:center;margin-top:24px;padding:12px;
+  background:linear-gradient(135deg,#3B82F6,#2563EB);
+  border-radius:10px;color:#fff;font-size:14px;font-weight:700;
+  text-decoration:none;transition:opacity 0.15s,transform 0.1s;
+}
+.continue-btn:hover{opacity:0.92;transform:translateY(-1px);}
+
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="check">✓</div>
+  <h1>Welcome to {{ label }}!</h1>
+  <p class="sub">Your account is set up — feel free to start designing.</p>
+
+  <div class="notice">
+    <span class="notice-icon">💡</span>
+    <div>
+      <div class="notice-title">Good to know</div>
+      <div class="notice-text">Designing and modeling your system is free. Saving a finished proposal is a chargeable service from 3rd Rock Energy.</div>
+    </div>
+  </div>
+
+
+    <a href="{% url 'select_option' 'design' %}" class="back-link continue-btn">Continue →</a>
+</div>
+
+
+{% block extra_js %}
+
+<script>
+(function () {
+  var logoutUrl = "{% url 'beacon_logout' %}";
+  var internalNavigation = false;
+
+  document.addEventListener('click', function (e) {
+    var link = e.target.closest('a[href]');
+    if (link && link.href && link.href.indexOf(window.location.origin) === 0) {
+      internalNavigation = true;
+    }
+  }, true);
+
+  window.addEventListener('pagehide', function (e) {
+    if (!internalNavigation && !e.persisted) {
+      navigator.sendBeacon(logoutUrl, new Blob([''], { type: 'text/plain' }));
+    }
+  });
+})();
+</script>
+
+{% endblock %}
+</body>
+</html>
+

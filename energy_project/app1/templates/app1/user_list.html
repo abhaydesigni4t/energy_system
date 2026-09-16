@@ -1,186 +1,32 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Users · 3rd Rock Energy</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne+Mono&display=swap" rel="stylesheet">
+{% extends "app1/base.html" %}
+{% load static %}
+
+{% block title %}Users · 3rd Rock Energy{% endblock %}
+
+{% block extra_css %}
 <style>
-*{margin:0;padding:0;box-sizing:border-box;}
-:root{
-  --font-text:'Calibri','Segoe UI','Arial',sans-serif;
-  --font-mono:'Calibri','Segoe UI','Arial',sans-serif;
-  --bg:#F8FAFC;--bg2:#FFFFFF;--surface:#F1F5F9;--surface2:#E2E8F0;
-  --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.14);
-  --text1:#0F172A;--text2:#334155;--text3:#64748B;
-  --accent:#3B82F6;--accent2:#2563EB;--success:#10B981;--error:#F43F5E;
-  --warn:#F59E0B;
-}
-body{font-family:var(--font-text);background:var(--bg);color:var(--text1);font-size:13px;-webkit-font-smoothing:antialiased;}
-
-.topbar{
-    background:#4A5568;
-    padding:0 20px;
-    min-height:70px;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:16px;
-    flex-wrap:wrap;
-    position:sticky;
-    top:0;
-    z-index:100;
-    box-shadow:0 2px 10px rgba(0,0,0,0.08);
-}
-
-.topbar-left{
-    display:flex;
-    align-items:center;
-    gap:14px;
-    flex-wrap:wrap;
-}
-
-.topbar-brand{
-    font-size:22px;
-    font-weight:800;
-    color:#fff;
-    letter-spacing:-0.3px;
-    white-space:nowrap;
-}
-
-.topbar-actions{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    flex-wrap:wrap;
-}
-
-.nav-btn{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap:7px;
-    padding:10px 18px;
-    border-radius:12px;
-    border:none;
-    background:rgba(255,255,255,0.12);
-    color:#fff;
-    font-size:13px;
-    font-weight:700;
-    text-decoration:none;
-    transition:all 0.2s ease;
-    backdrop-filter:blur(6px);
-    white-space:nowrap;
-}
-
-.nav-btn:hover{
-    background:rgba(255,255,255,0.22);
-    transform:translateY(-1px);
-}
-
-.nav-btn.accent{
-    background:#2563EB;
-    color:#fff;
-}
-
-.nav-btn.accent:hover{
-    background:#1D4ED8;
-}
-
-.nav-btn.green{
-    background:#10B981;
-    color:#fff;
-}
-
-.nav-btn.green:hover{
-    background:#059669;
-}
-
-.nav-btn.orange{
-    background:#F59E0B;
-    color:#fff;
-}
-
-.nav-btn.orange:hover{
-    background:#D97706;
-}
-
-.nav-btn.danger{
-    background:#EF4444;
-    color:#fff;
-}
-
-.nav-btn.danger:hover{
-    background:#DC2626;
-}
-
-.tbtn{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap:5px;
-    padding:6px 14px;
-    border-radius:30px;
-    font-size:14px;
-    font-weight:700;
-    border:1px solid var(--border2);
-    background:transparent;
-    color:#000;
-    cursor:pointer;
-    transition:all 0.15s;
-    white-space:nowrap;
-    text-decoration:none;
-}
-
-.tbtn:hover{
-    background:var(--surface);
-}
-
-.tbtn.primary{
-    background:linear-gradient(135deg,#3B82F6,#2563EB);
-    border-color:transparent;
-    color:#fff;
-}
-
-.home-btn{
-    width:40px;
-    height:40px;
-    padding:0;
-    color:#fff;
-    border-color:transparent;
-    font-size:18px;
-    font-weight:800;
-}
-
-.home-btn:hover{
-  background:#334155;
-
-}
-.add-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:10px;color:#fff;font-family:var(--font-text);font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;transition:opacity 0.15s;}
+.add-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:10px;color:#fff;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;transition:opacity 0.15s;}
 .add-btn:hover{opacity:0.88;}
-
-/* Content */
-.content{padding:28px;max-width:1100px;margin:0 auto;}
+.content-wrap{padding:28px;max-width:1100px;margin:0 auto;}
 .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;}
 .page-heading{font-size:22px;font-weight:800;letter-spacing:-0.4px;}
 .page-sub{font-size:12px;color:var(--text3);margin-top:3px;font-weight:500;}
 
-/* Stats */
-.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
+.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px;}
+
 .stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px 18px;}
 .stat-label{font-size:10px;font-weight:800;letter-spacing:0.8px;text-transform:uppercase;color:var(--text3);margin-bottom:8px;}
-.stat-val{font-family:var(--font-mono);font-size:26px;font-weight:700;color:var(--text1);}
-
-/* Table */
+.stat-val{font-family:var(--mono);font-size:26px;font-weight:700;color:var(--text1);}
+@media(max-width:900px){.stats-row{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:500px){.stats-row{grid-template-columns:1fr 1fr;} .search-input{width:100%;}}
 .tbl-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;overflow:hidden;}
 .tbl-toolbar{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);}
 .tbl-title{font-size:12px;font-weight:800;letter-spacing:0.6px;text-transform:uppercase;color:var(--text2);}
-.search-input{padding:7px 14px;background:var(--surface);border:1px solid var(--border2);border-radius:8px;font-family:var(--font-text);font-size:12px;font-weight:600;color:var(--text1);outline:none;width:220px;transition:border-color 0.15s;}
+.search-input{padding:7px 14px;background:var(--bg);border:1px solid var(--border2);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--text1);outline:none;width:220px;transition:border-color 0.15s;}
 .search-input:focus{border-color:var(--accent);}
-.search-input::placeholder{color:var(--text3);}
 .tbl-wrap{overflow-x:auto;}
 table{width:100%;border-collapse:collapse;}
-thead th{padding:10px 16px;text-align:left;font-size:10px;font-weight:800;letter-spacing:0.6px;text-transform:uppercase;color:var(--text3);background:var(--surface);border-bottom:1px solid var(--border);}
+thead th{padding:10px 16px;text-align:left;font-size:12px;font-weight:800;letter-spacing:0.6px;text-transform:uppercase;color:var(--text3);background:var(--bg);border-bottom:1px solid var(--border);}
 tbody tr{border-bottom:1px solid var(--border);transition:background 0.12s;}
 tbody tr:last-child{border-bottom:none;}
 tbody tr:hover{background:rgba(59,130,246,0.03);}
@@ -190,33 +36,50 @@ td{padding:12px 16px;font-size:12px;font-weight:600;color:var(--text1);}
 .user-name{font-weight:700;font-size:13px;}
 .user-email{font-size:11px;color:var(--text3);margin-top:1px;}
 
-/* Badges */
 .badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:800;padding:3px 9px;border-radius:6px;letter-spacing:0.3px;}
 .badge.superadmin{background:rgba(139,92,246,0.12);color:#7C3AED;}
 .badge.admin{background:rgba(59,130,246,0.12);color:#2563EB;}
+.badge.operator{background:rgba(168,85,247,0.12);color:#7E22CE;}
 .badge.user{background:rgba(100,116,139,0.12);color:#475569;}
 
-/* Unit pills */
-.unit-pills{display:flex;flex-wrap:wrap;gap:4px;}
-.unit-pill{font-family:var(--font-mono);font-size:10px;font-weight:700;padding:2px 7px;background:var(--surface);border:1px solid var(--border2);border-radius:4px;color:var(--text2);}
 .unit-none{font-size:11px;color:var(--text3);font-style:italic;}
 
-/* Actions */
+/* --- Microgrid trigger (replaces inline pills) --- */
+.mg-trigger{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:7px;border:1px solid var(--border2);background:var(--bg);color:var(--text2);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer;transition:all 0.12s;}
+.mg-trigger:hover{background:rgba(59,130,246,0.08);border-color:rgba(59,130,246,0.3);color:var(--accent);}
+.mg-trigger .mg-count{font-family:var(--mono);font-size:11px;font-weight:800;color:var(--accent);background:rgba(59,130,246,0.1);padding:1px 6px;border-radius:5px;}
+.mg-trigger svg{width:12px;height:12px;flex-shrink:0;transition:transform 0.15s;}
+.mg-trigger:hover svg{transform:translateX(2px);}
+
+/* --- Microgrid modal --- */
+.mg-modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,0.5);display:none;align-items:center;justify-content:center;z-index:1000;padding:20px;}
+.mg-modal-overlay.active{display:flex;}
+.mg-modal-box{background:var(--bg2);border:1px solid var(--border);border-radius:16px;width:100%;max-width:420px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,0.25);}
+.mg-modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.mg-modal-title{font-size:13px;font-weight:800;color:var(--text1);}
+.mg-modal-title span{color:var(--accent);}
+.mg-modal-sub{font-size:11px;color:var(--text3);font-weight:600;margin-top:2px;}
+.mg-modal-close{background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;line-height:1;padding:4px;border-radius:6px;}
+.mg-modal-close:hover{background:var(--bg);color:var(--text1);}
+.mg-modal-body{overflow-y:auto;padding:14px 20px;display:flex;flex-direction:column;gap:6px;}
+.mg-modal-body::-webkit-scrollbar{width:8px;}
+.mg-modal-body::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px;}
+.mg-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:var(--bg);border:1px solid var(--border);font-size:12px;font-weight:600;color:var(--text1);}
+.mg-item-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;}
+
 .actions{display:flex;gap:6px;align-items:center;}
 .act-btn{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid;text-decoration:none;transition:all 0.12s;white-space:nowrap;}
 .act-btn.view{border-color:var(--border2);color:var(--text2);background:transparent;}
-.act-btn.view:hover{background:var(--surface);color:var(--text1);}
+.act-btn.view:hover{background:var(--bg);color:var(--text1);}
 .act-btn.assign{border-color:rgba(59,130,246,0.3);color:var(--accent);background:rgba(59,130,246,0.06);}
 .act-btn.assign:hover{background:rgba(59,130,246,0.12);}
-.act-btn.del{border-color:rgba(244,63,94,0.25);color:var(--error);background:rgba(244,63,94,0.05);}
+.act-btn.del{border-color:rgba(244,63,94,0.25);color:var(--red);background:rgba(244,63,94,0.05);}
 .act-btn.del:hover{background:rgba(244,63,94,0.1);}
 
-/* Empty state */
 .empty{text-align:center;padding:48px;color:var(--text3);}
 .empty-icon{font-size:32px;margin-bottom:12px;}
 .empty-msg{font-size:14px;font-weight:600;}
 
-/* Messages */
 .messages{margin-bottom:20px;}
 .msg{padding:10px 16px;border-radius:10px;font-size:12px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:8px;}
 .msg.success{background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);color:#065F46;}
@@ -226,22 +89,16 @@ td{padding:12px 16px;font-size:12px;font-weight:600;color:var(--text1);}
 @media(max-width:800px){.stats-row{grid-template-columns:repeat(2,1fr);}}
 @media(max-width:500px){.stats-row{grid-template-columns:1fr 1fr;} .search-input{width:100%;}}
 </style>
-</head>
-<body>
+{% endblock %}
 
-<header class="topbar">
-    <div class="topbar-brand">3rd Rock Energy System</div>
-  <nav class="topbar-nav">
-    <a href="{% url 'home' %}" class="tbtn home-btn"> 🏠</a>
-     {% if user.is_admin_or_superadmin %}
-    <a href="{% url 'company_list' %}" class="nav-btn">← Device Management</a>
-    <a href="{% url 'add_user' %}" class="add-btn">+ Add User</a>
-    {% endif %}
-    <a href="{% url 'logout' %}" class="nav-btn danger">Logout</a>
-</nav>
-</header>
+{% block breadcrumb %}
+<a href="{% url 'home' %}">Home</a>
+<span class="sep">/</span>
+<span class="current">Personnel Management</span>
+{% endblock %}
 
-<div class="content">
+{% block content %}
+<div class="content-wrap">
 
   {% if messages %}
     <div class="messages">
@@ -253,45 +110,52 @@ td{padding:12px 16px;font-size:12px;font-weight:600;color:var(--text1);}
 
   <div class="page-header">
     <div>
-      <div class="page-heading">All Users</div>
-      <div class="page-sub">Manage access, roles, and unit assignments</div>
+      <div class="page-heading">All Personnel</div>
+      <div class="page-sub">Manage access, roles, and microgrid assignments</div>
     </div>
+    {% if user.is_admin_or_superadmin %}
+      <a href="{% url 'add_user' %}" class="add-btn">+ Add Person</a>
+    {% endif %}
   </div>
 
-  <!-- Stats row -->
-  <div class="stats-row">
-    <div class="stat-card">
-      <div class="stat-label">Total Users</div>
-      <div class="stat-val">{{ users.count }}</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Super Admins</div>
-      <div class="stat-val">{{ users|length }}</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Admins</div>
-      <div class="stat-val">{% with count=0 %}{% for u in users %}{% if u.role == 'admin' %}{% with count=count|add:1 %}{% endwith %}{% endif %}{% endfor %}{{ users|dictsort:"role"|length }}{% endwith %}</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Regular Users</div>
-      <div class="stat-val">{{ users|length }}</div>
-    </div>
+ <div class="stats-row">
+  <div class="stat-card">
+    <div class="stat-label">Total Personnel</div>
+    <div class="stat-val">{{ total_count }}</div>
   </div>
+  {% if show_superadmin_stat %}
+  <div class="stat-card">
+    <div class="stat-label">Super Admins</div>
+    <div class="stat-val">{{ role_counts.superadmin }}</div>
+  </div>
+  {% endif %}
+  <div class="stat-card">
+    <div class="stat-label">Admins</div>
+    <div class="stat-val">{{ role_counts.admin }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Operators</div>
+    <div class="stat-val">{{ role_counts.operator }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Users</div>
+    <div class="stat-val">{{ role_counts.user }}</div>
+  </div>
+</div>
 
-  <!-- Table -->
   <div class="tbl-card">
     <div class="tbl-toolbar">
-      <div class="tbl-title">User Directory</div>
-      <input type="text" class="search-input" placeholder="🔍 Search users…" id="search-input" oninput="filterTable(this.value)">
+      <div class="tbl-title">Person Directory</div>
+      <input type="text" class="search-input" placeholder="🔍 Search Persons…" id="search-input" oninput="filterTable(this.value)">
     </div>
     <div class="tbl-wrap">
       <table id="users-table">
         <thead>
           <tr>
-            <th>User</th>
+            <th>Person</th>
             <th>Role</th>
-            <th>Unit IDs</th>
-            <th>Joined</th>
+            <th>Microgrid</th>
+            <th>Phone No</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -313,25 +177,36 @@ td{padding:12px 16px;font-size:12px;font-weight:600;color:var(--text1);}
               <span class="badge {{ u.role }}">
                 {% if u.role == 'superadmin' %}👑 Super Admin
                 {% elif u.role == 'admin' %}🔧 Admin
+                {% elif u.role == 'operator' %}🛠 Operator
                 {% else %}👤 User{% endif %}
               </span>
             </td>
             <td>
-              {% if u.unit_ids %}
-                <div class="unit-pills">
-                  {% for uid in u.unit_ids %}
-                    <span class="unit-pill">{{ uid }}</span>
-                  {% endfor %}
-                </div>
-              {% else %}
-                <span class="unit-none">None assigned</span>
-              {% endif %}
+              {% with company_count=u.companies.all|length %}
+                {% if company_count > 0 %}
+                  <button
+                    type="button"
+                    class="mg-trigger"
+                    title="Check Microgrids"
+                    data-username="{{ u.get_full_name|default:u.username }}"
+                    data-companies="{% for c in u.companies.all %}{{ c.name }}{% if not forloop.last %}::{% endif %}{% endfor %}"
+                  >
+                    <span class="mg-count">{{ company_count }}</span>
+                    Check Microgrids
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                  </button>
+                {% else %}
+                  <span class="unit-none">None assigned</span>
+                {% endif %}
+              {% endwith %}
             </td>
-            <td>{{ u.date_joined|date:"M d, Y" }}</td>
+            <td>
+              {{ u.phone|default:"—" }}
+            </td>
             <td>
               <div class="actions">
                 <a href="{% url 'user_detail' u.pk %}" class="act-btn view">View</a>
-                <a href="{% url 'assign_units' u.pk %}" class="act-btn assign">⚡ Units</a>
+                <a href="{% url 'edit_user' u.pk %}" class="act-btn assign">✏ Edit</a>
                 {% if u != request.user %}
                   <a href="{% url 'delete_user' u.pk %}" class="act-btn del">Delete</a>
                 {% endif %}
@@ -347,6 +222,23 @@ td{padding:12px 16px;font-size:12px;font-weight:600;color:var(--text1);}
   </div>
 </div>
 
+<!-- Microgrid list modal -->
+<div class="mg-modal-overlay" id="mgModalOverlay">
+  <div class="mg-modal-box">
+    <div class="mg-modal-header">
+      <div>
+        <div class="mg-modal-title">Microgrids — <span id="mgModalUser"></span></div>
+        <div class="mg-modal-sub" id="mgModalSub"></div>
+      </div>
+      <button type="button" class="mg-modal-close" id="mgModalClose">✕</button>
+    </div>
+    <div class="mg-modal-body" id="mgModalBody"></div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
 <script>
 function filterTable(q) {
   q = q.toLowerCase().trim();
@@ -354,6 +246,46 @@ function filterTable(q) {
     row.style.display = !q || row.dataset.search.includes(q) ? '' : 'none';
   });
 }
+
+(function () {
+  const overlay = document.getElementById('mgModalOverlay');
+  const userLabel = document.getElementById('mgModalUser');
+  const subLabel = document.getElementById('mgModalSub');
+  const body = document.getElementById('mgModalBody');
+  const closeBtn = document.getElementById('mgModalClose');
+
+  function openModal(username, companies) {
+    userLabel.textContent = username;
+    subLabel.textContent = companies.length + (companies.length === 1 ? ' microgrid assigned' : ' microgrids assigned');
+    body.innerHTML = '';
+    companies.forEach(name => {
+      const item = document.createElement('div');
+      item.className = 'mg-item';
+      const dot = document.createElement('span');
+      dot.className = 'mg-item-dot';
+      const text = document.createElement('span');
+      text.textContent = name; // textContent keeps this XSS-safe
+      item.appendChild(dot);
+      item.appendChild(text);
+      body.appendChild(item);
+    });
+    overlay.classList.add('active');
+  }
+
+  function closeModal() {
+    overlay.classList.remove('active');
+  }
+
+  document.querySelectorAll('.mg-trigger').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const companies = (btn.dataset.companies || '').split('::').filter(Boolean);
+      openModal(btn.dataset.username, companies);
+    });
+  });
+
+  closeBtn.addEventListener('click', closeModal);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+})();
 </script>
-</body>
-</html>
+{% endblock %}

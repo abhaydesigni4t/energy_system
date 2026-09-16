@@ -1,0 +1,131 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coming Soon · 3rd Rock Energy</title>
+<meta http-equiv="refresh" content="7;url={% url 'landing' %}">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#0B0F14; --card:#121821; --border:#252C36;
+  --text:#F5F7FA; --text-secondary:#C7CFDA; --text-tertiary:#A3ADBA;
+  --yellow:#F5B700; --blue:#3B82F6;
+  --display:'Sora',-apple-system,sans-serif; --body:'Inter',-apple-system,sans-serif;
+}
+body{
+  font-family:var(--body); background:var(--bg); color:var(--text);
+  min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center; padding:24px; overflow:hidden;
+}
+.bg-glow{position:fixed;inset:0;background:radial-gradient(ellipse 60% 50% at 50% 30%,rgba(245,183,0,0.10),transparent);pointer-events:none;}
+.wall-wrap{position:relative;z-index:1;width:260px;height:200px;margin-bottom:12px;}
+.brick{fill:#2A3340;stroke:#3A4657;stroke-width:2;}
+.brick.falling{animation:fall 2.2s ease-in infinite;}
+.dust{fill:var(--text-tertiary);opacity:0;animation:puff 2.4s ease-out infinite;}
+@keyframes fall{
+  0%{transform:translateY(0) rotate(0deg);opacity:1;}
+  60%{opacity:1;}
+  85%{transform:translateY(160px) rotate(35deg);opacity:0;}
+  85.01%{transform:translateY(0) rotate(0deg);opacity:0;}
+  95%{opacity:0;}
+  100%{opacity:1;}
+}
+@keyframes puff{
+  0%{opacity:0;transform:scale(0.4) translateY(0);}
+  40%{opacity:0.6;}
+  85%{opacity:0;transform:scale(1.6) translateY(30px);}
+  100%{opacity:0;transform:scale(0.4) translateY(0);}
+}
+.worker{animation:hammer 0.9s ease-in-out infinite;transform-origin:70% 85%;}
+@keyframes hammer{
+  0%,100%{transform:rotate(0deg);}
+  50%{transform:rotate(-22deg);}
+}
+h1{font-family:var(--display);font-size:32px;font-weight:800;letter-spacing:-0.5px;margin-bottom:10px;position:relative;z-index:1;}
+p{color:var(--text-secondary);font-size:15px;max-width:420px;margin-bottom:6px;position:relative;z-index:1;}
+.feature-name{color:var(--yellow);font-weight:700;}
+.redirect-note{margin-top:22px;font-size:12.5px;color:var(--text-tertiary);position:relative;z-index:1;}
+.bar-track{width:180px;height:4px;background:var(--border);border-radius:4px;margin:16px auto 0;overflow:hidden;position:relative;z-index:1;}
+.bar-fill{height:100%;background:linear-gradient(90deg,var(--yellow),#FCD34D);border-radius:4px;animation:fillbar 7s linear forwards;}
+@keyframes fillbar{from{width:0%;}to{width:100%;}}
+</style>
+</head>
+<body>
+<div class="bg-glow"></div>
+
+<div class="wall-wrap">
+  <svg viewBox="0 0 260 200" xmlns="http://www.w3.org/2000/svg">
+    <!-- Standing wall (left side, intact) -->
+    <g>
+      <rect class="brick" x="10" y="70" width="46" height="24"/>
+      <rect class="brick" x="56" y="70" width="46" height="24"/>
+      <rect class="brick" x="10" y="94" width="46" height="24"/>
+      <rect class="brick" x="56" y="94" width="46" height="24"/>
+      <rect class="brick" x="10" y="118" width="46" height="24"/>
+      <rect class="brick" x="56" y="118" width="46" height="24"/>
+      <rect class="brick" x="10" y="142" width="46" height="24"/>
+      <rect class="brick" x="56" y="142" width="46" height="24"/>
+    </g>
+    <!-- Falling / broken bricks (right side, animated) -->
+    <g>
+      <rect class="brick falling" x="160" y="60" width="42" height="22" style="animation-delay:0.1s"/>
+      <rect class="brick falling" x="204" y="60" width="40" height="22" style="animation-delay:0.5s"/>
+      <rect class="brick falling" x="160" y="84" width="42" height="22" style="animation-delay:0.9s"/>
+      <rect class="brick falling" x="204" y="84" width="40" height="22" style="animation-delay:0.3s"/>
+      <rect class="brick" x="160" y="108" width="42" height="22"/>
+      <rect class="brick falling" x="204" y="108" width="40" height="22" style="animation-delay:0.7s"/>
+      <rect class="brick" x="160" y="132" width="42" height="22"/>
+      <rect class="brick" x="204" y="132" width="40" height="22"/>
+    </g>
+    <!-- Dust puffs -->
+    <circle class="dust" cx="180" cy="150" r="10" style="animation-delay:1.2s"/>
+    <circle class="dust" cx="220" cy="155" r="8" style="animation-delay:1.6s"/>
+    <circle class="dust" cx="200" cy="160" r="12" style="animation-delay:0.9s"/>
+
+    <!-- Little construction worker with a hammer -->
+    <g class="worker" transform="translate(115,150)">
+      <circle cx="8" cy="0" r="9" fill="#F5B700"/>
+      <rect x="2" y="8" width="12" height="22" rx="4" fill="#3B82F6"/>
+      <rect x="-2" y="10" width="8" height="20" rx="3" fill="#3B82F6" transform="rotate(-15 -2 10)"/>
+      <rect x="14" y="6" width="20" height="6" rx="3" fill="#8A8F98"/>
+      <rect x="30" y="0" width="10" height="14" rx="2" fill="#5C6270"/>
+    </g>
+  </svg>
+</div>
+
+<h1>🚧 Under Construction 🚧</h1>
+<p><span class="feature-name">{{ label }}</span> isn't quite ready yet — our team is still bolting the pieces together.</p>
+<p>Hang tight, we'll be back before you know it.</p>
+
+<div class="bar-track"><div class="bar-fill"></div></div>
+<div class="redirect-note">Taking you back to the options in a moment…</div>
+
+{% block extra_js %}
+
+<script>
+(function () {
+  var logoutUrl = "{% url 'beacon_logout' %}";
+  var internalNavigation = false;
+
+  document.addEventListener('click', function (e) {
+    var link = e.target.closest('a[href]');
+    if (link && link.href && link.href.indexOf(window.location.origin) === 0) {
+      internalNavigation = true;
+    }
+  }, true);
+
+  window.addEventListener('pagehide', function (e) {
+    if (!internalNavigation && !e.persisted) {
+      navigator.sendBeacon(logoutUrl, new Blob([''], { type: 'text/plain' }));
+    }
+  });
+})();
+</script>
+
+{% endblock %}
+
+</body>
+</html>

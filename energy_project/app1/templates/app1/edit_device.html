@@ -1,22 +1,10 @@
-<!-- ═══════════════ edit_device.html ═══════════════ -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Edit Device · 3rd Rock Energy</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+{% extends "app1/base.html" %}
+{% load static %}
+
+{% block title %}Edit DER · 3rd Rock Energy{% endblock %}
+
+{% block extra_css %}
 <style>
-*{margin:0;padding:0;box-sizing:border-box;}
-:root{--bg:#F8FAFC;--bg2:#fff;--border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.14);--text1:#0F172A;--text2:#334155;--text3:#64748B;--accent:#2563EB;--accent2:#1D4ED8;--red:#F43F5E;--r8:8px;--r16:16px;--font:'Space Grotesk',sans-serif;}
-body{font-family:var(--font);background:var(--bg);color:var(--text1);font-size:14px;-webkit-font-smoothing:antialiased;}
-.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
-.topbar-brand{font-size:18px;font-weight:800;background:linear-gradient(135deg,#0F172A,#3B82F6);-webkit-background-clip:text;background-clip:text;color:transparent;}
-.nav-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:30px;font-size:12px;font-weight:700;font-family:var(--font);border:1px solid var(--border2);background:transparent;color:var(--text1);cursor:pointer;text-decoration:none;transition:all 0.15s;}
-.nav-btn:hover{background:var(--bg);}
-.nav-btn.accent{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-color:transparent;}
-.nav-btn.danger{background:linear-gradient(135deg,#ff5f5f,#ff3b3b);color:#fff;border-color:transparent;}
-.breadcrumb{padding:16px 28px 0;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text3);font-weight:600;}
-.breadcrumb a{color:var(--accent);text-decoration:none;font-weight:700;}
 .page-wrap{max-width:640px;margin:28px auto;padding:0 28px 60px;}
 .form-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r16);overflow:hidden;}
 .form-card-header{padding:22px 26px 18px;border-bottom:1px solid var(--border);}
@@ -37,48 +25,56 @@ select[multiple].fi{min-height:120px;}
 .check-row{display:flex;align-items:center;gap:10px;}
 .section-sep{border:none;border-top:1px solid var(--border);margin:8px 0 20px;}
 .section-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;color:var(--text3);margin-bottom:14px;}
+.nav-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 16px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);color:var(--text1);font-size:13px;font-weight:700;text-decoration:none;transition:all 0.2s ease;white-space:nowrap;}
+.nav-btn:hover{background:var(--bg);}
+.nav-btn.accent{background:var(--accent);color:#fff;border-color:transparent;}
 </style>
-</head>
-<body>
-<header class="topbar">
-  <div class="topbar-brand">3rd Rock Energy System</div>
-  <nav style="display:flex;gap:8px;">
-    <a href="{% url 'device_detail' device.pk %}" class="nav-btn">← Back</a>
-    <a href="{% url 'logout' %}" class="nav-btn danger">Logout</a>
-  </nav>
-</header>
+{% endblock %}
 
-<div class="breadcrumb">
-  <a href="{% url 'energy_dashboard_v2' %}">Dashboard</a> <span>›</span>
-  <a href="{% url 'company_list' %}">Device Management</a> <span>›</span>
-  <a href="{% url 'device_list' %}">All Devices</a> <span>›</span>
-  <a href="{% url 'device_detail' device.pk %}">{{ device.get_display_name }}</a> <span>›</span>
-  <span>Edit</span>
-</div>
+{% block breadcrumb %}
+<a href="{% url 'home' %}">Home</a>
+<span class="sep">/</span>
+<a href="{% url 'company_list' %}">Microgrid Management</a>
+{% if device.company %}
+<span class="sep">/</span>
+<a href="{% url 'company_detail' device.company.pk %}">{{ device.company.name }}</a>
+{% endif %}
+<span class="sep">/</span>
+<a href="{% url 'device_detail' device.pk %}">{{ device.get_display_name }}</a>
+<span class="sep">/</span>
+<span class="current">Edit</span>
+{% endblock %}
 
+{% block content %}
 <div class="page-wrap">
   <div class="form-card">
     <div class="form-card-header">
-      <div class="form-card-title">✏️ Edit Device: {{ device.get_display_name }}</div>
+      <div class="form-card-title">✏️ Edit DER: {{ device.get_display_name }}</div>
     </div>
     <div class="form-body">
       <form method="post">
         {% csrf_token %}
 
-        <!-- ── Core identity ── -->
-        <div class="section-label">Device Identity</div>
+        <div class="section-label">DER Identity</div>
 
         <div class="fg">
           <label class="flb">Unit ID <span class="required-star">*</span></label>
           {{ form.unit_id }}
-          <div class="field-hint">Changing this affects which physical readings are linked to this device.</div>
+          <div class="field-hint">Changing this affects which physical readings are linked to this DER.</div>
           {% if form.unit_id.errors %}<div class="errmsg">{{ form.unit_id.errors.0 }}</div>{% endif %}
         </div>
 
         <div class="fg">
-          <label class="flb">Device Category <span class="required-star">*</span></label>
+          <label class="flb">DER Name</label>
+          {{ form.device_name }}
+          <div class="field-hint">Human-readable name shown in the dashboard. Leave blank to display Unit ID instead.</div>
+          {% if form.device_name.errors %}<div class="errmsg">{{ form.device_name.errors.0 }}</div>{% endif %}
+        </div>
+
+        <div class="fg">
+          <label class="flb">DER Category <span class="required-star">*</span></label>
           {{ form.device_category }}
-          <div class="field-hint">Determines which navbar dropdown this device appears under in the dashboard.</div>
+          <div class="field-hint">Determines which navbar dropdown this DER appears under in the dashboard.</div>
           {% if form.device_category.errors %}<div class="errmsg">{{ form.device_category.errors.0 }}</div>{% endif %}
         </div>
 
@@ -95,12 +91,80 @@ select[multiple].fi{min-height:120px;}
           {% if form.per_unit_cost.errors %}<div class="errmsg">{{ form.per_unit_cost.errors.0 }}</div>{% endif %}
         </div>
 
+        <div class="fg">
+          <label class="flb">Escalator (%)</label>
+          {{ form.escalator }}
+          <div class="field-hint">Annual price escalator, e.g. 2.5 for 2.5%/yr. Optional.</div>
+          {% if form.escalator.errors %}<div class="errmsg">{{ form.escalator.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="fg">
+          <label class="flb">Effective Date</label>
+          {{ form.effective_date }}
+          <div class="field-hint">Date the cost / escalator takes effect. Optional.</div>
+          {% if form.effective_date.errors %}<div class="errmsg">{{ form.effective_date.errors.0 }}</div>{% endif %}
+        </div>
+
+        <div class="fg">
+          <label class="flb">Bill Offset</label>
+          {{ form.odometer_offset }}
+          <div class="field-hint">kWh value added to raw meter readings to align the cumulative odometer.</div>
+          {% if form.odometer_offset.errors %}<div class="errmsg">{{ form.odometer_offset.errors.0 }}</div>{% endif %}
+        </div>
+
+        <div class="fg">
+          <label class="flb">Bill Offset Date &amp; Time</label>
+          {{ form.odometer_offset_datetime }}
+          <div class="field-hint">When the odometer offset was captured / applied. Optional.</div>
+          {% if form.odometer_offset_datetime.errors %}<div class="errmsg">{{ form.odometer_offset_datetime.errors.0 }}</div>{% endif %}
+        </div>
+
+        <hr class="section-sep">
+        <div class="section-label">Display Scaling</div>
+
+        <div class="fg">
+          <label class="flb">Scaling Factor</label>
+          {{ form.scaling_factor }}
+          <div class="field-hint">
+            Multiplies this DER's kW/kWh on every graph, tile, CSV export, and bill.
+            The raw meter reading stored in the database is never changed — only
+            what's displayed. e.g. 0.5 halves everything shown; 1.0 = no change.
+          </div>
+          {% if form.scaling_factor.errors %}<div class="errmsg">{{ form.scaling_factor.errors.0 }}</div>{% endif %}
+        </div>
+        
+        <hr class="section-sep">
+        <div class="section-label">GATS Reporting</div>
+
+        <div class="fg">
+          <label class="flb">GATS Offset</label>
+          {{ form.gats_offset }}
+          <div class="field-hint">kWh offset used only to align this DER's reading with GATS's own meter total. Independent of the billing offset above.</div>
+          {% if form.gats_offset.errors %}<div class="errmsg">{{ form.gats_offset.errors.0 }}</div>{% endif %}
+        </div>
+
+        <div class="fg">
+          <label class="flb">GATS Offset Date &amp; Time</label>
+          {{ form.gats_offset_datetime }}
+          <div class="field-hint">When the GATS offset was captured / calculated. Optional.</div>
+          {% if form.gats_offset_datetime.errors %}<div class="errmsg">{{ form.gats_offset_datetime.errors.0 }}</div>{% endif %}
+        </div>
+
+        <hr class="section-sep">
+        <div class="section-label">Billing</div>
+
+        <div class="fg">
+          <label class="flb">Billing Prefix</label>
+          {{ form.billing_prefix }}
+          <div class="field-hint">Please enter a unique 5–6 letter billing reference code.</div>
+          {% if form.billing_prefix.errors %}<div class="errmsg">{{ form.billing_prefix.errors.0 }}</div>{% endif %}
+        </div>
+
         <hr class="section-sep">
         <div class="section-label">Access Control</div>
 
-        <div class="fg"><label class="flb">Company</label>{{ form.company }}</div>
+        <div class="fg"><label class="flb">Microgrid</label>{{ form.company }}</div>
         <div class="fg">
-          <label class="flb">Assigned Users</label>
+          <label class="flb">Assigned Persons</label>
           {{ form.assigned_users }}
           <div class="field-hint">Hold Ctrl/Cmd to select multiple.</div>
         </div>
@@ -111,7 +175,7 @@ select[multiple].fi{min-height:120px;}
           <label class="flb">Active</label>
           <div class="check-row">
             {{ form.is_active }}
-            <span style="font-size:13px;color:var(--text2);font-weight:600;">Device is active and receiving data</span>
+            <span style="font-size:13px;color:var(--text2);font-weight:600;">DER is active and receiving data</span>
           </div>
         </div>
 
@@ -123,5 +187,4 @@ select[multiple].fi{min-height:120px;}
     </div>
   </div>
 </div>
-</body>
-</html>
+{% endblock %}

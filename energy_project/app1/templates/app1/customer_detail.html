@@ -1,0 +1,108 @@
+{% extends "app1/base.html" %}
+{% load static %}
+
+{% block title %}{{ customer.name }} · 3rd Rock Energy{% endblock %}
+
+{% block extra_css %}
+<style>
+.page-header{padding:8px 28px 0;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+.page-title{font-size:26px;font-weight:800;letter-spacing:-0.5px;color:var(--text1);}
+.page-meta{display:flex;flex-wrap:wrap;gap:14px;margin-top:8px;}
+.meta-item{font-size:12px;color:var(--text3);font-weight:600;}
+.header-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.nav-btn{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);color:var(--text1);font-size:13px;font-weight:700;text-decoration:none;}
+.nav-btn:hover{background:var(--bg);}
+.nav-btn.accent{background:var(--accent);color:#fff;border-color:transparent;}
+.nav-btn.orange{background:#F59E0B;color:#fff;border-color:transparent;}
+.nav-btn.danger{background:var(--red);color:#fff;border-color:transparent;}
+.content{padding:20px 28px 40px;}
+.section-title{font-size:15px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:var(--text2);margin-bottom:14px;}
+.company-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;}
+.company-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r16);overflow:hidden;transition:box-shadow 0.2s,border-color 0.2s;}
+.company-card:hover{border-color:var(--accent);box-shadow:0 4px 20px rgba(37,99,235,0.1);}
+.cc-accent-bar{height:4px;background:linear-gradient(90deg,var(--accent),#7C3AED);}
+.cc-body{padding:18px 20px 16px;}
+.cc-name{font-size:17px;font-weight:800;margin-bottom:4px;}
+.cc-location{font-size:12px;color:var(--text3);font-weight:600;margin-bottom:6px;}
+.cc-stats{display:flex;gap:16px;padding:12px 20px;border-top:1px solid var(--border);background:var(--bg);}
+.cc-stat-val{font-size:15px;font-weight:700;}
+.cc-stat-lbl{font-size:11px;color:var(--text3);font-weight:600;}
+.cc-actions{display:flex;gap:6px;padding:10px 20px;border-top:1px solid var(--border);}
+.cc-btn{flex:1;padding:7px 0;border-radius:var(--r8);font-size:11px;font-weight:700;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;text-align:center;text-decoration:none;}
+.cc-btn:hover{background:var(--bg);}
+.cc-btn.primary{background:var(--accent);color:#fff;border-color:transparent;}
+.cc-btn.red{color:var(--red);border-color:rgba(244,63,94,0.3);}
+.empty-box{background:var(--bg2);border:2px dashed var(--border2);border-radius:var(--r16);padding:40px;text-align:center;color:var(--text3);}
+.messages{padding:0 28px 0;margin-top:12px;}
+.msg{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:var(--r8);font-size:13px;font-weight:600;margin-bottom:6px;}
+.msg.success{background:rgba(16,185,129,0.1);color:#065F46;border:1px solid rgba(16,185,129,0.25);}
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{% url 'home' %}">Home</a>
+<span class="sep">/</span>
+<a href="{% url 'customer_list' %}">Customer Management</a>
+<span class="sep">/</span>
+<span class="current">{{ customer.name }}</span>
+{% endblock %}
+
+{% block content %}
+{% if messages %}
+<div class="messages">{% for message in messages %}<div class="msg {{ message.tags }}">{{ message }}</div>{% endfor %}</div>
+{% endif %}
+
+<div class="page-header">
+  <div>
+    <div class="page-title">🏢 {{ customer.name }}</div>
+    <div class="page-meta">
+      {% if customer.location %}<div class="meta-item">📍 {{ customer.location }}</div>{% endif %}
+      {% if customer.contact_email %}<div class="meta-item">✉ {{ customer.contact_email }}</div>{% endif %}
+      <div class="meta-item">⚡ {{ microgrids|length }} microgrid site{{ microgrids|length|pluralize }}</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    {% if user.role == 'superadmin' %}
+      <a href="{% url 'add_company' %}?customer={{ customer.pk }}" class="nav-btn accent">+ Add Microgrid Site</a>
+      <a href="{% url 'edit_customer' customer.pk %}" class="nav-btn orange">Edit Customer</a>
+      <a href="{% url 'delete_customer' customer.pk %}" class="nav-btn danger">Delete</a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="content" style="margin-top:12px;">
+  <div class="section-title">Microgrid Sites ({{ microgrids|length }})</div>
+
+  {% if microgrids %}
+    <div class="company-grid">
+      {% for company in microgrids %}
+      <div class="company-card">
+        <div class="cc-accent-bar"></div>
+        <div class="cc-body">
+          <div class="cc-name">{{ company.name }}</div>
+          {% if company.location %}<div class="cc-location">📍 {{ company.location }}</div>
+          {% else %}<div class="cc-location" style="opacity:0.4;">No location set</div>{% endif %}
+        </div>
+        <div class="cc-stats">
+          <div><div class="cc-stat-val">{{ company.devices.count }}</div><div class="cc-stat-lbl">DERs</div></div>
+        </div>
+        <div class="cc-actions">
+          <a href="{% url 'company_detail' company.pk %}" class="cc-btn primary">View Details</a>
+          {% if user.role == 'superadmin' %}
+            <a href="{% url 'edit_company' company.pk %}" class="cc-btn">Edit</a>
+            <a href="{% url 'delete_company' company.pk %}" class="cc-btn red">Delete</a>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-box">
+      <div style="font-size:32px;margin-bottom:12px;">⚡</div>
+      <div style="font-size:15px;font-weight:700;margin-bottom:6px;">No microgrid sites yet</div>
+      <div style="font-size:13px;margin-bottom:18px;">Add the first site for this customer.</div>
+      {% if user.role == 'superadmin' %}<a href="{% url 'add_company' %}?customer={{ customer.pk }}" class="nav-btn accent">+ Add First Site</a>{% endif %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

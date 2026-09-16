@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Delete Customer · 3rd Rock Energy</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Calibri','Segoe UI','Arial',sans-serif;background:#F8FAFC;color:#0F172A;display:flex;align-items:center;justify-content:center;min-height:100vh;}
+.card{background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:16px;padding:32px;max-width:440px;width:100%;text-align:center;}
+.icon{font-size:40px;margin-bottom:12px;}
+.title{font-size:18px;font-weight:800;margin-bottom:8px;}
+.sub{font-size:13px;color:#64748B;margin-bottom:24px;line-height:1.5;}
+.acts{display:flex;gap:10px;justify-content:center;}
+.btn{padding:10px 20px;border-radius:10px;font-size:13px;font-weight:700;text-decoration:none;border:1px solid rgba(0,0,0,0.14);color:#334155;}
+.btn.danger{background:#EF4444;color:#fff;border-color:transparent;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="icon">⚠️</div>
+  <div class="title">Delete "{{ customer.name }}"?</div>
+  <div class="sub">This customer has {{ customer.get_microgrid_count }} microgrid site(s). They will NOT be deleted — they'll just become unassigned (no customer).</div>
+  <form method="post">
+    {% csrf_token %}
+    <div class="acts">
+      <a href="{% url 'customer_detail' customer.pk %}" class="btn">Cancel</a>
+      <button type="submit" class="btn danger">Delete Customer</button>
+    </div>
+  </form>
+</div>
+</body>
+</html>

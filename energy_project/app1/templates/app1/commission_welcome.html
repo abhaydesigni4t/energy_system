@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Welcome · 3rd Rock Energy</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne+Mono&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --font-text:'Space Grotesk',-apple-system,BlinkMacSystemFont,sans-serif;
+  --font-mono:'Syne Mono',monospace;
+  --bg:#0A0D14;--surface:#111624;--surface2:#1A2035;
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.14);
+  --text1:#F0F4FF;--text2:rgba(255,255,255,0.65);--text3:rgba(255,255,255,0.35);
+  --accent:#3B82F6;--accent2:#2563EB;--success:#10B981;--error:#F43F5E;
+}
+body{
+  font-family:var(--font-text);background:var(--bg);color:var(--text1);
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  overflow-x:hidden;padding:24px;
+}
+.bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(59,130,246,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,0.03) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;}
+.bg-glow{position:fixed;inset:0;background:radial-gradient(ellipse 60% 50% at 50% 0%,rgba(16,185,129,0.10),transparent);pointer-events:none;}
+.orb{position:fixed;border-radius:50%;filter:blur(80px);pointer-events:none;animation:drift 12s ease-in-out infinite;}
+.orb1{width:400px;height:400px;background:rgba(16,185,129,0.07);top:-100px;left:-100px;animation-delay:0s;}
+.orb2{width:300px;height:300px;background:rgba(59,130,246,0.06);bottom:-100px;right:-100px;animation-delay:6s;}
+@keyframes drift{0%,100%{transform:translate(0,0) scale(1);}50%{transform:translate(20px,-15px) scale(1.04);}}
+
+.card{
+  position:relative;z-index:10;max-width:480px;width:100%;
+  background:var(--surface);border:1px solid var(--border);border-radius:20px;
+  padding:40px;box-shadow:0 32px 80px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.05);
+}
+.check{
+  width:56px;height:56px;border-radius:50%;background:rgba(16,185,129,0.12);
+  color:var(--success);font-size:28px;font-weight:800;display:flex;
+  align-items:center;justify-content:center;margin:0 auto 20px;
+}
+h1{font-size:24px;font-weight:700;text-align:center;margin-bottom:8px;letter-spacing:-0.4px;}
+.sub{text-align:center;font-size:14px;color:var(--text2);margin-bottom:28px;font-weight:400;}
+
+.notice{
+  display:flex;gap:12px;background:rgba(59,130,246,0.08);
+  border:1px solid rgba(59,130,246,0.18);border-radius:14px;padding:16px 18px;
+}
+.notice-icon{font-size:20px;flex-shrink:0;}
+.notice-title{font-size:14px;font-weight:700;margin-bottom:3px;color:var(--text1);}
+.notice-text{font-size:13px;color:var(--text2);line-height:1.5;}
+
+.continue-btn{
+  display:block;text-align:center;margin-top:24px;padding:12px;
+  background:linear-gradient(135deg,#3B82F6,#2563EB);
+  border-radius:10px;color:#fff;font-size:14px;font-weight:700;
+  text-decoration:none;transition:opacity 0.15s,transform 0.1s;
+}
+.continue-btn:hover{opacity:0.92;transform:translateY(-1px);}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="bg-glow"></div>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+
+<div class="card">
+  <div class="check">✓</div>
+  <h1>Welcome to {{ label }}!</h1>
+  <p class="sub">Your account is all set up.</p>
+
+  <div class="notice">
+    <span class="notice-icon">📩</span>
+    <div>
+      <div class="notice-title">This is a paid service</div>
+      <div class="notice-text">
+        Setup, configuration &amp; commissioning is a paid service from 3rd Rock Energy Systems.
+        Someone will contact you within the next 2 hours. Please check your email.
+      </div>
+    </div>
+  </div>
+
+    <a href="{% url 'select_option' 'commission' %}" class="back-link continue-btn">Continue →</a>
+</div>
+
+{% block extra_js %}
+<script>
+(function () {
+  var logoutUrl = "{% url 'beacon_logout' %}";
+  var internalNavigation = false;
+
+  document.addEventListener('click', function (e) {
+    var link = e.target.closest('a[href]');
+    if (link && link.href && link.href.indexOf(window.location.origin) === 0) {
+      internalNavigation = true;
+    }
+  }, true);
+
+  window.addEventListener('pagehide', function (e) {
+    if (!internalNavigation && !e.persisted) {
+      navigator.sendBeacon(logoutUrl, new Blob([''], { type: 'text/plain' }));
+    }
+  });
+})();
+</script>
+
+{% endblock %}
+
+</body>
+</html>
+
