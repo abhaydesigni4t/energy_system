@@ -157,7 +157,7 @@ td{padding:13px 16px;font-size:13px;color:var(--text1);font-weight:500;}
             <td>
               <div class="user-chips">
                 {% for u in device.assigned_users.all %}
-                  <span class="uc">{{ u.username }}</span>
+                  <span class="uc">{{ u.get_display_name }}</span>
                 {% empty %}
                   <span style="font-size:11px;color:var(--text3);">None</span>
                 {% endfor %}

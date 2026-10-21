@@ -1192,7 +1192,7 @@ async function updateRawDataFromEnabled() {
     const displayVal = formatKwKwh(val);
     const isNeg = val != null && val < 0;
     const ts = d && d.timestamp ? new Date(d.timestamp).toLocaleTimeString('en-US',{timeZone:'America/New_York',hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '—';
-    const statusCls = d && d.status === 'online' ? '#10B981' : d && d.status === 'stale' ? '#F59E0B' : '#94A3B8';
+    const statusCls = d && d.status === 'online' ? '#10B981' : d && d.status === 'stale' ? '#F59E0B' : d && d.status === 'sleeping' ? '#60A5FA' : '#94A3B8';
     return `<div class="raw-card">
       <div class="raw-card-cat">${CATEGORY_ICONS[m.category] || ''} ${m.category}</div>
       <div class="raw-card-label">${m.label}</div>
@@ -1213,7 +1213,7 @@ async function fetchLiveData() {
     const res = await fetch(`${API_BASE}/api/readings/latest/?unit_id=${uid}`);
     if (!res.ok) throw new Error();
     const d = await res.json();
-    if (d.status === 'online' || d.status === 'stale') {
+    if (d.status === 'online' || d.status === 'stale' || d.status === 'sleeping') {
       setOnlineStatus('online'); document.getElementById('offline-bar').classList.remove('show');
     } else {
       setOnlineStatus('offline'); document.getElementById('offline-bar').classList.add('show');

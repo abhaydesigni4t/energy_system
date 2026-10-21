@@ -43,7 +43,42 @@ class LoginForm(forms.Form):
 
 from django.contrib.auth.forms import UsernameField
 from django.core.exceptions import ValidationError
+import re
 import uuid
+
+DEFAULT_PHONE_COUNTRY_CODE = '1'   # a number typed without a country code is treated as a US number
+
+
+def normalize_phone(raw, keep_if_equal=None):
+    """
+    Return the phone number in one standard format, or raise ValidationError.
+      5551234567        -> +1 (555) 123-4567
+      1-555-123-4567    -> +1 (555) 123-4567
+      +91 98765 43210   -> +919876543210   (other countries: + and digits)
+    An empty value stays empty. If the value is the same as the one already saved
+    (keep_if_equal), it is accepted as it is, so old records can still be edited.
+    """
+    raw = (raw or '').strip()
+    if not raw:
+        return ''
+    if keep_if_equal is not None and raw == keep_if_equal:
+        return raw
+    if re.search(r'[^\d\s().+\-]', raw):
+        raise ValidationError('Phone number can only contain digits, spaces and + ( ) - .')
+    digits = re.sub(r'\D', '', raw)
+    if raw.startswith('+'):
+        pass                                         # country code already typed
+    elif len(digits) == 10:
+        digits = DEFAULT_PHONE_COUNTRY_CODE + digits
+    elif len(digits) == 11 and digits.startswith(DEFAULT_PHONE_COUNTRY_CODE):
+        pass
+    else:
+        raise ValidationError('Enter the phone number with its country code, for example +1 (555) 123-4567.')
+    if not 8 <= len(digits) <= 15:
+        raise ValidationError('This phone number has too few or too many digits.')
+    if digits.startswith('1') and len(digits) == 11:
+        return f'+1 ({digits[1:4]}) {digits[4:7]}-{digits[7:]}'
+    return '+' + digits
 
 
 class SignUpForm(forms.ModelForm):
@@ -80,7 +115,7 @@ class SignUpForm(forms.ModelForm):
         return email
 
     def clean_phone(self):
-        phone = self.cleaned_data.get('phone', '').strip()
+        phone = normalize_phone(self.cleaned_data.get('phone', ''))
         if phone and User.objects.filter(phone=phone).exists():
             raise ValidationError('An account with this phone number already exists.')
         return phone
@@ -131,6 +166,10 @@ class AddUserForm(forms.ModelForm):
             'companies': forms.CheckboxSelectMultiple,
         }
 
+    def clean_phone(self):
+        return normalize_phone(self.cleaned_data.get('phone', ''),
+                               keep_if_equal=self.instance.phone if self.instance.pk else None)
+
     def __init__(self, *args, requesting_user=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['companies'].required = False
@@ -180,6 +219,10 @@ class EditUserForm(forms.ModelForm):
             'companies': forms.CheckboxSelectMultiple,
         }
 
+    def clean_phone(self):
+        return normalize_phone(self.cleaned_data.get('phone', ''),
+                               keep_if_equal=self.instance.phone if self.instance.pk else None)
+
     def __init__(self, *args, requesting_user=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['companies'].required = False
@@ -223,8 +266,12 @@ class CustomerForm(forms.ModelForm):
             'location': forms.TextInput(attrs={'class': 'fi', 'placeholder': 'e.g. Atlantic City, NJ'}),
             'description': forms.Textarea(attrs={'class': 'fi', 'rows': 3, 'placeholder': 'Optional description…'}),
             'contact_email': forms.EmailInput(attrs={'class': 'fi', 'placeholder': 'contact@customer.com'}),
-            'contact_phone': forms.TextInput(attrs={'class': 'fi', 'placeholder': '+1 555 000 0000'}),
+            'contact_phone': forms.TextInput(attrs={'class': 'fi', 'placeholder': '+1 (555) 123-4567'}),
         }
+
+    def clean_contact_phone(self):
+        return normalize_phone(self.cleaned_data.get('contact_phone', ''),
+                               keep_if_equal=self.instance.contact_phone if self.instance.pk else None)
         
         
 class CompanyForm(forms.ModelForm):
@@ -240,7 +287,7 @@ class CompanyForm(forms.ModelForm):
             'location': forms.TextInput(attrs={'class': 'fi', 'placeholder': 'e.g. Mumbai, Maharashtra'}),
             'description': forms.Textarea(attrs={'class': 'fi', 'rows': 3, 'placeholder': 'Optional description…'}),
             'contact_email': forms.EmailInput(attrs={'class': 'fi', 'placeholder': 'contact@company.com'}),
-            'contact_phone': forms.TextInput(attrs={'class': 'fi', 'placeholder': '+91 98000 00000'}),
+            'contact_phone': forms.TextInput(attrs={'class': 'fi', 'placeholder': '+1 (555) 123-4567'}),
             'customer': forms.Select(attrs={'class': 'fi'}),
         }
 
@@ -251,6 +298,14 @@ class CompanyForm(forms.ModelForm):
         self.fields['customer'].queryset = Customer.objects.all().order_by('name')
         if initial_customer and not self.instance.pk:
             self.initial['customer'] = initial_customer.pk
+            # Do not make the user type the customer's details again.
+            self.initial['contact_email'] = initial_customer.contact_email
+            self.initial['contact_phone'] = initial_customer.contact_phone
+            self.initial['location'] = initial_customer.location
+
+    def clean_contact_phone(self):
+        return normalize_phone(self.cleaned_data.get('contact_phone', ''),
+                               keep_if_equal=self.instance.contact_phone if self.instance.pk else None)
 
     def clean_name(self):
         name = (self.cleaned_data.get('name') or '').strip()

@@ -101,4 +101,22 @@ textarea.fi{resize:vertical;min-height:80px;}
     </div>
   </div>
 </div>
+{{ customer_contacts|json_script:"customer-contacts" }}
+<script>
+// When a customer is chosen, copy its email / phone / location into the empty fields.
+(function () {
+  var sel = document.getElementById('id_customer');
+  if (!sel) return;
+  var data = {};
+  try { data = JSON.parse(document.getElementById('customer-contacts').textContent); } catch (e) {}
+  function fill(id, val) { var el = document.getElementById(id); if (el && !el.value && val) el.value = val; }
+  sel.addEventListener('change', function () {
+    var c = data[sel.value];
+    if (!c) return;
+    fill('id_contact_email', c.email);
+    fill('id_contact_phone', c.phone);
+    fill('id_location', c.location);
+  });
+})();
+</script>
 {% endblock %}

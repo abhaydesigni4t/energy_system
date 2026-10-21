@@ -21,7 +21,7 @@ urlpatterns = [
     path('welcome/commission/', views.commission_welcome, name='commission_welcome'),
     path('coming-soon/<str:option>/', views.coming_soon_view, name='coming_soon'),
     path('beacon-logout/', views.beacon_logout, name='beacon_logout'),
-    
+    path('keepalive/', views.keepalive, name='keepalive'),
     path('complete/',   views.energy_dashboard_complete,  name='complete'),
     # ── Dashboard ───────────────────────────────────────────────
     path('dashboard/', views.energy_dashboard, name='energy_dashboard'),
@@ -41,8 +41,12 @@ urlpatterns = [
     # API endpoints
     path('readings/', views.SensorReadingAPIView.as_view(), name='sensor-readings'),
     path('meter_readings/', MeterReadingAPIView.as_view(), name='meter-readings'),
+    path('api/inverter-readings/post/', views.post_inverter_reading, name='post_inverter_reading'),
+    path('api/inverter-readings/', views.get_inverter_readings, name='get_inverter_readings'),    
     path('api/readings/filter/', SensorReadingFilterView.as_view(), name='sensor-readings-filter'),
     path('api/readings/latest/', views.LatestReadingView.as_view(), name='latest-reading'),
+    path('api/inverter/latest/', views.InverterLatestView.as_view(), name='inverter-latest'),
+    path('api/inverter/recent/', views.InverterRecentView.as_view(), name='inverter-recent'),
     path('api/readings/summary/', views.SummaryStatsView.as_view(), name='summary-stats'),
     path('api/readings/graph/', views.GraphDataView.as_view(), name='graph-data'),
     path('api/readings/recent/', views.RecentReadingsView.as_view(), name='recent-readings'),

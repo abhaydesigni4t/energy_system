@@ -44,7 +44,7 @@ select.auth-input{cursor:pointer;}
 <span class="sep">/</span>
 <a href="{% url 'user_list' %}">Personnel Management</a>
 <span class="sep">/</span>
-<a href="{% url 'user_detail' target_user.pk %}">{{ target_user.username }}</a>
+<a href="{% url 'user_detail' target_user.pk %}">{{ target_user.get_display_name }}</a>
 <span class="sep">/</span>
 <span class="current">Edit</span>
 {% endblock %}
@@ -52,7 +52,7 @@ select.auth-input{cursor:pointer;}
 {% block content %}
 <div class="content-wrap">
   <div class="page-heading">Edit Person</div>
-  <div class="page-sub">Update @{{ target_user.username }}'s info, role, and company</div>
+  <div class="page-sub">Update @{{ target_user.get_display_name }}'s info, role, and company</div>
 
   {% if form.non_field_errors %}
     <div class="form-error">⚠ {{ form.non_field_errors|join:", " }}</div>

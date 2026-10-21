@@ -185,6 +185,20 @@ thead th{font-size:14px;font-weight:700;letter-spacing:0.5px;text-transform:uppe
 .raw-card-bar{height:4px;border-radius:3px;margin-top:10px;background:rgba(255,255,255,0.08);overflow:hidden;}
 .raw-card-bar-fill{height:100%;border-radius:3px;transition:width 0.6s ease;}
 .raw-card-timestamp{font-size:13px;color:rgba(255,255,255,0.7);margin-top:6px;font-family:var(--font-number);font-weight:600;}
+/* Inverter details (shown only when the selected DER is an inverter) */
+.inv-detail{padding:0 24px 20px;border-top:1px solid var(--panel-line);}
+.inv-detail-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:14px 0 12px;}
+.inv-detail-title{font-size:15px;font-weight:800;color:#F0F4FF;}
+.inv-state{font-size:11px;font-weight:800;padding:4px 11px;border-radius:20px;white-space:nowrap;}
+.inv-state.online{background:rgba(16,185,129,0.15);color:#34D399;}
+.inv-state.sleeping{background:rgba(96,165,250,0.15);color:#93C5FD;}
+.inv-state.stale{background:rgba(245,158,11,0.15);color:#FBBF24;}
+.inv-groups{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;}
+.inv-group{background:rgba(255,255,255,0.04);border:1px solid var(--panel-line);border-radius:var(--r12);padding:12px 14px;}
+.inv-group-title{font-size:10px;font-weight:800;letter-spacing:0.6px;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:6px;}
+.inv-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:13px;color:rgba(255,255,255,0.75);}
+.inv-row:last-child{border-bottom:none;}
+.inv-row b{font-family:var(--font-number);color:#F0F4FF;font-weight:700;text-align:right;}
 
 .tbl-panel{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r16);overflow:hidden;box-shadow:var(--sh-sm);}
 .tbl-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap;}
@@ -403,9 +417,10 @@ tbody tr:hover{background:rgba(59,130,246,0.05);}
       </div>
       <div class="raw-update-time" id="rawUpdateTime">—</div>
     </div>
-    <div class="raw-data-scroll">
+     <div class="raw-data-scroll">
       <div class="raw-grid" id="rawGrid"></div>
     </div>
+    <div class="inv-detail" id="inverterDetail" style="display:none;"></div>
   </div>
 
   <div class="tbl-panel">
@@ -418,7 +433,7 @@ tbody tr:hover{background:rgba(59,130,246,0.05);}
     </div>
     <div class="tbl-wrap">
       <table id="readings-table">
-        <thead><tr>
+        <thead id="tHead"><tr>
           <th>Date</th><th>Time (EST)</th><th>kW</th><th>Voltage (V)</th><th>Current (A)</th><th>kWh</th><th>PF Total</th><th>Status</th>
           <th>V A-N</th><th>V B-N</th><th>V C-N</th>
           <th>V A-B</th><th>V B-C</th><th>V C-A</th><th>Avg V L-L</th>
@@ -1083,22 +1098,89 @@ async function fetchLiveData() {
       fetch(`${API_BASE}/api/readings/latest/?unit_id=${s.unit_id}`).then(r => r.ok ? r.json() : null).catch(() => null)
     ));
 
-    const anyOnline = results.some(d => d && (d.status === 'online' || d.status === 'stale'));
-    const anyStale  = results.some(d => d && d.status === 'stale');
-    if (anyOnline) {
-      document.getElementById('offline-bar').classList.remove('show');
-      ['b-week', 'b-month', 'b-year', 'b-lifetime'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) { el.className = 'kpi-badge ' + (anyStale ? 'stale' : 'ok'); el.textContent = anyStale ? 'STALE' : 'LIVE'; }
-      });
-    } else {
-      document.getElementById('offline-bar').classList.add('show');
-    }
+     const anyOnline = results.some(d => d && (d.status === 'online' || d.status === 'stale' || d.status === 'sleeping'));
+      if (anyOnline) {
+        document.getElementById('offline-bar').classList.remove('show');
+      } else {
+        document.getElementById('offline-bar').classList.add('show');
+      }
 
-    updateRawPanel(results);
+  updateRawPanel(results);
   } catch (e) {
     document.getElementById('offline-bar').classList.add('show');
   }
+}
+
+// ── Inverter details (all fields), shown under the cards for an inverter DER ──
+function invEsc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function invNum(v, d) { return (v == null || isNaN(v)) ? '—' : (+v).toFixed(d); }
+
+async function refreshInverterDetail(results) {
+  const first = results && results[0];
+  if (selectionMode !== 'single' || !first || !first.is_inverter || !activeStreams.length) {
+    renderInverterDetail(null);
+    return;
+  }
+  const uid = activeStreams[0].unit_id;
+  try {
+    const res = await fetch(`${API_BASE}/api/inverter/latest/?unit_id=${encodeURIComponent(uid)}`);
+    const inv = res.ok ? await res.json() : null;
+    // ignore a late answer if the user already picked another DER
+    if (activeStreams.length && activeStreams[0].unit_id === uid) renderInverterDetail(inv);
+  } catch (e) { renderInverterDetail(null); }
+}
+
+function renderInverterDetail(inv) {
+  const box = document.getElementById('inverterDetail');
+  if (!box) return;
+  if (!inv) { box.style.display = 'none'; box.innerHTML = ''; return; }
+
+  const row = (label, value, unit, dec) => {
+    const empty = value == null || isNaN(value);
+    return `<div class="inv-row"><span>${label}</span><b>${invNum(value, dec)}${empty ? '' : ' ' + unit}</b></div>`;
+  };
+  const group = (title, rows) => `<div class="inv-group"><div class="inv-group-title">${title}</div>${rows.join('')}</div>`;
+
+  const mppt = (inv.mppt_inputs || []).map((m, i) => {
+    if (m === null || typeof m !== 'object') return `<div class="inv-row"><span>MPPT ${i + 1}</span><b>${invEsc(m)}</b></div>`;
+    const idKey = ['id', 'index', 'mppt', 'number'].find(k => k in m);
+    const label = 'MPPT ' + (idKey ? invEsc(m[idKey]) : i + 1);
+    const parts = Object.entries(m).filter(([k]) => k !== idKey).map(([k, v]) =>
+      `${invEsc(k.replace(/_/g, ' '))} ${typeof v === 'number' ? invNum(v, 2) : invEsc(v)}`);
+    return `<div class="inv-row"><span>${label}</span><b>${parts.join(' · ')}</b></div>`;
+  });
+
+  const liveLabel = { online: 'Online', sleeping: 'Sleeping (no data at night)', stale: 'No recent data' }[inv.status] || inv.status;
+  const ts = inv.timestamp ? new Date(inv.timestamp).toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—';
+
+  box.innerHTML = `
+    <div class="inv-detail-head">
+      <div class="inv-detail-title">⚡ Inverter details · ${invEsc(inv.operating_state || 'state unknown')}</div>
+      <span class="inv-state ${invEsc(inv.status)}">${invEsc(liveLabel)} · ${ts}</span>
+    </div>
+    <div class="inv-groups">
+      ${group('AC output', [
+        row('Active power', inv.active_power_kw, 'kW', 2),
+        row('Apparent power', inv.apparent_power_kva, 'kVA', 2),
+        row('Reactive power', inv.reactive_power_kvar, 'kVAR', 2),
+        row('Power factor', inv.power_factor, '', 3),
+        row('Grid frequency', inv.grid_frequency_hz, 'Hz', 2),
+        row('Lifetime energy', inv.lifetime_energy_kwh, 'kWh', 1)])}
+      ${group('AC voltage', [
+        row('Phase A-N', inv.voltage_a_n, 'V', 1), row('Phase B-N', inv.voltage_b_n, 'V', 1), row('Phase C-N', inv.voltage_c_n, 'V', 1),
+        row('Line A-B', inv.voltage_a_b, 'V', 1), row('Line B-C', inv.voltage_b_c, 'V', 1), row('Line C-A', inv.voltage_c_a, 'V', 1)])}
+      ${group('AC current', [
+        row('Total', inv.current_total_a, 'A', 2), row('Phase A', inv.current_a, 'A', 2),
+        row('Phase B', inv.current_b, 'A', 2), row('Phase C', inv.current_c, 'A', 2)])}
+      ${group('DC side and health', [
+        row('DC voltage', inv.dc_voltage_v, 'V', 1), row('DC current', inv.dc_current_a, 'A', 2),
+        row('DC power', inv.dc_power_kw, 'kW', 2), row('MPPT total power', inv.mppt_total_power_kw, 'kW', 2),
+        row('Cabinet temperature', inv.cabinet_temperature_c, '°C', 1)])}
+      ${mppt.length ? group('MPPT inputs', mppt) : ''}
+    </div>`;
+  box.style.display = '';
 }
 
 function updateRawPanel(latestDataArray) {
@@ -1139,7 +1221,7 @@ function updateRawPanel(latestDataArray) {
       const d = latestDataArray[i];
       const val = formatKwKwh(d && d.active_power_kw);
       const status = d ? (d.status || 'unknown') : 'offline';
-      const statusColor = status === 'online' ? '#10B981' : status === 'stale' ? '#F59E0B' : '#EF4444';
+      const statusColor = status === 'online' ? '#10B981' : status === 'stale' ? '#F59E0B' : status === 'sleeping' ? '#60A5FA' : '#EF4444';
       const ts = d && d.timestamp ? new Date(d.timestamp).toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—';
       return `<div class="raw-card" style="border-left:3px solid ${s.color};">
         <div class="raw-card-device">${CATEGORY_ICONS[currentCategory] || ''} ${currentCategory}</div>
@@ -1154,12 +1236,112 @@ function updateRawPanel(latestDataArray) {
   if (updateTime) updateTime.textContent = 'Updated ' + new Date().toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
+
+// ── "Complete Readings" table for an INVERTER DER (own columns + CSV) ──────
+const INV_COLUMNS = [   // [column title, key in the API row, decimals]
+  ['Date', 'date', 0], ['Time (EST)', 'time', 0], ['State', 'state', 0],
+  ['kW', 'kw', 2], ['kVA', 'kva', 2], ['kVAR', 'kvar', 2], ['PF', 'pf', 3], ['Freq (Hz)', 'freq', 2],
+  ['V A-N', 'v_an', 1], ['V B-N', 'v_bn', 1], ['V C-N', 'v_cn', 1],
+  ['V A-B', 'v_ab', 1], ['V B-C', 'v_bc', 1], ['V C-A', 'v_ca', 1],
+  ['I Total (A)', 'i_total', 2], ['I Phase A', 'i_a', 2], ['I Phase B', 'i_b', 2], ['I Phase C', 'i_c', 2],
+  ['DC V', 'dc_v', 1], ['DC A', 'dc_a', 2], ['DC kW', 'dc_kw', 2], ['MPPT kW', 'mppt_kw', 2],
+  ['Temp (°C)', 'temp_c', 1], ['Lifetime kWh', 'energy', 1], ['Modbus', 'modbus', 0], ['MPPT inputs', 'mppt_text', 0]
+];
+let inverterRows = [];          // rows shown now (used by Export CSV)
+let tableMode = 'meter';        // 'meter' or 'inverter'
+let METER_THEAD_HTML = null;    // the original meter header, saved once
+const invFlag = {};             // unit_id -> true/false: is this DER an inverter?
+
+function setTableMode(mode) {
+  const head = document.getElementById('tHead');
+  if (!head) return;
+  if (METER_THEAD_HTML === null) METER_THEAD_HTML = head.innerHTML;
+  if (mode === tableMode) return;
+  head.innerHTML = mode === 'inverter'
+    ? '<tr>' + INV_COLUMNS.map(c => `<th>${c[0]}</th>`).join('') + '</tr>'
+    : METER_THEAD_HTML;
+  tableMode = mode;
+}
+
+async function isInverterUnit(uid) {
+  if (uid in invFlag) return invFlag[uid];
+  try {
+    const res = await fetch(`${API_BASE}/api/readings/latest/?unit_id=${encodeURIComponent(uid)}`);
+    if (!res.ok) return false;            // no data yet: treat as a meter for now, ask again next time
+    const d = await res.json();
+    invFlag[uid] = !!d.is_inverter;
+    return invFlag[uid];
+  } catch (e) { return false; }
+}
+
+async function fetchRecentInverter(uid) {
+  const tb = document.getElementById('tBody');
+  setTableMode('inverter');
+  let url = `${API_BASE}/api/inverter/recent/?unit_id=${encodeURIComponent(uid)}`;
+  if (currentPeriod === 'custom' && customRangeFrom && customRangeTo) {
+    url += `&from=${customRangeFrom}&to=${customRangeTo}`;
+  } else {
+    url += `&period=${currentPeriod}`;
+  }
+  const res = await fetch(url);
+  if (res.status === 400) {
+    const err = await res.json();
+    tb.innerHTML = `<tr><td colspan="${INV_COLUMNS.length}" style="text-align:center;padding:16px;color:#BE123C;">${invEsc(err.error || 'Invalid date range')}</td></tr>`;
+    return;
+  }
+  if (!res.ok) throw new Error();
+  const payload = await res.json();
+  if (!activeStreams.length || activeStreams[0].unit_id !== uid) return;   // user already picked another DER
+  const rows = payload.rows || [];
+  const meta = payload.meta || {};
+  inverterRows = rows;
+
+  const infoEl = document.getElementById('recent-range-info');
+  if (infoEl) {
+    if (meta.mode === 'range' && meta.downsampled) {
+      infoEl.textContent = `Showing ${(meta.rows_returned || 0).toLocaleString()} readings (1 every ${Math.round(meta.sampling_interval_seconds / 60)} min)`;
+    } else if (meta.mode === 'range') {
+      infoEl.textContent = `Showing all ${(meta.rows_returned || 0).toLocaleString()} readings for this period`;
+    } else {
+      infoEl.textContent = '';
+    }
+  }
+  if (!rows.length) {
+    tb.innerHTML = `<tr><td colspan="${INV_COLUMNS.length}" style="text-align:center;padding:16px">No data</td></tr>`;
+    return;
+  }
+  tb.innerHTML = rows.map(r => '<tr>' + INV_COLUMNS.map(c => {
+    const v = r[c[1]];
+    if (v === null || v === undefined || v === '') return '<td>—</td>';
+    return `<td>${typeof v === 'number' ? v.toFixed(c[2]) : invEsc(v)}</td>`;
+  }).join('') + '</tr>').join('');
+}
+
+function exportInverterCSV() {
+  const q = v => {
+    const t = (v === null || v === undefined) ? '' : String(v);
+    return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+  };
+  const lines = [INV_COLUMNS.map(c => q(c[0])).join(',')];
+  inverterRows.forEach(r => lines.push(INV_COLUMNS.map(c => q(r[c[1]])).join(',')));
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' }));
+  a.download = `inverter_${currentUnitId || 'unit'}_${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+
 async function fetchRecent() {
   if (!activeStreams.length) return;
   const tb = document.getElementById('tBody');
   const f = (v, d = 2) => (v != null && !isNaN(v)) ? (+v).toFixed(d) : '—';
   try {
     if (selectionMode === 'single') {
+      const uid = activeStreams[0].unit_id;
+      if (await isInverterUnit(uid)) { await fetchRecentInverter(uid); return; }
+      setTableMode('meter');
+      inverterRows = [];
       let url = `${API_BASE}/api/readings/recent/?unit_id=${activeStreams[0].unit_id}`;
       if (currentPeriod === 'custom' && customRangeFrom && customRangeTo) {
         url += `&from=${customRangeFrom}&to=${customRangeTo}`;
@@ -1202,6 +1384,8 @@ async function fetchRecent() {
         <td>${f(r.kvar)}</td><td>${f(r.kva)}</td>
       </tr>`).join('');
     } else {
+      setTableMode('meter');
+      inverterRows = [];
       tb.innerHTML = `<tr><td colspan="29" style="text-align:center;padding:16px;color:#64748B;">Showing aggregate view — select an individual DER for detailed readings</td></tr>`;
     }
   } catch (e) {
@@ -1465,6 +1649,7 @@ async function fetchPeriodEnergy(fromDate, toDate) {
 }
 
 function exportCSV() {
+  if (tableMode === 'inverter' && inverterRows.length) { exportInverterCSV(); return; }
   const headers = ['Date', 'Time (EST)', 'kW', 'Voltage (V)', 'Current (A)', 'kWh', 'PF Total', 'Status', 'V A-N', 'V B-N', 'V C-N', 'V A-B', 'V B-C', 'V C-A', 'Avg V L-L', 'I Phase A', 'I Phase B', 'I Phase C', 'I Avg', 'I Demand', 'I Peak', 'I Neutral', 'Freq (Hz)', 'PF Phase A', 'PF Phase B', 'PF Phase C', 'kVAR', 'kVA'];
   const rows = document.querySelectorAll('#readings-table tbody tr');
   const csv = [headers.join(',')];

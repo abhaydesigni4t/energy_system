@@ -33,10 +33,11 @@
 .dc-unit{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;}
 .dc-name{font-size:15px;font-weight:800;color:var(--text1);letter-spacing:-0.2px;}
 .dc-location{font-size:11px;color:var(--text3);font-weight:600;margin-top:3px;}
-.dc-status{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:10px;font-weight:800;}
+.dc-status{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:10px;font-weight:800;white-space:nowrap;flex-shrink:0;}
 .dc-status.online{background:rgba(16,185,129,0.12);color:#0E7C46;}
 .dc-status.offline{background:rgba(244,63,94,0.1);color:#BE123C;}
 .dc-status.stale{background:rgba(245,158,11,0.1);color:#B45309;}
+.dc-status.sleeping{background:rgba(96,165,250,0.15);color:#1D4ED8;}
 
 .dc-kpis{display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid var(--border);}
 .dc-kpi{padding:10px 16px;border-right:1px solid var(--border);}
@@ -152,7 +153,7 @@
         {% if device.assigned_users.all %}
         <div style="padding:8px 16px;border-top:1px solid var(--border);display:flex;flex-wrap:wrap;gap:5px;">
           {% for u in device.assigned_users.all %}
-            <span class="user-chip">👤 {{ u.username }}</span>
+            <span class="user-chip">👤 {{ u.get_display_name }}</span>
           {% endfor %}
         </div>
         {% endif %}
@@ -183,7 +184,7 @@
 
 {% block extra_js %}
 <script>
-const unitIds = [{% for item in device_data %}{{ item.device.unit_id }}{% if not forloop.last %},{% endif %}{% endfor %}];
+const unitIds = [{% for item in device_data %}"{{ item.device.unit_id|escapejs }}"{% if not forloop.last %},{% endif %}{% endfor %}];
 const API_BASE = window.location.origin;
 
 async function pollDevice(unitId) {
@@ -191,7 +192,7 @@ async function pollDevice(unitId) {
     const res = await fetch(`${API_BASE}/api/readings/latest/?unit_id=${unitId}`);
     if (!res.ok) return;
     const d = await res.json();
-    if (d.status === 'online' || d.status === 'stale') {
+    if (d.status === 'online' || d.status === 'stale' || d.status === 'sleeping') {
       const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
       set(`kw-${unitId}`, parseFloat(d.active_power_kw || 0).toFixed(1));
       set(`v-${unitId}`, parseFloat(d.voltage || 0).toFixed(1));
@@ -199,8 +200,8 @@ async function pollDevice(unitId) {
       set(`kwh-${unitId}`, parseFloat(d.energy_today_kwh || 0).toFixed(1));
       const badge = document.getElementById(`status-${unitId}`);
       if (badge) {
-        badge.className = `dc-status ${d.status === 'stale' ? 'stale' : 'online'}`;
-        badge.textContent = d.status === 'stale' ? '🟡 Stale' : '🟢 Online';
+        badge.className = `dc-status ${d.status}`;
+        badge.textContent = { online: '🟢 Online', stale: '🟡 Stale', sleeping: '🌙 Sleeping' }[d.status];
       }
     }
   } catch (e) {}

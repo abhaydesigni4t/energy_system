@@ -147,6 +147,20 @@ a{color:inherit;}
     internalNavigation = true;
   }, true);
 
+    // Keep the session alive only while the person is really using a form page.
+  if (document.querySelector('form[method="post" i], form[method="POST"]')) {
+    var lastActivity = Date.now();
+    ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'].forEach(function (evt) {
+      document.addEventListener(evt, function () { lastActivity = Date.now(); }, { passive: true });
+    });
+    setInterval(function () {
+      // ping only if there was activity in the last 10 minutes
+      if (Date.now() - lastActivity < 10 * 60 * 1000) {
+        fetch("{% url 'keepalive' %}", { credentials: 'same-origin' }).catch(function () {});
+      }
+    }, 5 * 60 * 1000);
+  }
+
   window.addEventListener('pagehide', function (e) {
     // e.persisted is true when the browser is caching this page for
     // back/forward restoration (bfcache) — exactly the Back-button case.

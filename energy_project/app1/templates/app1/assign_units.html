@@ -207,9 +207,9 @@ body{font-family:var(--font-text);background:var(--bg);color:var(--text1);font-s
 
   <!-- User Profile -->
   <div class="user-profile">
-    <div class="avatar-lg">{{ target_user.username|slice:":1"|upper }}</div>
+    <div class="avatar-lg">{{ target_user.get_display_name|slice:":1"|upper }}</div>
     <div>
-      <div class="profile-name">{{ target_user.get_full_name|default:target_user.username }}</div>
+      <div class="profile-name">{{ target_user.get_full_name|default:target_user.get_display_name }}</div>
       <div class="profile-sub">{{ target_user.email|default:"No email" }}</div>
       <span class="badge {{ target_user.role }}">{{ target_user.get_role_display }}</span>
     </div>

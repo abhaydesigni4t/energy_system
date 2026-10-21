@@ -56,6 +56,7 @@ table.mg-tbl td{padding:13px 16px;font-size:13px;color:var(--text1);font-weight:
 .status-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:800;padding:4px 10px;border-radius:20px;white-space:nowrap;}
 .status-badge.online{background:rgba(16,185,129,0.12);color:#0E7C46;}
 .status-badge.partial{background:rgba(245,158,11,0.12);color:#B45309;}
+.status-badge.sleeping{background:rgba(96,165,250,0.15);color:#1D4ED8;}
 .status-badge.offline{background:rgba(244,63,94,0.12);color:#BE123C;}
 .status-badge.no_devices{background:rgba(148,163,184,0.15);color:#475569;}
 .status-sub{font-size:10px;color:var(--text3);margin-top:3px;font-weight:600;}
@@ -198,6 +199,8 @@ table.mg-tbl td{padding:13px 16px;font-size:13px;color:var(--text1);font-weight:
                   {% with ov=company.overview %}
                     {% if ov.status == 'online' %}
                       <span class="status-badge online">🟢 Online</span>
+                    {% elif ov.status == 'sleeping' %}
+                      <span class="status-badge sleeping">🌙 Sleeping</span>
                     {% elif ov.status == 'partial' %}
                       <span class="status-badge partial">🟡 Partial</span>
                     {% elif ov.status == 'offline' %}
@@ -206,7 +209,7 @@ table.mg-tbl td{padding:13px 16px;font-size:13px;color:var(--text1);font-weight:
                       <span class="status-badge no_devices">⚪ No DERs</span>
                     {% endif %}
                     {% if ov.total_devices > 0 %}
-                      <div class="status-sub">{{ ov.online }}/{{ ov.total_devices }} online</div>
+                      <div class="status-sub">{{ ov.online }}/{{ ov.total_devices }} online{% if ov.sleeping %} · {{ ov.sleeping }} sleeping{% endif %}</div>
                     {% endif %}
                   {% endwith %}
                 </td>

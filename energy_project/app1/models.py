@@ -195,8 +195,12 @@ class User(AbstractUser):
             self.role = 'superadmin'
         super().save(*args, **kwargs)
 
+    def get_display_name(self):
+        """Clean name for screens: full name, else email. Never the internal username."""
+        return self.get_full_name().strip() or self.email or self.username
+
     def __str__(self):
-        return f"{self.username} ({self.role})"
+        return f"{self.get_display_name()} ({self.role})"
     
 import random
 
@@ -447,6 +451,69 @@ class HourlyAggregate(models.Model):
         unique_together = [['unit_id', 'hour']]
         ordering = ['-hour']
         
+        
+class InverterReading(models.Model):
+    """
+    Full telemetry snapshot from a string inverter (inverter, etc.).
+    Kept separate from SensorReading because this payload is much richer —
+    three-phase AC values, DC input, cabinet temperature, and a variable
+    number of MPPT strings — not something SensorReading's simple
+    block1_raw/block2_raw register shape was built for.
+
+    This is the detailed record for diagnostics. A simplified copy also
+    gets written to SensorReading (see post_inverter_reading view) so the
+    existing dashboard/billing/revenue code works for this device with no
+    changes needed.
+    """
+    unit_id = models.CharField(max_length=50, db_index=True)
+    device_type = models.CharField(max_length=30, default='inverter')
+    timestamp = models.FloatField(db_index=True)  # epoch seconds, same convention as SensorReading
+    modbus_address = models.IntegerField(null=True, blank=True)
+    operating_state = models.CharField(max_length=50, blank=True, null=True)
+
+    # AC side — three-phase, flattened into fixed columns (always exactly
+    # 3 phases, so this is easier to query/chart than a nested JSON blob)
+    ac_total_current_a = models.FloatField(null=True, blank=True)
+    ac_phase_a_current_a = models.FloatField(null=True, blank=True)
+    ac_phase_b_current_a = models.FloatField(null=True, blank=True)
+    ac_phase_c_current_a = models.FloatField(null=True, blank=True)
+
+    ac_phase_a_voltage_v = models.FloatField(null=True, blank=True)  # phase-to-neutral
+    ac_phase_b_voltage_v = models.FloatField(null=True, blank=True)
+    ac_phase_c_voltage_v = models.FloatField(null=True, blank=True)
+
+    ac_phase_ab_voltage_v = models.FloatField(null=True, blank=True)  # phase-to-phase
+    ac_phase_bc_voltage_v = models.FloatField(null=True, blank=True)
+    ac_phase_ca_voltage_v = models.FloatField(null=True, blank=True)
+
+    ac_active_power_w = models.FloatField(null=True, blank=True)
+    ac_apparent_power_va = models.FloatField(null=True, blank=True)
+    ac_reactive_power_var = models.FloatField(null=True, blank=True)
+    power_factor = models.FloatField(null=True, blank=True)
+    grid_frequency_hz = models.FloatField(null=True, blank=True)
+
+    lifetime_energy_kwh = models.FloatField(null=True, blank=True)
+
+    # DC side (combined/total across all strings)
+    dc_total_current_a = models.FloatField(null=True, blank=True)
+    dc_voltage_v = models.FloatField(null=True, blank=True)
+    dc_power_w = models.FloatField(null=True, blank=True)
+
+    cabinet_temperature_c = models.FloatField(null=True, blank=True)
+
+    mppt_total_power_w = models.FloatField(null=True, blank=True)
+    # Variable number of MPPT strings depending on inverter model — stored
+    # as JSON exactly as received: [{input_id, current_a, voltage_v, power_w, state, raw_events}, ...]
+    mppt_inputs = models.JSONField(default=list, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [models.Index(fields=['unit_id', '-timestamp'])]
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        return f"{self.unit_id} @ {self.timestamp}"
         
 from django.db.models.signals import post_save
 from django.dispatch import receiver

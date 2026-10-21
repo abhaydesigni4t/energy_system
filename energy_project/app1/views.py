@@ -351,6 +351,12 @@ def signup_view(request):
     return render(request, 'app1/signup.html', {'form': form})
 
 
+def keepalive(request):
+    """Only refreshes the session timer (SESSION_SAVE_EVERY_REQUEST is True)."""
+    if not request.user.is_authenticated:
+        return HttpResponse(status=401)
+    return HttpResponse(status=204)
+
 def logout_view(request):
     logout(request)
     messages.info(request, 'You have been signed out.')
@@ -465,10 +471,26 @@ def user_list(request):
 
 @write_required
 def add_user(request):
-    form = AddUserForm(request.POST or None, requesting_user=request.user)
+    # Coming from a customer page (?customer=ID): pre-fill the customer's contact
+    # email / phone and tick that customer's microgrids, so nothing is typed twice.
+    initial = {}
+    customer_id = request.GET.get('customer', '')
+    if customer_id.isdigit():
+        customer = Customer.objects.filter(pk=int(customer_id)).first()
+        if customer and request.user.can_access_customer(customer.pk):
+            initial = {
+                'email': customer.contact_email,
+                'phone': customer.contact_phone,
+                'companies': list(customer.microgrids.values_list('pk', flat=True)),
+            }
+    form = AddUserForm(request.POST or None, requesting_user=request.user, initial=initial)
     if request.method == 'POST' and form.is_valid():
         user = form.save()  # form's own save() sets username, unusable password, and companies m2m
-        messages.success(request, f'User "{user.email}" created successfully.')
+        messages.success(
+            request,
+            f'User "{user.email}" created. Next step: this person can already see the microgrids '
+            f'you ticked. To give access to a single DER, open that DER and use Edit, then "Assign to Persons".'
+        )
         return redirect('user_list')
     return render(request, 'app1/add_user.html', {'form': form})
 
@@ -749,6 +771,200 @@ class SensorReadingAPIView(APIView):
 
         return Response(results)
     
+import json
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+from django.http import JsonResponse
+
+@csrf_exempt
+@require_POST
+def post_inverter_reading(request):
+    """
+    POST endpoint for inverter telemetry. Stores the full detailed payload
+    in InverterReading, AND writes a simplified row into SensorReading
+    (active_power_kw + energy_today_kwh) so the existing dashboard, charts,
+    revenue and billing logic — built around SensorReading — works for
+    this device automatically, without any changes.
+    """
+    try:
+        payload = json.loads(request.body)
+    except (json.JSONDecodeError, TypeError):
+        return JsonResponse({'error': 'Invalid JSON body'}, status=400)
+
+    unit_id = payload.get('unit_id')
+    timestamp = payload.get('timestamp')
+    data = payload.get('data') or {}
+
+    if not unit_id or timestamp is None:
+        return JsonResponse({'error': 'unit_id and timestamp are required'}, status=400)
+
+    phase_currents = data.get('ac_phase_currents_a') or {}
+    phase_voltages = data.get('ac_phase_to_neutral_voltages_v') or {}
+    phase_to_phase = data.get('ac_phase_to_phase_voltages_v') or {}
+
+    # 1. Full detailed record
+    InverterReading.objects.create(
+        unit_id=unit_id,
+        device_type=payload.get('device_type', 'inverter'),
+        timestamp=timestamp,
+        modbus_address=data.get('modbus_address'),
+        operating_state=data.get('operating_state'),
+        ac_total_current_a=data.get('ac_total_current_a'),
+        ac_phase_a_current_a=phase_currents.get('phase_a'),
+        ac_phase_b_current_a=phase_currents.get('phase_b'),
+        ac_phase_c_current_a=phase_currents.get('phase_c'),
+        ac_phase_a_voltage_v=phase_voltages.get('phase_a'),
+        ac_phase_b_voltage_v=phase_voltages.get('phase_b'),
+        ac_phase_c_voltage_v=phase_voltages.get('phase_c'),
+        ac_phase_ab_voltage_v=phase_to_phase.get('phase_ab'),
+        ac_phase_bc_voltage_v=phase_to_phase.get('phase_bc'),
+        ac_phase_ca_voltage_v=phase_to_phase.get('phase_ca'),
+        ac_active_power_w=data.get('ac_active_power_w'),
+        ac_apparent_power_va=data.get('ac_apparent_power_va'),
+        ac_reactive_power_var=data.get('ac_reactive_power_var'),
+        power_factor=data.get('power_factor'),
+        grid_frequency_hz=data.get('grid_frequency_hz'),
+        lifetime_energy_kwh=data.get('lifetime_energy_kwh'),
+        dc_total_current_a=data.get('dc_total_current_a'),
+        dc_voltage_v=data.get('dc_voltage_v'),
+        dc_power_w=data.get('dc_power_w'),
+        cabinet_temperature_c=data.get('cabinet_temperature_c'),
+        mppt_total_power_w=data.get('mppt_total_power_w'),
+        mppt_inputs=data.get('mppt_inputs', []),
+    )
+
+    # 2. Simplified bridge row — makes this device work with the existing
+    # dashboard/revenue/billing system with zero changes to that code.
+    device = Device.objects.filter(unit_id=unit_id).first()
+    scale = device.get_scale_factor_at(timestamp) if device else 1.0
+
+    ac_active_power_w = data.get('ac_active_power_w')
+    lifetime_kwh = data.get('lifetime_energy_kwh')
+
+    # --- small helpers (empty values stay empty) ---
+    def _avg(*vals):
+        vals = [v for v in vals if v is not None]
+        return round(sum(vals) / len(vals), 1) if vals else None
+
+    def _div(value, divisor):
+        return round(value / divisor, 3) if value is not None else None
+
+    # --- pick the values out of the payload ---
+    v_an, v_bn, v_cn = (phase_voltages.get(k) for k in ('phase_a', 'phase_b', 'phase_c'))
+    v_ab, v_bc, v_ca = (phase_to_phase.get(k) for k in ('phase_ab', 'phase_bc', 'phase_ca'))
+    i_a, i_b, i_c = (phase_currents.get(k) for k in ('phase_a', 'phase_b', 'phase_c'))
+
+    avg_current = _avg(i_a, i_b, i_c)
+    if avg_current is None:
+        avg_current = data.get('ac_total_current_a')
+
+    SensorReading.objects.create(
+        unit_id=unit_id,
+        timestamp=timestamp,
+
+        # NEW: extra values so the existing cards and the "Complete Readings"
+        # table can show them. They stay empty when the inverter sends none.
+        voltage=_avg(v_an, v_bn, v_cn),
+        current=avg_current,
+        apparent_power_kva=_div(data.get('ac_apparent_power_va'), 1000),
+        reactive_power_kvar=_div(data.get('ac_reactive_power_var'), 1000),
+        voltage_a_n=v_an, voltage_b_n=v_bn, voltage_c_n=v_cn,
+        voltage_a_b=v_ab, voltage_b_c=v_bc, voltage_c_a=v_ca,
+        voltage_avg_ll=_avg(v_ab, v_bc, v_ca),
+        current_a=i_a, current_b=i_b, current_c=i_c,
+        frequency_hz=data.get('grid_frequency_hz'),
+        pf_total=data.get('power_factor'),
+
+        # EXISTING lines (unchanged):
+        # inverter sends Watts — convert to kW to match SensorReading's convention.
+        active_power_kw=round((ac_active_power_w / 1000) * scale, 2) if ac_active_power_w is not None else None,
+        # inverter's lifetime_energy_kwh is ALREADY a clean, correctly-decoded
+        # cumulative total, so we trust it directly, scaled like other devices.
+        energy_today_kwh=round(lifetime_kwh * scale, 3) if lifetime_kwh is not None else None,
+    )
+
+    return JsonResponse({'status': 'ok'}, status=201)
+
+def get_inverter_readings(request):
+    """
+    GET /api/inverter-readings/                  -> readings for ALL unit_ids, newest first
+    GET /api/inverter-readings/?unit_id=E108     -> readings for that unit only
+    Optional query params:
+      - unit_id: filter to one unit (optional)
+      - start: epoch timestamp, only readings at/after this time
+      - end: epoch timestamp, only readings at/before this time
+      - limit: max rows to return (default 500, hard cap 2000)
+    """
+    unit_id = request.GET.get('unit_id')
+
+    readings = InverterReading.objects.all()
+    if unit_id:
+        readings = readings.filter(unit_id=unit_id)
+
+    start = request.GET.get('start')
+    end = request.GET.get('end')
+    try:
+        if start:
+            readings = readings.filter(timestamp__gte=float(start))
+        if end:
+            readings = readings.filter(timestamp__lte=float(end))
+    except ValueError:
+        return JsonResponse({'error': 'start and end must be epoch timestamps'}, status=400)
+
+    readings = readings.order_by('-timestamp', '-id')
+
+    try:
+        limit = min(int(request.GET.get('limit', 500)), 2000)
+    except (TypeError, ValueError):
+        limit = 500
+    readings = list(readings[:limit])
+
+    if not readings:
+        msg = 'No data found for this unit_id' if unit_id else 'No inverter data found'
+        return JsonResponse({'error': msg}, status=404)
+
+    results = []
+    for reading in readings:
+        results.append({
+            'unit_id': reading.unit_id,
+            'device_type': reading.device_type,
+            'timestamp': reading.timestamp,
+            'data': {
+                'modbus_address': reading.modbus_address,
+                'operating_state': reading.operating_state,
+                'ac_total_current_a': reading.ac_total_current_a,
+                'ac_phase_currents_a': {
+                    'phase_a': reading.ac_phase_a_current_a,
+                    'phase_b': reading.ac_phase_b_current_a,
+                    'phase_c': reading.ac_phase_c_current_a,
+                },
+                'ac_phase_to_neutral_voltages_v': {
+                    'phase_a': reading.ac_phase_a_voltage_v,
+                    'phase_b': reading.ac_phase_b_voltage_v,
+                    'phase_c': reading.ac_phase_c_voltage_v,
+                },
+                'ac_phase_to_phase_voltages_v': {
+                    'phase_ab': reading.ac_phase_ab_voltage_v,
+                    'phase_bc': reading.ac_phase_bc_voltage_v,
+                    'phase_ca': reading.ac_phase_ca_voltage_v,
+                },
+                'ac_active_power_w': reading.ac_active_power_w,
+                'ac_apparent_power_va': reading.ac_apparent_power_va,
+                'ac_reactive_power_var': reading.ac_reactive_power_var,
+                'power_factor': reading.power_factor,
+                'grid_frequency_hz': reading.grid_frequency_hz,
+                'lifetime_energy_kwh': reading.lifetime_energy_kwh,
+                'dc_total_current_a': reading.dc_total_current_a,
+                'dc_voltage_v': reading.dc_voltage_v,
+                'dc_power_w': reading.dc_power_w,
+                'cabinet_temperature_c': reading.cabinet_temperature_c,
+                'mppt_total_power_w': reading.mppt_total_power_w,
+                'mppt_inputs': reading.mppt_inputs,
+            },
+        })
+
+    return JsonResponse({'results': results})
+    
     
 # views.py
 
@@ -941,6 +1157,51 @@ class SensorReadingFilterView(APIView):
         })
         
 
+def _round_or_none(value, digits=1):
+    """round() that lets an empty value stay empty (inverter rows have no voltage etc.)."""
+    return round(value, digits) if value is not None else None
+
+
+# ── Inverter live-state helpers ─────────────────────────────────────────
+# Inverters post about once a minute, so they get a longer "no data" limit
+# than meters. Some inverter gateways (ABB VSN700) stop sending completely at
+# night. That is normal, so we show "sleeping" and not "stale/offline".
+INVERTER_STALE_SECONDS = 150           # 2.5 minutes without data = no longer live
+INVERTER_SLEEP_MAX_SECONDS = 18 * 3600  # a silent inverter is "sleeping" for up to 18 h
+SLEEPING_MAX_KW = 0.05                 # last power at/below this = it went to sleep
+
+
+def _is_inverter_unit(unit_id):
+    """True when this unit_id has ever posted full inverter data (cached)."""
+    key = f'is_inverter_unit_{unit_id}'
+    result = cache.get(key)
+    if result is None:
+        result = InverterReading.objects.filter(unit_id=unit_id).exists()
+        cache.set(key, result, 300 if result else 60)
+    return result
+
+def _seen_ts(reading):
+    """
+    When the SERVER received this reading. We use this (not the device's own
+    timestamp) to decide online/stale, so a device with a wrong clock is not
+    shown as offline while it is really sending data.
+    """
+    created = getattr(reading, 'created_at', None)
+    return created.timestamp() if created else reading.timestamp
+
+
+def _live_state(unit_id, last_ts, last_kw, now_ts=None, meter_limit=30):
+    """Return 'online', 'stale' or 'sleeping' for one device from its newest reading."""
+    now_ts = now_ts if now_ts is not None else timezone.now().timestamp()
+    age = now_ts - last_ts
+    if _is_inverter_unit(unit_id):
+        if age <= INVERTER_STALE_SECONDS:
+            return 'online'
+        if age <= INVERTER_SLEEP_MAX_SECONDS and (last_kw is None or last_kw <= SLEEPING_MAX_KW):
+            return 'sleeping'
+        return 'stale'
+    return 'online' if age <= meter_limit else 'stale'
+
 class LatestReadingView(APIView):
     """Get the latest reading for live dashboard updates"""
     permission_classes = [IsAuthenticated] 
@@ -954,26 +1215,28 @@ class LatestReadingView(APIView):
             latest = SensorReading.objects.filter(unit_id=unit_id).latest('timestamp')
             
             # Check if data is stale (older than 30 seconds)
-            current_time = timezone.now().timestamp()
-            is_stale = (current_time - latest.timestamp) > 30
+            # online / stale / sleeping (inverters get a longer limit, see _live_state)
+            live_state = _live_state(unit_id, _seen_ts(latest), latest.active_power_kw)
 
             # ── NEW: apply this DER's display scaling factor ──
             device = Device.objects.filter(unit_id=unit_id).first()
             scale = device.get_scale_factor() if device else 1.0
             
             data = {
-                'voltage': round(latest.voltage, 1),
-                'current': round(latest.current, 1),
-                'active_power_kw': round(latest.active_power_kw, 1),
-                'reactive_power_kvar': round(latest.reactive_power_kvar, 1),
-                'apparent_power_kva': round(latest.apparent_power_kva, 1),
-                'energy_today_kwh': round(latest.energy_today_kwh, 1),
+                'voltage': _round_or_none(latest.voltage),
+                'current': _round_or_none(latest.current),
+                'active_power_kw': _round_or_none(latest.active_power_kw),
+                'reactive_power_kvar': _round_or_none(latest.reactive_power_kvar),
+                'apparent_power_kva': _round_or_none(latest.apparent_power_kva),
+                'energy_today_kwh': _round_or_none(latest.energy_today_kwh),
                 'timestamp': datetime.fromtimestamp(latest.timestamp, tz=EST).isoformat(),
-                'status': 'stale' if is_stale else 'online'
+                'status': live_state
             }
             
             serializer = LatestReadingSerializer(data)
-            return Response(serializer.data)
+            payload = dict(serializer.data)
+            payload['is_inverter'] = _is_inverter_unit(unit_id)
+            return Response(payload)
             
         except SensorReading.DoesNotExist:
             return Response({
@@ -981,9 +1244,197 @@ class LatestReadingView(APIView):
                 'message': 'No readings available'
             }, status=status.HTTP_404_NOT_FOUND)
 
+class InverterLatestView(APIView):
+    """
+    Newest FULL inverter reading for one unit (state, AC, DC, MPPT, temperature).
+    GET /api/inverter/latest/?unit_id=E108
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        unit_id = (request.query_params.get('unit_id') or '').strip()
+        if not unit_id:
+            return Response({'error': 'unit_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+        check_unit_access(request, unit_id)
+
+        r = InverterReading.objects.filter(unit_id=unit_id).order_by('-timestamp').first()
+        if r is None:
+            return Response({'status': 'offline', 'is_inverter': False,
+                             'message': 'No inverter readings available'},
+                            status=status.HTTP_404_NOT_FOUND)
+
+        device = Device.objects.filter(unit_id=unit_id).first()
+        scale = device.get_scale_factor() if device else 1.0
+
+        def kw(watts, mult=1.0):
+            return round(watts / 1000 * mult, 3) if watts is not None else None
+
+        active_kw = kw(r.ac_active_power_w, scale)
+        data = {
+            'unit_id': unit_id,
+            'is_inverter': True,
+            'status': _live_state(unit_id, _seen_ts(r), active_kw),
+            'timestamp': datetime.fromtimestamp(r.timestamp, tz=EST).isoformat(),
+            'age_seconds': int(max(0, timezone.now().timestamp() - r.timestamp)),
+            'operating_state': r.operating_state,
+            # AC output (power and energy use the same display scale as the cards)
+            'active_power_kw': active_kw,
+            'apparent_power_kva': kw(r.ac_apparent_power_va, scale),
+            'reactive_power_kvar': kw(r.ac_reactive_power_var, scale),
+            'power_factor': r.power_factor,
+            'grid_frequency_hz': r.grid_frequency_hz,
+            'lifetime_energy_kwh': round(r.lifetime_energy_kwh * scale, 3) if r.lifetime_energy_kwh is not None else None,
+            # AC voltage
+            'voltage_a_n': r.ac_phase_a_voltage_v, 'voltage_b_n': r.ac_phase_b_voltage_v,
+            'voltage_c_n': r.ac_phase_c_voltage_v,
+            'voltage_a_b': r.ac_phase_ab_voltage_v, 'voltage_b_c': r.ac_phase_bc_voltage_v,
+            'voltage_c_a': r.ac_phase_ca_voltage_v,
+            # AC current
+            'current_total_a': r.ac_total_current_a,
+            'current_a': r.ac_phase_a_current_a, 'current_b': r.ac_phase_b_current_a,
+            'current_c': r.ac_phase_c_current_a,
+            # DC side and health
+            'dc_voltage_v': r.dc_voltage_v,
+            'dc_current_a': r.dc_total_current_a,
+            'dc_power_kw': kw(r.dc_power_w),
+            'cabinet_temperature_c': r.cabinet_temperature_c,
+            'mppt_total_power_kw': kw(r.mppt_total_power_w),
+            'mppt_inputs': r.mppt_inputs or [],
+        }
+        return Response(data)
+
+
 from datetime import datetime, timedelta, timezone as dt_timezone
 from zoneinfo import ZoneInfo
  
+from django.db.models import Max
+
+from datetime import datetime, timedelta, timezone as dt_timezone
+from zoneinfo import ZoneInfo
+ 
+class InverterRecentView(APIView):
+    """
+    History for the "Complete Readings" table when the selected DER is an inverter.
+    GET /api/inverter/recent/?unit_id=E108&period=today|week|month
+    GET /api/inverter/recent/?unit_id=E108&from=YYYY-MM-DD&to=YYYY-MM-DD
+    Same period rules as RecentReadingsView: today/week = 5-minute rows,
+    month or custom range = 30-minute rows, custom range up to 31 days.
+    """
+    permission_classes = [IsAuthenticated]
+    MAX_RANGE_DAYS = 31
+
+    @staticmethod
+    def _mppt_text(inputs):
+        parts = []
+        for i, m in enumerate(inputs or []):
+            if isinstance(m, dict):
+                id_key = next((k for k in ('id', 'index', 'mppt', 'number') if k in m), None)
+                label = f"MPPT{m[id_key] if id_key else i + 1}"
+                vals = ' '.join(f"{str(k).replace('_', ' ')} {v}" for k, v in m.items() if k != id_key)
+                parts.append(f"{label}: {vals}")
+            else:
+                parts.append(f"MPPT{i + 1}: {m}")
+        return ' | '.join(parts)
+
+    def _row(self, r, scale):
+        dt = datetime.fromtimestamp(r.timestamp, tz=EST)
+
+        def kw(watts, mult=1.0):
+            return round(watts / 1000 * mult, 3) if watts is not None else None
+
+        return {
+            'date': dt.strftime('%Y-%m-%d'), 'time': dt.strftime('%H:%M:%S'),
+            'state': r.operating_state,
+            'kw': kw(r.ac_active_power_w, scale),
+            'kva': kw(r.ac_apparent_power_va, scale),
+            'kvar': kw(r.ac_reactive_power_var, scale),
+            'pf': r.power_factor, 'freq': r.grid_frequency_hz,
+            'v_an': r.ac_phase_a_voltage_v, 'v_bn': r.ac_phase_b_voltage_v, 'v_cn': r.ac_phase_c_voltage_v,
+            'v_ab': r.ac_phase_ab_voltage_v, 'v_bc': r.ac_phase_bc_voltage_v, 'v_ca': r.ac_phase_ca_voltage_v,
+            'i_total': r.ac_total_current_a,
+            'i_a': r.ac_phase_a_current_a, 'i_b': r.ac_phase_b_current_a, 'i_c': r.ac_phase_c_current_a,
+            'dc_v': r.dc_voltage_v, 'dc_a': r.dc_total_current_a, 'dc_kw': kw(r.dc_power_w),
+            'mppt_kw': kw(r.mppt_total_power_w),
+            'temp_c': r.cabinet_temperature_c,
+            'energy': round(r.lifetime_energy_kwh * scale, 2) if r.lifetime_energy_kwh is not None else None,
+            'modbus': r.modbus_address,
+            'mppt_text': self._mppt_text(r.mppt_inputs),
+        }
+
+    def get(self, request):
+        unit_id = (request.query_params.get('unit_id') or '').strip()
+        if not unit_id:
+            return Response({'error': 'unit_id is required'}, status=400)
+        check_unit_access(request, unit_id)
+
+        period = (request.query_params.get('period') or '').strip()
+        from_date = request.query_params.get('from')
+        to_date = request.query_params.get('to')
+        device = Device.objects.filter(unit_id=unit_id).first()
+        scale = device.get_scale_factor() if device else 1.0
+        now_local = datetime.now(EST)
+        start_dt = end_dt = None
+        stride_seconds = 300
+
+        if from_date and to_date:
+            try:
+                start_dt = datetime.strptime(from_date, '%Y-%m-%d').replace(
+                    hour=0, minute=0, second=0, microsecond=0, tzinfo=EST)
+                end_dt = datetime.strptime(to_date, '%Y-%m-%d').replace(
+                    hour=23, minute=59, second=59, microsecond=999999, tzinfo=EST)
+            except ValueError:
+                return Response({'error': 'Invalid date format. Use YYYY-MM-DD'}, status=400)
+            range_days = (end_dt.date() - start_dt.date()).days + 1
+            if range_days > self.MAX_RANGE_DAYS:
+                return Response({
+                    'error': f'Date range too large ({range_days} days). '
+                             f'Maximum allowed range is {self.MAX_RANGE_DAYS} days (about one month).',
+                    'max_range_days': self.MAX_RANGE_DAYS,
+                }, status=400)
+            stride_seconds = 1800
+        elif period == 'today':
+            start_dt = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
+            end_dt = now_local
+        elif period == 'week':
+            start_dt = (now_local - timedelta(days=(now_local.weekday() + 1) % 7)).replace(
+                hour=0, minute=0, second=0, microsecond=0)
+            end_dt = now_local
+        elif period == 'month':
+            start_dt = now_local.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            end_dt = now_local
+            stride_seconds = 1800
+
+        base_qs = InverterReading.objects.filter(unit_id=unit_id)
+
+        if start_dt and end_dt:
+            ranged_qs = base_qs.filter(timestamp__gte=start_dt.timestamp(),
+                                       timestamp__lte=end_dt.timestamp()).order_by('timestamp')
+            picked, last_ts = [], None
+            for r in ranged_qs.iterator(chunk_size=2000):
+                if last_ts is None or (r.timestamp - last_ts) >= stride_seconds:
+                    picked.append(r)
+                    last_ts = r.timestamp
+            picked.reverse()                      # newest first, like the meter table
+            meta = {'mode': 'range', 'rows_returned': len(picked),
+                    'sampling_interval_seconds': stride_seconds,
+                    'downsampled': stride_seconds > 300}
+        else:
+            try:
+                limit = max(1, min(int(request.query_params.get('limit', 20)), 200))
+            except (TypeError, ValueError):
+                limit = 20
+            picked, last_ts = [], None
+            for r in base_qs.order_by('-timestamp').iterator(chunk_size=500):
+                if last_ts is None or (last_ts - r.timestamp) >= 300:
+                    picked.append(r)
+                    last_ts = r.timestamp
+                    if len(picked) >= limit:
+                        break
+            meta = {'mode': 'legacy', 'rows_returned': len(picked)}
+
+        return Response({'rows': [self._row(r, scale) for r in picked], 'meta': meta})
+
+
 from django.db.models import Max
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -1118,6 +1569,9 @@ def get_month_end_baseline(unit_id, year, month, qs, fallback_dt):
     r, is_stale, age_h = get_baseline_reading(qs, fallback_dt.timestamp())
     val = r.energy_today_kwh if r else None
     return val, False, is_stale
+
+
+
  
 def get_per_unit_cost(device):
     """
@@ -1228,7 +1682,7 @@ def _compute_unit_summary(unit_id):
         'lifetime_usd': calculate_revenue(device, lifetime_kwh, as_of, metric='lifetime'),
     }
     
-DEVICE_STALE_SECONDS = 30              # matches LatestReadingView's own cutoff
+DEVICE_STALE_SECONDS = 60              # matches LatestReadingView's own cutoff
 DEVICE_OFFLINE_SECONDS = 24 * 3600     # no reading in 24h -> treat as offline
 COMPANY_OVERVIEW_CACHE_SECONDS = 120   # re-derive at most every 2 min
 # GENERATION_CATEGORIES removed — every device category present in a
@@ -1254,7 +1708,7 @@ def _compute_company_overview(company):
     devices = list(company.devices.all())
     now_ts = timezone.now().timestamp()
 
-    online = stale = offline = 0
+    online = stale = offline = sleeping = 0
     current_gen_kw = 0.0
     lifetime_gen_kwh = 0.0
     lifetime_rev_usd = 0.0
@@ -1266,14 +1720,19 @@ def _compute_company_overview(company):
         if latest is None:
             offline += 1
         else:
-            age = now_ts - latest.timestamp
+            age = now_ts - _seen_ts(latest)
             if age > DEVICE_OFFLINE_SECONDS:
                 offline += 1
-            elif age > DEVICE_STALE_SECONDS:
-                stale += 1
             else:
-                online += 1
-                is_fresh = True
+                state = _live_state(device.unit_id, _seen_ts(latest), latest.active_power_kw,
+                                    now_ts, meter_limit=DEVICE_STALE_SECONDS)
+                if state == 'online':
+                    online += 1
+                    is_fresh = True
+                elif state == 'sleeping':
+                    sleeping += 1      # inverter asleep at night: not a fault
+                else:
+                    stale += 1
 
         # Current Gen: ONLY devices reporting live (fresh) right now.
         # A stale/offline device's last known power value is not "current".
@@ -1288,11 +1747,14 @@ def _compute_company_overview(company):
             lifetime_rev_usd += summary['lifetime_usd']
 
     total = len(devices)
+    awake = total - sleeping          # sleeping inverters do not count as a problem
     if total == 0:
         status = 'no_devices'
-    elif online == total:
+    elif awake == 0:
+        status = 'sleeping'
+    elif online == awake:
         status = 'online'
-    elif offline == total:
+    elif offline == awake:
         status = 'offline'
     else:
         status = 'partial'
@@ -1301,7 +1763,7 @@ def _compute_company_overview(company):
 
     overview = {
         'status': status,
-        'online': online, 'stale': stale, 'offline': offline, 'total_devices': total,
+        'online': online, 'stale': stale, 'offline': offline, 'sleeping': sleeping, 'total_devices': total,
         'alarm_count': alarm_count,
         'current_gen_kw': round(current_gen_kw, 1),
         'lifetime_gen_kwh': round(lifetime_gen_kwh, 1),
@@ -2325,7 +2787,11 @@ def add_customer(request):
         customer = form.save(commit=False)
         customer.created_by = request.user
         customer.save()
-        messages.success(request, f'Customer "{customer.name}" created successfully.')
+        messages.success(
+            request,
+            f'Customer "{customer.name}" created. Next step: click "+ Add Microgrid Site" '
+            f'to add the first microgrid for this customer.'
+        )
         return redirect('customer_detail', customer_id=customer.pk)
     return render(request, 'app1/add_customer.html', {'form': form})
 
@@ -2433,12 +2899,20 @@ def add_company(request):
         company = form.save(commit=False)
         company.created_by = request.user
         company.save()
-        messages.success(request, f'Microgrid "{company.name}" created successfully.')
-        if company.customer_id:
-            return redirect('customer_detail', customer_id=company.customer_id)
+        messages.success(
+            request,
+            f'Microgrid "{company.name}" created. Next step: click "+ Add DER" to add the '
+            f'inverters / meters of this microgrid, then add the persons who can see it.'
+        )
         return redirect('company_detail', company_id=company.pk)
-    return render(request, 'app1/add_company.html', {'form': form, 'preset_customer': initial_customer})
-
+    customer_contacts = {
+        str(c.pk): {'email': c.contact_email, 'phone': c.contact_phone, 'location': c.location}
+        for c in Customer.objects.all()
+    }
+    return render(request, 'app1/add_company.html', {
+        'form': form, 'preset_customer': initial_customer,
+        'customer_contacts': customer_contacts,
+    })
 
 @superadmin_required
 def edit_company(request, company_id):

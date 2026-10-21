@@ -39,15 +39,15 @@
 <span class="sep">/</span>
 <a href="{% url 'user_list' %}">Personnel Management</a>
 <span class="sep">/</span>
-<span class="current">{{ target_user.username }}</span>
+<span class="current">{{ target_user.get_display_name }}</span>
 {% endblock %}
 
 {% block content %}
 <div class="content-wrap">
   <div class="profile-card">
-    <div class="avatar-xl">{{ target_user.username|slice:":1"|upper }}</div>
-    <div class="profile-name">{{ target_user.get_full_name|default:target_user.username }}</div>
-    <div class="profile-username">@{{ target_user.username }}</div>
+    <div class="avatar-xl">{{ target_user.get_display_name|slice:":1"|upper }}</div>
+    <div class="profile-name">{{ target_user.get_full_name|default:target_user.get_display_name }}</div>
+    <div class="profile-username">@{{ target_user.get_display_name }}</div>
     <span class="badge {{ target_user.role }}">{{ target_user.get_role_display }}</span>
     <div class="info-grid">
       <div class="info-item">

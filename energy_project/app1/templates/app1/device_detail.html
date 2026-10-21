@@ -27,6 +27,7 @@
 .kpi-badge{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:800;padding:2px 8px;border-radius:4px;margin-top:6px;}
 .kpi-badge.ok{background:rgba(16,185,129,0.12);color:#0E7C46;}
 .kpi-badge.stale{background:rgba(245,158,11,0.12);color:#B45309;}
+.kpi-badge.sleeping{background:rgba(96,165,250,0.15);color:#1D4ED8;}
 .kpi-badge.offline{background:rgba(244,63,94,0.12);color:#BE123C;}
 
 .chart-panel{background:#0C0F1A;border:1px solid rgba(255,255,255,0.07);border-radius:var(--r20);overflow:hidden;margin-bottom:20px;}
@@ -58,6 +59,7 @@
 .status-pill.online{background:rgba(16,185,129,0.12);color:#0E7C46;}
 .status-pill.offline{background:rgba(244,63,94,0.1);color:#BE123C;}
 .status-pill.stale{background:rgba(245,158,11,0.1);color:#B45309;}
+.status-pill.sleeping{background:rgba(96,165,250,0.15);color:#1D4ED8;}
 
 @media(max-width:900px){.kpi-strip{grid-template-columns:repeat(3,1fr);}}
 @media(max-width:600px){.kpi-strip{grid-template-columns:repeat(2,1fr);}.chart-wrap{height:200px;}}
@@ -240,7 +242,7 @@
       <div class="il" style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.4px;color:var(--text3);margin-bottom:8px;">Assigned Persons</div>
       <div>
         {% for u in device.assigned_users.all %}
-          <span class="user-chip">👤 {{ u.username }} <span style="color:var(--text3);font-weight:500;">({{ u.role }})</span></span>
+          <span class="user-chip">👤 {{ u.get_display_name }} <span style="color:var(--text3);font-weight:500;">({{ u.role }})</span></span>
         {% endfor %}
       </div>
     </div>
@@ -260,20 +262,20 @@ async function fetchLive(){
     const res = await fetch(`${API_BASE}/api/readings/latest/?unit_id=${UNIT_ID}`);
     if(!res.ok) return;
     const d = await res.json();
-    if(d.status==='online'||d.status==='stale'){
+    if(d.status==='online'||d.status==='stale'||d.status==='sleeping'){
       const set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
       set('v-kw', parseFloat(d.active_power_kw||0).toFixed(1));
       set('v-kwh', parseFloat(d.energy_today_kwh||0).toFixed(1));
       set('v-v', parseFloat(d.voltage||0).toFixed(1));
       set('v-a', parseFloat(d.current||0).toFixed(1));
       set('v-ap', parseFloat(d.apparent_power_kva||0).toFixed(1));
-      const stale = d.status==='stale';
+            const st = d.status;   // online / stale / sleeping
       ['b-kw','b-kwh','b-v','b-a','b-ap'].forEach(id=>{
         const el=document.getElementById(id);
-        if(el){el.className='kpi-badge '+(stale?'stale':'ok');el.textContent=stale?'STALE':'LIVE';}
+        if(el){el.className='kpi-badge '+(st==='online'?'ok':st);el.textContent=st==='online'?'LIVE':st.toUpperCase();}
       });
       const pill=document.getElementById('status-pill');
-      if(pill){pill.className='status-pill '+(stale?'stale':'online');pill.textContent=stale?'🟡 Stale':'🟢 Online';}
+      if(pill){pill.className='status-pill '+st;pill.textContent={online:'🟢 Online',stale:'🟡 Stale',sleeping:'🌙 Sleeping'}[st];}
     }
   }catch(e){}
 }

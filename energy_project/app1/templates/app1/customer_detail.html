@@ -64,6 +64,7 @@
   <div class="header-actions">
     {% if user.role == 'superadmin' %}
       <a href="{% url 'add_company' %}?customer={{ customer.pk }}" class="nav-btn accent">+ Add Microgrid Site</a>
+      <a href="{% url 'add_user' %}?customer={{ customer.pk }}" class="nav-btn">+ Add Person</a>
       <a href="{% url 'edit_customer' customer.pk %}" class="nav-btn orange">Edit Customer</a>
       <a href="{% url 'delete_customer' customer.pk %}" class="nav-btn danger">Delete</a>
     {% endif %}

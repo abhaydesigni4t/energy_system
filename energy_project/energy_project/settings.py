@@ -78,6 +78,9 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
+        'OPTIONS': {
+            'timeout': 30,   # wait up to 30s for the lock instead of 5s
+        },
     }
 }
 
@@ -142,7 +145,7 @@ SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_HTTPONLY = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
-SESSION_COOKIE_AGE = 60 * 10  # 10 minutes absolute fallback, in case the browser keeps the cookie alive
+SESSION_COOKIE_AGE = 60 * 15  # 15 minutes absolute fallback, in case the browser keeps the cookie alive
 SESSION_SAVE_EVERY_REQUEST = True
 
 AUTHENTICATION_BACKENDS = [
@@ -171,3 +174,13 @@ EMAIL_HOST_USER = 'support3rdrock@gmail.com'
 EMAIL_HOST_PASSWORD = 'ocmagvwuvdstxigf'
 DEFAULT_FROM_EMAIL = 'support3rdrock@gmail.com'
 
+
+from django.db.backends.signals import connection_created
+
+def _enable_sqlite_wal(sender, connection, **kwargs):
+    if connection.vendor == 'sqlite':
+        cursor = connection.cursor()
+        cursor.execute('PRAGMA journal_mode=WAL;')
+        cursor.execute('PRAGMA synchronous=NORMAL;')
+
+connection_created.connect(_enable_sqlite_wal)

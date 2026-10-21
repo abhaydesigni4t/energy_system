@@ -41,7 +41,7 @@ body{font-family:var(--font-text);background:var(--bg);color:var(--text1);min-he
     <div class="warn-icon">⚠️</div>
     <h2 class="heading">Delete this account?</h2>
     <p class="sub">This action is permanent and cannot be undone. All data associated with this Person will be removed.</p>
-    <div class="username-chip">@{{ target_user.username }}</div>
+    <div class="username-chip">@{{ target_user.get_display_name }}</div>
     <div class="actions">
       <a href="{% url 'user_list' %}" class="cancel-btn">Cancel</a>
       <form method="post" style="display:inline;">

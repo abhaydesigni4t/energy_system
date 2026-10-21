@@ -176,7 +176,11 @@ select[multiple].fi{min-height:120px;}
         <div class="fg">
           <label class="flb">Assign to Persons</label>
           {{ form.assigned_users }}
-          <div class="field-hint">Hold Ctrl/Cmd to select multiple Persons.</div>
+          <div class="field-hint">
+            Hold Ctrl/Cmd to select multiple Persons. Person not in the list?
+            <a href="{% url 'add_user' %}{% if company.customer_id %}?customer={{ company.customer_id }}{% endif %}" target="_blank" rel="noopener">Add a person</a>
+            (opens in a new tab), or assign the person later with Edit.
+          </div>
         </div>
 
         <hr class="section-sep">
